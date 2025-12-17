@@ -5,15 +5,40 @@ integration testing, and infrastructure automation.
 
 ## Local Development
 
-Use the provided `papercrate.tmux` to spin up the full stack in one tmux session:
+The entire application stack (frontend, backend, worker, database, minio, quickwit) runs fully containerized via Docker Compose.
+
+### Start Development Environment
+
+To start the stack (builds are handled automatically):
 
 ```bash
-tmux -f papercrate.tmux attach
+docker compose -f docker-compose.dev.yml up --build
 ```
 
-This creates windows for the compose stack, frontend dev server, backend API, and
-background worker using the repository-relative paths defined in the tmux file.
-Detach with `Ctrl+b d` and reattach later with the same command.
+### Apply Code Changes
+
+Hot-reloading is handled automatically by `cargo watch` inside the container.
+When you save files in `backend/src`, the watcher will:
+
+1.  Rebuild the modified binaries.
+2.  Restart the `backend`, `worker`, and `webdav` services via `supervisord`.
+
+No manual restart is required.
+
+### Running Migrations
+
+Since `diesel-cli` runs inside the container:
+
+```bash
+# Run pending migrations
+docker compose -f docker-compose.dev.yml exec server diesel migration run
+
+# Revert last migration
+docker compose -f docker-compose.dev.yml exec server diesel migration revert
+
+# Create new migration
+docker compose -f docker-compose.dev.yml exec server diesel migration generate name_of_migration
+```
 
 The development Postgres container now seeds two database roles:
 
@@ -27,21 +52,21 @@ role with `SET ROLE papercrate_app_login;` before querying tenant tables.
 
 ## Backend Integration Tests
 
-Integration tests require a running Postgres instance (and, optionally, Quickwit
-for OCR indexing). The repository includes a lightweight compose file for local
-runs:
+Integration tests run in a dedicated, ephemeral container stack. The repository includes a lightweight compose file that provisions a fresh Postgres instance (using tmpfs) and Quickwit for every run.
+
+To run the tests:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d
-export TEST_DATABASE_URL=postgres://papercrate:papercrate_test@localhost:5433/papercrate_test
-# optional, enables Quickwit indexing jobs
-export QUICKWIT_ENDPOINT=http://localhost:7280
-export QUICKWIT_INDEX=documents
-cargo test
+docker compose -f docker-compose.test.yml run --rm test-runner
 ```
 
-Stop the database when you are done:
+This will:
+1.  Spin up `postgres-test` and `quickwit-test` (in background if not running).
+2.  Start the `test-runner` container.
+3.  Wait for DB, run migrations, and execute `cargo test`.
+4.  Remove the runner container after exit.
 
+To clean up the infrastructure afterwards:
 ```bash
 docker compose -f docker-compose.test.yml down
 ```
@@ -50,14 +75,8 @@ The compose service uses tmpfs storage, giving each test run a clean database.
 
 ## Runtime Dependencies
 
-- `ocrmypdf` (optional but recommended): Used by the OCR worker to extract text
-  from PDFs when no embedded text layer is available. Ensure it is installed and
-  available on the worker hosts if OCR is desired.
-- Quickwit (optional): The Quickwit indexer is used to ingest extracted text for
-  search. Set `QUICKWIT_ENDPOINT` and `QUICKWIT_INDEX` in the environment when
-  running workers if you want indexing jobs to run. The local compose file starts
-  a Quickwit instance on `http://localhost:7280` and seeds the `documents` index
-  automatically.
+- `ocrmypdf`: Used by the worker to extract text from images. If missing, the worker logs a warning and skips text extraction for that document.
+- `Quickwit`: Used for full-text search. If configured (via `QUICKWIT_ENDPOINT`), the worker pushes extracted text to the index. If missing, search features will simply be unavailable.
 
 ## Configuration
 
@@ -76,9 +95,8 @@ runtime settings in staging without exposing credentials.
 
 ## Running Migrations in Kubernetes
 
-The backend container image ships the `diesel` CLI, so schema migrations can be
-executed as a short-lived Job (or Helm hook) before rolling out new pods. Example
-manifest:
+The backend container image ships with the `papercrate-admin` binary, which can execute schema migrations
+as a short-lived Job (or Helm hook) before rolling out new pods. Example manifest:
 
 ```yaml
 apiVersion: batch/v1
@@ -92,16 +110,19 @@ spec:
       containers:
         - name: migrate
           image: ghcr.io/example/papercrate-backend:<TAG>
-          command: ["/usr/local/bin/diesel", "migration", "run"]
+          command: ["/usr/local/bin/papercrate-admin", "migrate-database"]
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: papercrate-db
                   key: DATABASE_URL
+
+            - name: MIGRATIONS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: papercrate-db
+                  key: DATABASE_URL
 ```
 
-Run the Job manually (`kubectl apply -f migrate-job.yaml`) or configure it as a
-Helm pre-install/pre-upgrade hook so migrations run automatically on each
-deployment. Once the Job succeeds, deploy/update the backend `Deployment` as
-usual.
+Run the Job manually or use the Helm hooks configured in `k8s/papercrate/templates/migrate-job.yaml`. The `papercrate-admin` binary is built specifically for administrative tasks.

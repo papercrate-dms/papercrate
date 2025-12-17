@@ -3,16 +3,32 @@
 ARG NODE_IMAGE=node:20-alpine
 ARG NGINX_IMAGE=nginx:alpine
 
-FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
+# ------------------------------------------------------------------------------
+# Base Stage: Install Dependencies
+# ------------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS base
 WORKDIR /app
-
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm install
 
+# ------------------------------------------------------------------------------
+# Development Stage
+# ------------------------------------------------------------------------------
+FROM base AS development
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# ------------------------------------------------------------------------------
+# Build Stage
+# ------------------------------------------------------------------------------
+FROM base AS build
 COPY . .
 RUN npm run build
 
-FROM ${NGINX_IMAGE}
+# ------------------------------------------------------------------------------
+# Runtime Stage
+# ------------------------------------------------------------------------------
+FROM ${NGINX_IMAGE} AS runtime
 WORKDIR /usr/share/nginx/html
 
 COPY --from=build /app/dist ./

@@ -65,7 +65,7 @@ module.exports = {
     proxy: [
       {
         context: ['/api', '/download'],
-        target: 'http://127.0.0.1:3000',
+        target: process.env.API_PROXY_PASS,
         changeOrigin: true,
         secure: false,
       },
