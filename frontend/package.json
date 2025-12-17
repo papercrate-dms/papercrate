@@ -1,0 +1,48 @@
+{
+  "name": "papercrate-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rudimentary Webpack SPA for Papercrate Milestone 1",
+  "scripts": {
+    "dev": "webpack serve --mode development --open",
+    "build": "webpack --mode production",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "check": "tsc --noEmit && npx knip && npm run lint",
+    "test:engine": "node --test tests/workspaceEngine.test.js"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@tabler/icons-react": "^3.35.0",
+    "axios": "^1.13.2",
+    "pdfjs-dist": "^5.4.394",
+    "prop-types": "^15.8.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@eslint/js": "^9.39.1",
+    "@svgr/webpack": "^8.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.18.1",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.1",
+    "css-loader": "^7.1.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "html-webpack-plugin": "^5.6.4",
+    "knip": "^5.71.0",
+    "style-loader": "^4.0.0",
+    "typescript": "^5.7.3",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}

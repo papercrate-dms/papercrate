@@ -1,0 +1,99 @@
+.fullscreen-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-backdrop);
+  transition: background 0.25s ease, opacity 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6000000;
+  cursor: default;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.fullscreen-preview-backdrop--visible {
+  opacity: 1;
+  background: var(--overlay-backdrop);
+  pointer-events: auto;
+}
+
+.fullscreen-preview__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6000001;
+  width: 100%;
+  height: 100%;
+  --preview-padding: 1.5vmin;
+  --header-clearance: calc(2.5rem + 0.5rem);
+}
+
+.fullscreen-preview__scroll .document-viewer__object--image {
+  width: auto;
+  height: auto;
+  box-shadow: 0 32px 120px var(--shadow-deep);
+  cursor: default;
+  max-width: calc(100vw - 2 * var(--preview-padding, 1.5vmin));
+  max-height: calc(100vh - var(--header-clearance) - 2 * var(--preview-padding, 1.5vmin));
+  touch-action: manipulation;
+}
+
+.fullscreen-preview__scroll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  padding-top: var(--header-clearance);
+  box-sizing: border-box;
+  overflow: auto;
+  --pdf-viewer-stack-padding: var(--preview-padding);
+}
+
+.fullscreen-preview__scroll:focus {
+  outline: none;
+}
+
+.fullscreen-preview__scroll .document-viewer__object--pdf {
+  width: 100%;
+  height: 100%;
+}
+
+.fullscreen-preview__stage .pdf-viewer__page-wrapper {
+  position: relative;
+  overflow: visible;
+}
+
+.fullscreen-preview__stage .pdf-viewer__page-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: 0 32px 120px var(--shadow-deep);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Header positioning for preview zoom overlay */
+.fullscreen-preview-backdrop .panel-header--dark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6000002;
+  cursor: default;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+  box-shadow: 0 1rem 0.5rem var(--shadow-subtle);
+}
+
+/* Prevent header clicks from closing backdrop */
+.fullscreen-preview-backdrop .panel-header--dark * {
+  pointer-events: auto;
+}

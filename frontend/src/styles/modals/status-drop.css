@@ -1,0 +1,75 @@
+.status-banner {
+  padding: 0.45rem 0.8rem;
+  border-radius: 2px;
+  font-size: 0.85rem;
+}
+
+.status-banner.info {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.status-banner.success {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.status-banner.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--accent-soft);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.drop-overlay.active {
+  display: flex;
+}
+
+.drop-overlay__content {
+  background: var(--surface);
+  color: var(--fg);
+  padding: 1.25rem 1.75rem;
+  border-radius: 2px;
+  text-align: center;
+  font-size: 0.95rem;
+  box-shadow: none;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 2000000;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 4px;
+  box-shadow: 0 18px 42px var(--overlay-shadow);
+  width: min(360px, 100%);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal--panel {
+  width: 80vw;
+  height: 90vh;
+  padding: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  gap: 0;
+}

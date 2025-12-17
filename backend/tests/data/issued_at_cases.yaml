@@ -1,0 +1,584 @@
+# Derived test cases from the Paperless-ngx project (https://github.com/paperless-ngx/paperless-ngx).
+# Copyright (c) Paperless-ngx contributors, licensed under the GNU GPL-3.0.
+cases:
+  - name: date_format_1
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 130218 lorem ipsum"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_2
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 2018 lorem ipsum"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_3
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 20180213 lorem ipsum"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_4
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 13.02.2018 lorem ipsum"
+    settings: {}
+    expected:
+      mode: single
+      value: 2018-02-13
+
+  - name: date_format_5
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 130218, 2018, 20180213 and lorem 13.02.2018 lorem ipsum"
+    settings: {}
+    expected:
+      mode: single
+      value: 2018-02-13
+
+  - name: date_format_6
+    parser: parse_date
+    filename: null
+    content: |
+      lorem ipsum
+      Wohnort
+      3100
+      IBAN
+      AT87 4534
+      1234
+      1234 5678
+      BIC
+      lorem ipsum
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_7
+    parser: parse_date
+    filename: null
+    content: |
+      lorem ipsum
+      März 2019
+      lorem ipsum
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - de
+    expected:
+      mode: single
+      value: 2019-03-01
+
+  - name: date_format_8
+    parser: parse_date
+    filename: null
+    content: |
+      lorem ipsum
+      Wohnort
+      3100
+      IBAN
+      AT87 4534
+      1234
+      1234 5678
+      BIC
+      lorem ipsum
+      März 2020
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - de
+    expected:
+      mode: single
+      value: 2020-03-01
+
+  - name: date_format_9
+    parser: parse_date
+    filename: null
+    content: |
+      lorem ipsum
+      27. Nullmonth 2020
+      März 2020
+      lorem ipsum
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - de
+    expected:
+      mode: single
+      value: 2020-03-01
+
+  - name: date_format_10
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22-MAR-2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_11
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22 MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_12
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22/MAR/2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_13
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22.MAR.2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_14
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22.MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_15
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22.MAR.22 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_16
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22.MAR,22 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_17
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22,MAR,2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_18
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22 MAR,2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: date_format_19
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 21st MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-21
+
+  - name: date_format_20
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 22nd March 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-22
+
+  - name: date_format_21
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 2nd MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-02
+
+  - name: date_format_22
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 23rd MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-23
+
+  - name: date_format_23
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 24th MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-24
+
+  - name: date_format_24
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 21-MAR-2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-21
+
+  - name: date_format_25
+    parser: parse_date
+    filename: null
+    content: "Customer Number Currency 25TH MAR 2022 Credit Card 1934829304"
+    settings: {}
+    expected:
+      mode: single
+      value: 2022-03-25
+
+  - name: date_format_26
+    parser: parse_date
+    filename: null
+    content: "CHASE 0 September 25, 2019 JPMorgan Chase Bank, NA. P0 Box 182051"
+    settings: {}
+    expected:
+      mode: single
+      value: 2019-09-25
+
+  - name: numeric_mdy_slash
+    parser: parse_date
+    filename: null
+    content: "03/17/2008"
+    settings:
+      DATE_ORDER: MDY
+    expected:
+      mode: single
+      value: 2008-03-17
+
+  - name: crazy_date_past
+    parser: parse_date
+    filename: null
+    content: "01-07-0590 00:00:00"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: crazy_date_future
+    parser: parse_date
+    filename: null
+    content: "01-07-2350 00:00:00"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: crazy_date_with_spaces
+    parser: parse_date
+    filename: null
+    content: "20 408000l 2475"
+    settings: {}
+    expected:
+      mode: none
+
+  - name: utf_month_names_decembre
+    parser: parse_date
+    filename: null
+    content: "13 décembre 2023"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2023-12-13
+
+  - name: utf_month_names_aout
+    parser: parse_date
+    filename: null
+    content: "13 août 2022"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2022-08-13
+
+  - name: utf_month_names_marz
+    parser: parse_date
+    filename: null
+    content: "11 März 2020"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2020-03-11
+
+  - name: utf_month_names_ozujka
+    parser: parse_date
+    filename: null
+    content: "17. ožujka 2018."
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2018-03-17
+
+  - name: utf_month_names_veljace
+    parser: parse_date
+    filename: null
+    content: "1. veljače 2016."
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2016-02-01
+
+  - name: utf_month_names_unora
+    parser: parse_date
+    filename: null
+    content: "15. února 1985"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 1985-02-15
+
+  - name: utf_month_names_zari
+    parser: parse_date
+    filename: null
+    content: "30. září 2011"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2011-09-30
+
+  - name: utf_month_names_kvetna
+    parser: parse_date
+    filename: null
+    content: "28. května 1990"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 1990-05-28
+
+  - name: utf_month_names_grudzien
+    parser: parse_date
+    filename: null
+    content: "1. grudzień 1997"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 1997-12-01
+
+  - name: utf_month_names_subat
+    parser: parse_date
+    filename: null
+    content: "17 Şubat 2024"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2024-02-17
+
+  - name: utf_month_names_agustos
+    parser: parse_date
+    filename: null
+    content: "30 Ağustos 2012"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2012-08-30
+
+  - name: utf_month_names_eylul
+    parser: parse_date
+    filename: null
+    content: "17 Eylül 2000"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+    expected:
+      mode: single
+      value: 2000-09-17
+
+  - name: utf_month_names_oktober
+    parser: parse_date
+    filename: null
+    content: "5. október 1992"
+    settings:
+      DATE_PARSER_LANGUAGES:
+        - fr
+        - de
+        - hr
+        - cs
+        - pl
+        - tr
+        - hu
+    expected:
+      mode: single
+      value: 1992-10-05
+
+  - name: multiple_dates
+    parser: parse_date_generator
+    filename: null
+    content: |
+      This text has multiple dates.
+      For example 02.02.2018, 22 July 2022 and December 2021.
+      But not 24-12-9999 because it's in the future...
+    settings: {}
+    expected:
+      mode: multiple
+      value:
+        - 2018-02-02
+        - 2022-07-22
+        - 2021-12-01
+
+  - name: filename_date_parse_valid_ymd
+    parser: parse_date
+    filename: /tmp/Scan-2022-04-01.pdf
+    content: "No date in here"
+    settings:
+      FILENAME_DATE_ORDER: YMD
+    expected:
+      mode: single
+      value: 2022-04-01
+
+  - name: filename_date_parse_valid_dmy
+    parser: parse_date
+    filename: /tmp/Scan-10.01.2021.pdf
+    content: "No date in here"
+    settings:
+      FILENAME_DATE_ORDER: DMY
+    expected:
+      mode: single
+      value: 2021-01-10
+
+  - name: filename_date_parse_invalid
+    parser: parse_date
+    filename: "/tmp/20 408000l 2475 - test.pdf"
+    content: "No date in here"
+    settings:
+      FILENAME_DATE_ORDER: YMD
+    expected:
+      mode: none
+
+  - name: filename_date_ignored_use_content
+    parser: parse_date
+    filename: /tmp/Scan-2022-04-01.pdf
+    content: "The matching date is 24.03.2022"
+    settings:
+      FILENAME_DATE_ORDER: YMD
+      IGNORE_DATES:
+        - 2022-04-01
+    expected:
+      mode: single
+      value: 2022-03-24
+
+  - name: ignored_dates_default_order
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 110319, 20200117 and lorem 13.02.2018 lorem ipsum"
+    settings:
+      IGNORE_DATES:
+        - 2019-11-03
+        - 2020-01-17
+    expected:
+      mode: single
+      value: 2018-02-13
+
+  - name: ignored_dates_order_ymd
+    parser: parse_date
+    filename: null
+    content: "lorem ipsum 190311, 20200117 and lorem 13.02.2018 lorem ipsum"
+    settings:
+      FILENAME_DATE_ORDER: YMD
+      IGNORE_DATES:
+        - 2019-11-03
+        - 2020-01-17
+    expected:
+      mode: single
+      value: 2018-02-13

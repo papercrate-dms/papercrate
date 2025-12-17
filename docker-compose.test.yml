@@ -1,0 +1,58 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: papercrate
+      POSTGRES_PASSWORD: papercrate_test
+      POSTGRES_DB: papercrate_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papercrate -d papercrate_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  quickwit-test:
+    image: quickwit/quickwit:0.8.2
+    command: ["run"]
+    environment:
+      QW_ENABLE_API_AUTH: "false"
+      QW_DATA_DIR: /quickwit/data
+    ports:
+      - "7281:7280"
+    volumes:
+      - quickwit_test_data:/quickwit/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:7280/api/v1/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  admin-bootstrap:
+    build:
+      context: ./backend
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      quickwit-test:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://papercrate:papercrate_test@postgres-test:5432/papercrate_test
+      DATABASE_MAX_POOL_SIZE: 1
+      S3_BUCKET: documents
+      JWT_SECRET: change-me-super-secret
+      QUICKWIT_ENDPOINT: http://quickwit-test:7280
+    entrypoint: []
+    command: >
+      /bin/sh -c "
+        echo 'Running database migrations' &&
+        diesel migration run
+      "
+    user: root
+    restart: "no"
+
+volumes:
+  quickwit_test_data:

@@ -1,0 +1,94 @@
+{{- if .Values.migrateJob.enabled }}
+{{- $defaultMigrateSecret := printf "%s-migrate-env" (include "papercrate.fullname" .) }}
+{{- $migrateSecretName := default $defaultMigrateSecret .Values.migrateJob.databaseUrlSecret.name }}
+{{- $migrateSecretKey := default "DATABASE_URL" .Values.migrateJob.databaseUrlSecret.key }}
+{{- if and (not .Values.migrateJob.databaseUrlSecret.create) (not .Values.migrateJob.databaseUrlSecret.name) }}
+  {{- fail "migrateJob.databaseUrlSecret.name must be set when create=false" }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "papercrate.fullname" . }}-migrate
+  labels:
+    {{- include "papercrate.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "5"
+    {{- range $key, $value := .Values.migrateJob.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "papercrate.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: OnFailure
+      {{- if or .Values.global.imagePullSecrets .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "papercrate.backend.image" . }}:{{ include "papercrate.image.tag" (dict "image" .Values.backend.image "Chart" .Chart) }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command:
+            - /usr/local/bin/papercrate-admin
+            - migrate-database
+          env:
+            - name: SERVER_HOST
+              value: 0.0.0.0
+            - name: SERVER_PORT
+              value: {{ .Values.backend.service.port | quote }}
+            {{- with .Values.global.s3.endpoint }}
+            - name: AWS_ENDPOINT_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.global.s3.region }}
+            - name: AWS_REGION
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.global.s3.bucket }}
+            - name: S3_BUCKET
+              value: {{ . | quote }}
+            {{- end }}
+            - name: MIGRATIONS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $migrateSecretName }}
+                  key: {{ $migrateSecretKey }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $migrateSecretName }}
+                  key: {{ $migrateSecretKey }}
+            {{- range .Values.migrateJob.extraEnv }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ if .Values.backend.env.existingSecret }}{{ .Values.backend.env.existingSecret }}{{ else }}{{ include "papercrate.fullname" . }}-backend-env{{ end }}
+            {{- with .Values.global.s3.credentialsSecret }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- range .Values.backend.envFrom }}
+            - {{ toYaml . | nindent 12 | trim }}
+            {{- end }}
+            {{- range .Values.migrateJob.envFrom }}
+            - {{ toYaml . | nindent 12 | trim }}
+            {{- end }}
+          {{- with .Values.migrateJob.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

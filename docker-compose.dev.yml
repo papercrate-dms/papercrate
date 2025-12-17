@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: papercrate
+      POSTGRES_PASSWORD: papercrate_dev
+      POSTGRES_DB: papercrate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papercrate"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/documents --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/documents;
+      exit 0;
+      "
+
+  quickwit:
+    image: quickwit/quickwit:0.8.2
+    command: ["run"]
+    environment:
+      QW_ENABLE_API_AUTH: "false"
+      QW_DATA_DIR: /quickwit/data
+    ports:
+      - "7280:7280"
+    volumes:
+      - quickwit_data:/quickwit/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:7280/api/v1/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  admin-bootstrap:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      quickwit:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://papercrate:papercrate_dev@postgres:5432/papercrate
+      DATABASE_MAX_POOL_SIZE: 2
+      AWS_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      S3_BUCKET: documents
+      JWT_SECRET: change-me-super-secret
+      QUICKWIT_ENDPOINT: http://quickwit:7280
+    entrypoint: []
+    command: >
+      /bin/sh -c "
+        echo 'Running database migrations' &&
+        diesel migration run
+      "
+    user: root
+    restart: "no"
+
+volumes:
+  postgres_data:
+  minio_data:
+  quickwit_data:

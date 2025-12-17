@@ -1,0 +1,182 @@
+version: "3.9"
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://papercrate_app_login:${APP_DATABASE_PASSWORD:-papercrate_app}@postgres:5432/papercrate
+  DATABASE_MAX_POOL_SIZE: ${DATABASE_MAX_POOL_SIZE:-8}
+  SERVER_HOST: 0.0.0.0
+  SERVER_PORT: 3000
+  WEBDAV_HOST: 0.0.0.0
+  WEBDAV_PORT: 3001
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+  JWT_ISSUER: ${JWT_ISSUER:-papercrate}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-papercrate-clients}
+  JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-60}
+  DOWNLOAD_TOKEN_AUDIENCE: ${DOWNLOAD_TOKEN_AUDIENCE:-papercrate-download}
+  DOWNLOAD_TOKEN_EXPIRY_MINUTES: ${DOWNLOAD_TOKEN_EXPIRY_MINUTES:-60}
+  REFRESH_TOKEN_EXPIRY_DAYS: ${REFRESH_TOKEN_EXPIRY_DAYS:-30}
+  REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+  REFRESH_COOKIE_DOMAIN: ${REFRESH_COOKIE_DOMAIN:-}
+  CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-}
+  AWS_ENDPOINT_URL: http://minio:9000
+  AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-papercrate}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+  AWS_REGION: ${AWS_REGION:-us-east-1}
+  S3_BUCKET: ${S3_BUCKET:-documents}
+  QUICKWIT_ENDPOINT: http://quickwit:7280
+  QUICKWIT_INDEX: ${QUICKWIT_INDEX:-documents}
+  WORKER_MAX_DOCUMENT_BYTES: ${WORKER_MAX_DOCUMENT_BYTES:-209715200}
+  UPLOAD_BODY_LIMIT_BYTES: ${UPLOAD_BODY_LIMIT_BYTES:-134217728}
+  WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-papercrate.local}
+  WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-https://papercrate.local}
+  WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Papercrate}
+  RUST_LOG: ${RUST_LOG:-info}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: papercrate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: papercrate
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papercrate -d papercrate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-papercrate}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-papercrate}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+      S3_BUCKET: ${S3_BUCKET:-documents}
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        /usr/bin/mc alias set papercrate http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+        /usr/bin/mc mb papercrate/$${S3_BUCKET} --ignore-existing;
+        exit 0;
+      "
+    restart: "no"
+
+  quickwit:
+    image: quickwit/quickwit:0.8.2
+    command: ["run"]
+    restart: unless-stopped
+    environment:
+      QW_ENABLE_API_AUTH: "false"
+      QW_DATA_DIR: /quickwit/data
+    volumes:
+      - quickwit_data:/quickwit/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:7280/api/v1/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${QUICKWIT_PORT:-7280}:7280"
+
+  backend:
+    build:
+      context: ./backend
+    image: papercrate/backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+      quickwit:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-env
+    ports:
+      - "${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    image: papercrate/backend:latest
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+    entrypoint: ["/usr/local/bin/papercrate-worker"]
+    restart: unless-stopped
+
+  webdav:
+    image: papercrate/backend:latest
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+    entrypoint: ["/usr/local/bin/papercrate-webdav"]
+    ports:
+      - "${WEBDAV_PORT:-3001}:3001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: papercrate/frontend:latest
+    environment:
+      API_PROXY_PASS: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+
+  migrator:
+    image: papercrate/backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgres://papercrate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/papercrate
+    entrypoint: ["/usr/local/bin/diesel"]
+    command: ["migration", "run"]
+    restart: "no"
+
+volumes:
+  postgres_data:
+  minio_data:
+  quickwit_data:

@@ -1,0 +1,106 @@
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.toggle-button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle-button:hover,
+.toggle-button:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--fg);
+  outline: none;
+}
+
+.toggle-button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.documents-actions__sort-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.documents-sort {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.documents-sort__quickmenu {
+  --quick-add-menu-min-width: 200px;
+}
+
+.documents-sort__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+  min-height: 2.1rem;
+}
+
+.documents-sort__label {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.documents-sort__trigger-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.documents-sort__quickmenu .menu__item,
+.documents-sort__quickmenu .menu__item.active {
+  font-weight: 400;
+}
+
+.documents-toolbar__toggle {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem;
+  background: transparent;
+  color: var(--muted);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.documents-toolbar__toggle:hover:not([disabled]) {
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.documents-toolbar__toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+.documents-sort__direction {
+  padding: 0.3rem 0.45rem;
+}
+
+.documents-sort__direction[aria-pressed='true'] {
+  border-color: var(--border);
+  color: var(--muted);
+  background: transparent;
+}
+
+.documents-sort__direction svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}

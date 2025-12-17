@@ -1,0 +1,242 @@
+:root {
+  color-scheme: light dark;
+
+  --neutral-hue: 29deg;
+  --surface-hue-shift: 6deg;
+  --foreground-hue-offset: 20deg;
+  --accent-hue-offset: 0deg;
+  --dark-hue-offset: 40deg;
+  --dark-foreground-hue-offset: 20deg;
+  --neutral-chroma: 0.44;
+  --neutral-chroma-min: 0.01;
+  --neutral-chroma-max: 0.20;
+  --neutral-chroma-range: calc(var(--neutral-chroma-max) - var(--neutral-chroma-min));
+  --neutral-chroma-effective: calc(var(--neutral-chroma-min) + clamp(0, var(--neutral-chroma), 1) * var(--neutral-chroma-range));
+  --neutral-contrast-delta: 0.033;
+  --neutral-chroma-scale: calc(clamp(0.0001, var(--neutral-chroma-effective), 1) / 0.1);
+  --tag-chip-default-l: 0.9;
+  --tag-chip-bg-lighten: 0.4;
+  --tag-chip-bg-chroma-scale: 0.75;
+  --tag-chip-outline-lighten: 0.12;
+  --tag-chip-outline-chroma-scale: 0.75;
+  --tag-chip-text-lighten: -0.5;
+  --tag-chip-text-chroma-scale: 0.4;
+
+  /* --- Neutrals --- */
+  --bg: oklch(calc(0.97 + var(--neutral-contrast-delta) * 0.12) calc(var(--neutral-chroma-effective) * 0.001) calc(var(--neutral-hue) + var(--surface-hue-shift)));
+  --surface: oklch(calc(0.995 + var(--neutral-contrast-delta) * 0.1) calc(var(--neutral-chroma-effective) * 0.001) calc(var(--neutral-hue) + var(--surface-hue-shift)));
+  --surface-subtle: oklch(calc(0.96 + var(--neutral-contrast-delta) * 0.16) calc(var(--neutral-chroma-effective) * 0.002) calc(var(--neutral-hue) + var(--surface-hue-shift)));
+  --fg: oklch(calc(0.32 - var(--neutral-contrast-delta) * 0.18) calc(var(--neutral-chroma-effective) * 0.003) calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --muted: oklch(calc(0.54 - var(--neutral-contrast-delta) * 0.05) calc(var(--neutral-chroma-effective) * 0.005) calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --muted-subtle: color-mix(in oklch, var(--muted) 55%, var(--border));
+  --sidebar-fg: oklch(calc(0.56 + var(--neutral-contrast-delta) * 0.18) calc(var(--neutral-chroma-effective) * 0.003) calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --border: oklch(calc(0.92 + var(--neutral-contrast-delta) * 0.15) calc(var(--neutral-chroma-effective) * 0.0015) calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+
+  /* --- Accent (primary) --- */
+  --accent: oklch(0.61 calc(0.16 * var(--neutral-chroma-scale)) calc(var(--neutral-hue) + var(--foreground-hue-offset) + var(--accent-hue-offset)));
+  --accent-hover: oklch(0.70 calc(0.12 * var(--neutral-chroma-scale)) calc(var(--neutral-hue) + var(--foreground-hue-offset) + var(--accent-hue-offset)));
+  --on-accent: oklch(1 0 0);
+
+  --folder-icon-back: color-mix(in oklch, var(--accent) 78%, black 8%);
+  --folder-icon-mid: color-mix(in oklch, var(--accent) 60%, white 30%);
+  --folder-icon-front: color-mix(in oklch, var(--accent) 42%, white 58%);
+
+  --success-hue: 140deg;
+  --warning-hue: 85deg;
+  --danger-hue: 25deg;
+
+  --accent-soft: color-mix(in oklch, var(--accent) 12%, transparent);
+  --accent-elevated: color-mix(in oklch, var(--accent) 16%, transparent);
+  --accent-elevated-strong: color-mix(in oklch, var(--accent) 22%, transparent);
+  --accent-outline: color-mix(in oklch, var(--accent) 45%, transparent);
+  --accent-outline-strong: color-mix(in oklch, var(--accent) 80%, transparent);
+  --accent-focus: color-mix(in oklch, var(--accent) 75%, transparent);
+  --surface-overlay: color-mix(in oklch, white 82%, transparent);
+
+  /* -- Selection --- */
+  --selection: oklch(0.61 0.01 var(--neutral-hue));
+
+  /* --- Derived accent states --- */
+  --selection-soft: color-mix(in oklch, var(--selection) 12%, transparent);
+
+  /* --- Shadows & overlays --- */
+  --shadow-faint: color-mix(in oklch, black 6%, transparent);
+  --shadow-soft: color-mix(in oklch, black 12%, transparent);
+  --shadow-medium: color-mix(in oklch, black 18%, transparent);
+  --shadow-strong: color-mix(in oklch, black 28%, transparent);
+  --shadow-deep: color-mix(in oklch, black 55%, transparent);
+  --shadow-pop: color-mix(in oklch, black 25%, transparent);
+  --outline-subtle: color-mix(in oklch, black 6%, transparent);
+  --overlay-dark: color-mix(in oklch, black 55%, transparent);
+  --overlay-dim: color-mix(in oklch, oklch(0.28 0.01 calc(var(--neutral-hue) + var(--foreground-hue-offset) - 5deg)) 20%, transparent);
+  --overlay-darker: color-mix(in oklch, black 75%, transparent);
+  --surface-danger-subtle: color-mix(in oklch, var(--danger) 12%, transparent);
+  --overlay-accent-subtle: color-mix(in oklch, var(--accent) 12%, transparent);
+  --border-strong: color-mix(in oklch, var(--fg) 24%, transparent);
+  --surface-hover: color-mix(in oklch, white 10%, transparent);
+  --overlay-accent-strong: color-mix(in oklch, var(--accent) 24%, transparent);
+  --overlay-backdrop: color-mix(in oklch, oklch(0.22 0.015 calc(var(--neutral-hue) + var(--foreground-hue-offset) - 5deg)) 45%, transparent);
+  --overlay-shadow: color-mix(in oklch, oklch(0.22 0.015 calc(var(--neutral-hue) + var(--foreground-hue-offset) - 5deg)) 18%, transparent);
+
+  /* --- Semantic colors --- */
+  --success: oklch(0.68 0.16 var(--success-hue));
+  --warning: oklch(0.76 0.17 var(--warning-hue));
+  --danger: oklch(0.64 0.2 var(--danger-hue));
+
+  --success-subtle: color-mix(in oklch, var(--success) 12%, transparent);
+  --warning-subtle: color-mix(in oklch, var(--warning) 12%, transparent);
+  --danger-border: color-mix(in oklch, var(--danger) 45%, transparent);
+  --danger-soft: color-mix(in oklch, var(--danger) 12%, transparent);
+  --danger-subtle: color-mix(in oklch, var(--danger) 8%, transparent);
+
+  /* --- Explorer states --- */
+  --row-hover-bg: color-mix(in oklch, var(--selection) 6%, transparent);
+  --row-active-bg: color-mix(in oklch, var(--selection) 12%, transparent);
+  --sidebar-hover-bg: color-mix(in oklch, var(--selection) 8%, transparent);
+  --sidebar-active-bg: color-mix(in oklch, var(--selection) 16%, transparent);
+  --selection-ring: oklch(0.78 0.16 calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --sidebar-active-pill-border: color-mix(in oklch, var(--accent) 64%, transparent);
+  --link: var(--accent);
+  --link-visited: color-mix(in oklch, var(--accent) 75%, var(--fg) 25%);
+  --preview-nav-bg: oklch(0.18 0.05 calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --preview-nav-bg-hover: oklch(0.14 0.05 calc(var(--neutral-hue) + var(--foreground-hue-offset)));
+  --preview-nav-fg: var(--on-accent);
+  --text-on-dark: color-mix(in oklch, white 90%, transparent);
+  --surface-ink-soft: color-mix(in oklch, var(--fg) 8%, transparent);
+
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 100%;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  --detail-panel-width: calc(100vw / 3);
+  --sidebar-width: 20em;
+  --documents-grid-title-size: 0.8rem;
+  --media-viewer-padding: 0.75rem;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --dark-neutral-hue: calc(var(--neutral-hue) + var(--dark-hue-offset));
+  --dark-foreground-hue: calc(var(--neutral-hue) + var(--dark-foreground-hue-offset));
+  --bg: oklch(calc(0.18 - var(--neutral-contrast-delta) * 0.015) calc(var(--neutral-chroma-effective) * 0.1) calc(var(--dark-neutral-hue) + var(--surface-hue-shift)));
+  --surface: oklch(calc(0.22 - var(--neutral-contrast-delta) * 0.012) calc(var(--neutral-chroma-effective) * 0.12) calc(var(--dark-neutral-hue) + var(--surface-hue-shift)));
+  --surface-subtle: oklch(calc(0.26 - var(--neutral-contrast-delta) * 0.01) calc(var(--neutral-chroma-effective) * 0.12) calc(var(--dark-neutral-hue) + var(--surface-hue-shift)));
+  --fg: oklch(calc(0.9 + var(--neutral-contrast-delta) * 0.02) calc(var(--neutral-chroma-effective) * 0.04) var(--dark-foreground-hue));
+  --muted: oklch(calc(0.72 + var(--neutral-contrast-delta) * 0.01) calc(var(--neutral-chroma-effective) * 0.06) var(--dark-foreground-hue));
+  --muted-subtle: color-mix(in oklch, var(--muted) 45%, var(--border));
+  --sidebar-fg: oklch(calc(0.78 + var(--neutral-contrast-delta) * 0.01) calc(var(--neutral-chroma-effective) * 0.06) var(--dark-foreground-hue));
+  --border: oklch(calc(0.33 - var(--neutral-contrast-delta) * 0.01) calc(var(--neutral-chroma-effective) * 0.03) var(--dark-foreground-hue));
+
+  --accent: oklch(0.75 calc(0.16 * var(--neutral-chroma-scale)) calc(var(--dark-foreground-hue) + var(--accent-hue-offset)));
+  --accent-hover: oklch(0.82 calc(0.13 * var(--neutral-chroma-scale)) calc(var(--dark-foreground-hue) + var(--accent-hue-offset)));
+  --on-accent: oklch(0.15 0.015 var(--dark-foreground-hue));
+
+  --folder-icon-back: color-mix(in oklch, var(--accent) 72%, black 12%);
+  --folder-icon-mid: color-mix(in oklch, var(--accent) 50%, white 24%);
+  --folder-icon-front: color-mix(in oklch, var(--accent) 30%, white 50%);
+
+  --accent-soft: color-mix(in oklch, var(--accent) 22%, transparent);
+  --accent-elevated: color-mix(in oklch, var(--accent) 28%, transparent);
+  --accent-elevated-strong: color-mix(in oklch, var(--accent) 38%, transparent);
+  --accent-outline: color-mix(in oklch, var(--accent) 55%, transparent);
+  --accent-outline-strong: color-mix(in oklch, var(--accent) 80%, transparent);
+  --accent-focus: color-mix(in oklch, var(--accent) 72%, transparent);
+  --surface-overlay: color-mix(in oklch, black 60%, transparent);
+
+  --selection: oklch(0.44 0.04 220deg);
+  --selection-soft: color-mix(in oklch, var(--selection) 18%, transparent);
+
+  --shadow-faint: color-mix(in oklch, black 35%, transparent);
+  --shadow-soft: color-mix(in oklch, black 50%, transparent);
+  --shadow-medium: color-mix(in oklch, black 65%, transparent);
+  --shadow-strong: color-mix(in oklch, black 80%, transparent);
+  --shadow-deep: color-mix(in oklch, black 90%, transparent);
+  --shadow-pop: color-mix(in oklch, black 70%, transparent);
+  --outline-subtle: color-mix(in oklch, white 10%, transparent);
+  --overlay-dark: color-mix(in oklch, black 70%, transparent);
+  --overlay-dim: color-mix(in oklch, oklch(0.42 0.04 var(--dark-neutral-hue)) 35%, transparent);
+  --overlay-darker: color-mix(in oklch, black 85%, transparent);
+  --surface-danger-subtle: color-mix(in oklch, var(--danger) 26%, transparent);
+  --overlay-accent-subtle: color-mix(in oklch, var(--accent) 32%, transparent);
+  --border-strong: color-mix(in oklch, var(--fg) 30%, transparent);
+  --surface-hover: color-mix(in oklch, white 6%, transparent);
+  --overlay-accent-strong: color-mix(in oklch, var(--accent) 55%, transparent);
+  --overlay-backdrop: color-mix(in oklch, oklch(0.1 0.015 var(--dark-neutral-hue)) 70%, transparent);
+  --overlay-shadow: color-mix(in oklch, oklch(0.12 0.015 var(--dark-neutral-hue)) 55%, transparent);
+
+  --tag-chip-default-l: 0.2;
+  --tag-chip-bg-lighten: -1.8;
+  --tag-chip-bg-chroma-scale: 0.95;
+  --tag-chip-outline-lighten: 0.8;
+  --tag-chip-outline-chroma-scale: 2.5;
+  --tag-chip-text-lighten: 0.5;
+  --tag-chip-text-chroma-scale: 0.9;
+
+  --success: oklch(0.62 0.16 var(--success-hue));
+  --warning: oklch(0.68 0.17 var(--warning-hue));
+  --danger: oklch(0.60 0.2 var(--danger-hue));
+
+  --success-subtle: color-mix(in oklch, var(--success) 20%, transparent);
+  --warning-subtle: color-mix(in oklch, var(--warning) 20%, transparent);
+  --danger-border: color-mix(in oklch, var(--danger) 45%, transparent);
+  --danger-soft: color-mix(in oklch, var(--danger) 24%, transparent);
+  --danger-subtle: color-mix(in oklch, var(--danger) 18%, transparent);
+
+  --row-hover-bg: color-mix(in oklch, white 4%, transparent);
+  --row-active-bg: color-mix(in oklch, var(--selection) 20%, transparent);
+  --sidebar-hover-bg: color-mix(in oklch, white 6%, transparent);
+  --sidebar-active-bg: color-mix(in oklch, var(--selection) 26%, transparent);
+  --selection-ring: oklch(0.68 0.16 var(--dark-foreground-hue));
+  --sidebar-active-pill-border: color-mix(in oklch, var(--accent) 72%, transparent);
+  --link: color-mix(in oklch, var(--accent) 92%, transparent);
+  --link-visited: color-mix(in oklch, var(--accent) 70%, white 20%);
+  --preview-nav-bg: oklch(0.3 0.04 var(--dark-neutral-hue));
+  --preview-nav-bg-hover: oklch(0.35 0.04 var(--dark-neutral-hue));
+  --preview-nav-fg: var(--fg);
+  --text-on-dark: color-mix(in oklch, white 92%, transparent);
+  --surface-ink-soft: color-mix(in oklch, white 12%, transparent);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+body.has-main-content {
+  background: var(--surface);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+a:visited {
+  color: var(--link-visited);
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--accent-hover);
+  outline: none;
+  text-decoration-color: currentColor;
+}
+
+#app {
+  height: 100%;
+}

@@ -1,0 +1,107 @@
+button {
+  font: inherit;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.85rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+a.button-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font: inherit;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.85rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+a.button-link[aria-disabled='true'] {
+  opacity: 0.55;
+}
+
+a.button-link:hover:not([aria-disabled='true']) {
+  background: var(--accent-hover);
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+button.secondary:hover:not([disabled]) {
+  background: var(--surface-subtle);
+}
+
+button.danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+button.danger:hover:not([disabled]) {
+  border-color: var(--danger);
+  background: var(--danger-subtle);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.icon-button:hover:not([disabled]) {
+  background: var(--sidebar-hover-bg);
+  color: var(--fg);
+}
+
+.icon-button--accent {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.icon-button--accent:hover:not([disabled]) {
+  background: var(--accent-hover);
+}
+
+.icon-button.danger {
+  color: var(--danger);
+}
+
+.icon-button.danger:hover:not([disabled]) {
+  background: var(--danger-subtle);
+}
+
+.icon-button.ghost {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.2rem;
+}
+
+.icon-button.ghost:hover:not([disabled]) {
+  color: var(--danger);
+  background: transparent;
+}

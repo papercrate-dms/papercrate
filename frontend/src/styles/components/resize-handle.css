@@ -1,0 +1,45 @@
+.resize-handle {
+    position: absolute;
+    top: 0;
+    width: 1.2rem;
+    height: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+    z-index: 10;
+    touch-action: none;
+}
+
+.resize-handle__line {
+    width: 3px;
+    height: 100%;
+    border-radius: 999px;
+    background: transparent;
+    transition: background 120ms ease;
+}
+
+.resize-handle:hover .resize-handle__line,
+.resize-handle:focus-visible .resize-handle__line,
+.resize-handle.is-active .resize-handle__line {
+    background: var(--border);
+}
+
+.resize-handle:focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--border) 80%, transparent);
+    outline-offset: 2px;
+    border-radius: 999px;
+}
+
+/* Modifiers for positioning */
+.resize-handle--right {
+    right: -0.6rem;
+}
+
+.resize-handle--left {
+    left: -0.6rem;
+}

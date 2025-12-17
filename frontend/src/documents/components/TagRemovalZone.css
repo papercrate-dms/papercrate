@@ -1,0 +1,31 @@
+.tag-removal-zone {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4rem;
+    background-color: var(--surface-subtle);
+    border-top: 2px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    z-index: 6000002;
+    transition: all 0.2s ease;
+    pointer-events: all;
+    gap: 0.5rem;
+}
+
+.tag-removal-zone--drag-over {
+    height: 6rem;
+    background: linear-gradient(var(--surface-danger-subtle), var(--surface-danger-subtle)), var(--surface);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* Ensure icon inherits color and overrides .icon class size */
+.tag-removal-zone__icon {
+    width: 60%;
+    height: 60%;
+    stroke: currentColor;
+}

@@ -1,0 +1,648 @@
+months:
+  - name: "january"
+    month: 1
+    locales:
+      - "en"
+  - name: "jan"
+    month: 1
+    locales:
+      - "en"
+  - name: "janvier"
+    month: 1
+    locales:
+      - "fr"
+  - name: "janv"
+    month: 1
+    locales:
+      - "fr"
+  - name: "januar"
+    month: 1
+    locales:
+      - "de"
+  - name: "janu\u00e1r"
+    month: 1
+    locales:
+      - "hu"
+  - name: "leden"
+    month: 1
+    locales:
+      - "cs"
+  - name: "sije\u010danj"
+    month: 1
+    locales:
+      - "hr"
+  - name: "sijecanj"
+    month: 1
+    locales:
+      - "hr"
+  - name: "stycze\u0144"
+    month: 1
+    locales:
+      - "pl"
+  - name: "styczen"
+    month: 1
+    locales:
+      - "pl"
+  - name: "ocak"
+    month: 1
+    locales:
+      - "tr"
+  - name: "february"
+    month: 2
+    locales:
+      - "en"
+  - name: "feb"
+    month: 2
+    locales:
+      - "en"
+  - name: "f\u00e9vrier"
+    month: 2
+    locales:
+      - "fr"
+  - name: "fevrier"
+    month: 2
+    locales:
+      - "fr"
+  - name: "f\u00e9vr"
+    month: 2
+    locales:
+      - "fr"
+  - name: "fevr"
+    month: 2
+    locales:
+      - "fr"
+  - name: "februar"
+    month: 2
+    locales:
+      - "de"
+  - name: "\u00fanor"
+    month: 2
+    locales:
+      - "cs"
+  - name: "unor"
+    month: 2
+    locales:
+      - "cs"
+  - name: "\u00fanora"
+    month: 2
+    locales:
+      - "cs"
+  - name: "unora"
+    month: 2
+    locales:
+      - "cs"
+  - name: "velja\u010da"
+    month: 2
+    locales:
+      - "hr"
+  - name: "veljaca"
+    month: 2
+    locales:
+      - "hr"
+  - name: "velja\u010de"
+    month: 2
+    locales:
+      - "hr"
+  - name: "veljace"
+    month: 2
+    locales:
+      - "hr"
+  - name: "luty"
+    month: 2
+    locales:
+      - "pl"
+  - name: "\u015fubat"
+    month: 2
+    locales:
+      - "tr"
+  - name: "subat"
+    month: 2
+    locales:
+      - "tr"
+  - name: "march"
+    month: 3
+    locales:
+      - "en"
+  - name: "mar"
+    month: 3
+    locales:
+      - "en"
+  - name: "m\u00e4rz"
+    month: 3
+    locales:
+      - "de"
+  - name: "maerz"
+    month: 3
+    locales:
+      - "de"
+  - name: "mars"
+    month: 3
+    locales:
+      - "fr"
+  - name: "m\u00e4r"
+    month: 3
+    locales:
+      - "de"
+  - name: "marz"
+    month: 3
+    locales:
+      - "de"
+  - name: "b\u0159ezen"
+    month: 3
+    locales:
+      - "cs"
+  - name: "brezen"
+    month: 3
+    locales:
+      - "cs"
+  - name: "b\u0159ezna"
+    month: 3
+    locales:
+      - "cs"
+  - name: "brezna"
+    month: 3
+    locales:
+      - "cs"
+  - name: "o\u017eujak"
+    month: 3
+    locales:
+      - "hr"
+  - name: "ozujak"
+    month: 3
+    locales:
+      - "hr"
+  - name: "o\u017eujka"
+    month: 3
+    locales:
+      - "hr"
+  - name: "ozujka"
+    month: 3
+    locales:
+      - "hr"
+  - name: "marzec"
+    month: 3
+    locales:
+      - "pl"
+  - name: "mart"
+    month: 3
+    locales:
+      - "sr"
+      - "bs"
+  - name: "m\u00e1rcius"
+    month: 3
+    locales:
+      - "hu"
+  - name: "martie"
+    month: 3
+    locales:
+      - "ro"
+  - name: "april"
+    month: 4
+    locales:
+      - "en"
+  - name: "apr"
+    month: 4
+    locales:
+      - "en"
+  - name: "avril"
+    month: 4
+    locales:
+      - "fr"
+  - name: "abril"
+    month: 4
+    locales:
+      - "es"
+      - "pt"
+  - name: "duben"
+    month: 4
+    locales:
+      - "cs"
+  - name: "travanj"
+    month: 4
+    locales:
+      - "hr"
+  - name: "nisan"
+    month: 4
+    locales:
+      - "tr"
+  - name: "kwiecie\u0144"
+    month: 4
+    locales:
+      - "pl"
+  - name: "kwiecien"
+    month: 4
+    locales:
+      - "pl"
+  - name: "aprile"
+    month: 4
+    locales:
+      - "it"
+  - name: "may"
+    month: 5
+    locales:
+      - "en"
+  - name: "mai"
+    month: 5
+    locales:
+      - "fr"
+      - "de"
+  - name: "mayo"
+    month: 5
+    locales:
+      - "es"
+  - name: "kv\u011bten"
+    month: 5
+    locales:
+      - "cs"
+  - name: "kveten"
+    month: 5
+    locales:
+      - "cs"
+  - name: "kv\u011btna"
+    month: 5
+    locales:
+      - "cs"
+  - name: "kvetna"
+    month: 5
+    locales:
+      - "cs"
+  - name: "svibanj"
+    month: 5
+    locales:
+      - "hr"
+  - name: "maj"
+    month: 5
+    locales:
+      - "pl"
+      - "bs"
+      - "sr"
+      - "hr"
+  - name: "may\u0131s"
+    month: 5
+    locales:
+      - "tr"
+  - name: "mayis"
+    month: 5
+    locales:
+      - "tr"
+  - name: "maggio"
+    month: 5
+    locales:
+      - "it"
+  - name: "m\u00e1j"
+    month: 5
+    locales:
+      - "hu"
+      - "sk"
+  - name: "june"
+    month: 6
+    locales:
+      - "en"
+  - name: "jun"
+    month: 6
+    locales:
+      - "en"
+      - "de"
+  - name: "juin"
+    month: 6
+    locales:
+      - "fr"
+  - name: "junio"
+    month: 6
+    locales:
+      - "es"
+  - name: "juni"
+    month: 6
+    locales:
+      - "de"
+  - name: "\u010derven"
+    month: 6
+    locales:
+      - "cs"
+  - name: "cerven"
+    month: 6
+    locales:
+      - "cs"
+  - name: "lipanj"
+    month: 6
+    locales:
+      - "hr"
+  - name: "haziran"
+    month: 6
+    locales:
+      - "tr"
+  - name: "czerwiec"
+    month: 6
+    locales:
+      - "pl"
+  - name: "j\u00fanius"
+    month: 6
+    locales:
+      - "hu"
+  - name: "giugno"
+    month: 6
+    locales:
+      - "it"
+  - name: "july"
+    month: 7
+    locales:
+      - "en"
+  - name: "jul"
+    month: 7
+    locales:
+      - "en"
+      - "de"
+  - name: "juillet"
+    month: 7
+    locales:
+      - "fr"
+  - name: "julio"
+    month: 7
+    locales:
+      - "es"
+  - name: "temmuz"
+    month: 7
+    locales:
+      - "tr"
+  - name: "\u010dervenec"
+    month: 7
+    locales:
+      - "cs"
+  - name: "cervenec"
+    month: 7
+    locales:
+      - "cs"
+  - name: "srpanj"
+    month: 7
+    locales:
+      - "hr"
+  - name: "lipiec"
+    month: 7
+    locales:
+      - "pl"
+  - name: "luglio"
+    month: 7
+    locales:
+      - "it"
+  - name: "j\u00falius"
+    month: 7
+    locales:
+      - "hu"
+  - name: "august"
+    month: 8
+    locales:
+      - "en"
+  - name: "aug"
+    month: 8
+    locales:
+      - "en"
+      - "de"
+  - name: "ao\u00fbt"
+    month: 8
+    locales:
+      - "fr"
+  - name: "aout"
+    month: 8
+    locales:
+      - "fr"
+  - name: "agosto"
+    month: 8
+    locales:
+      - "es"
+      - "pt"
+      - "it"
+  - name: "a\u011fustos"
+    month: 8
+    locales:
+      - "tr"
+  - name: "agustos"
+    month: 8
+    locales:
+      - "tr"
+  - name: "kolovoz"
+    month: 8
+    locales:
+      - "hr"
+  - name: "srpen"
+    month: 8
+    locales:
+      - "cs"
+  - name: "sierpie\u0144"
+    month: 8
+    locales:
+      - "pl"
+  - name: "sierpien"
+    month: 8
+    locales:
+      - "pl"
+  - name: "augustus"
+    month: 8
+    locales:
+      - "nl"
+  - name: "agost"
+    month: 8
+    locales:
+      - "it"
+      - "ca"
+  - name: "september"
+    month: 9
+    locales:
+      - "en"
+  - name: "sept"
+    month: 9
+    locales:
+      - "en"
+      - "fr"
+  - name: "sep"
+    month: 9
+    locales:
+      - "en"
+  - name: "septembre"
+    month: 9
+    locales:
+      - "fr"
+  - name: "septiembre"
+    month: 9
+    locales:
+      - "es"
+  - name: "eyl\u00fcl"
+    month: 9
+    locales:
+      - "tr"
+  - name: "eylul"
+    month: 9
+    locales:
+      - "tr"
+  - name: "z\u00e1\u0159\u00ed"
+    month: 9
+    locales:
+      - "cs"
+  - name: "zari"
+    month: 9
+    locales:
+      - "cs"
+  - name: "rujan"
+    month: 9
+    locales:
+      - "hr"
+  - name: "wrzesie\u0144"
+    month: 9
+    locales:
+      - "pl"
+  - name: "wrzesien"
+    month: 9
+    locales:
+      - "pl"
+  - name: "septembrie"
+    month: 9
+    locales:
+      - "ro"
+  - name: "settembre"
+    month: 9
+    locales:
+      - "it"
+  - name: "october"
+    month: 10
+    locales:
+      - "en"
+  - name: "oct"
+    month: 10
+    locales:
+      - "en"
+  - name: "oktober"
+    month: 10
+    locales:
+      - "de"
+  - name: "okt\u00f3ber"
+    month: 10
+    locales:
+      - "hu"
+  - name: "octobre"
+    month: 10
+    locales:
+      - "fr"
+  - name: "octubre"
+    month: 10
+    locales:
+      - "es"
+  - name: "\u0159\u00edjen"
+    month: 10
+    locales:
+      - "cs"
+  - name: "rijen"
+    month: 10
+    locales:
+      - "hr"
+  - name: "pa\u017adziernik"
+    month: 10
+    locales:
+      - "pl"
+  - name: "pazdziernik"
+    month: 10
+    locales:
+      - "pl"
+  - name: "ekim"
+    month: 10
+    locales:
+      - "tr"
+  - name: "octombrie"
+    month: 10
+    locales:
+      - "ro"
+  - name: "november"
+    month: 11
+    locales:
+      - "en"
+  - name: "nov"
+    month: 11
+    locales:
+      - "en"
+  - name: "novembre"
+    month: 11
+    locales:
+      - "fr"
+  - name: "noviembre"
+    month: 11
+    locales:
+      - "es"
+  - name: "studeni"
+    month: 11
+    locales:
+      - "hr"
+  - name: "kas\u0131m"
+    month: 11
+    locales:
+      - "tr"
+  - name: "kasim"
+    month: 11
+    locales:
+      - "tr"
+  - name: "listopad"
+    month: 11
+    locales:
+      - "pl"
+      - "cs"
+  - name: "novembro"
+    month: 11
+    locales:
+      - "pt"
+  - name: "listopadu"
+    month: 11
+    locales:
+      - "cs"
+  - name: "noiembrie"
+    month: 11
+    locales:
+      - "ro"
+  - name: "december"
+    month: 12
+    locales:
+      - "en"
+  - name: "dec"
+    month: 12
+    locales:
+      - "en"
+  - name: "dezember"
+    month: 12
+    locales:
+      - "de"
+  - name: "d\u00e9cembre"
+    month: 12
+    locales:
+      - "fr"
+  - name: "decembre"
+    month: 12
+    locales:
+      - "fr"
+  - name: "prosinec"
+    month: 12
+    locales:
+      - "cs"
+  - name: "prosinac"
+    month: 12
+    locales:
+      - "hr"
+  - name: "grudzie\u0144"
+    month: 12
+    locales:
+      - "pl"
+  - name: "grudzien"
+    month: 12
+    locales:
+      - "pl"
+  - name: "grudnia"
+    month: 12
+    locales:
+      - "pl"
+  - name: "aral\u0131k"
+    month: 12
+    locales:
+      - "tr"
+  - name: "aralik"
+    month: 12
+    locales:
+      - "tr"
+  - name: "decembrie"
+    month: 12
+    locales:
+      - "ro"

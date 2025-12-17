@@ -1,0 +1,46 @@
+select {
+  font: inherit;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='number'],
+input[type='url'],
+input[type='tel'] {
+  font: inherit;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  background: var(--surface);
+}
+
+textarea {
+  resize: vertical;
+}
+
+form.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -1,0 +1,130 @@
+/* Workspace items, states, and inline badges */
+.desk-item {
+  position: absolute;
+  display: block;
+  width: auto;
+  cursor: grab;
+  touch-action: none;
+  transform-origin: center center;
+  transition:
+    opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.16s ease;
+  outline: none;
+  will-change: transform;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  filter: blur(0px) grayscale(0%);
+  opacity: 1;
+}
+
+.desk-item__body {
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.desk-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.desk-item.is-tag-target .desk-item__card {
+  outline: 0.35rem dashed var(--accent);
+  outline-offset: 0.35rem;
+  cursor: copy;
+}
+
+.desk-item.is-tag-pending .desk-item__card {
+  outline: 0.25rem solid var(--accent-outline);
+  outline-offset: 0.25rem;
+}
+
+.desk-item.is-filtered-out {
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(18px) grayscale(100%);
+  z-index: 0;
+}
+
+.desk-item.is-selected {
+  z-index: 5;
+}
+
+.desk-item.is-selected .desk-item__card {
+  box-shadow:
+    0 0 0 0.18rem color-mix(in oklch, var(--accent) 45%, transparent),
+    0 0 0.35rem 0 color-mix(in oklch, var(--accent) 28%, transparent),
+    0 12px 28px -14px color-mix(in oklch, var(--accent) 20%, transparent),
+    0 10px 24px var(--shadow-medium);
+}
+
+.desk-item.is-selected .desk-item__title {
+  color: var(--accent);
+}
+
+.desk-item__tags {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-end;
+  transform-origin: top right;
+  transform: translate(-0.5em, 0.5em);
+  transition: transform 0.28s ease;
+}
+
+.desk-item__correspondents {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+  transform-origin: bottom left;
+  transform: translate(0.5em, -0.5em);
+  pointer-events: none;
+}
+
+.desk-correspondent-chip {
+  pointer-events: none;
+  font-size: 0.82rem;
+  padding: 0.18rem 0.55rem;
+  max-width: min(16rem, 80%);
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--surface-subtle) 90%, transparent);
+  color: var(--muted);
+}
+
+.desk-correspondent-chip__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-chip--draggable {
+  user-select: none;
+  pointer-events: auto;
+  transition: transform 0.16s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tag-chip--draggable.is-drag-hidden {
+  opacity: 0.4;
+}
+
+.desk-item__tags .tag-chip {
+  font-size: 0.85rem;
+  padding: 0.18rem 0.55rem;
+  gap: 0.3rem;
+}
+
+.desk-item__tags .tag-chip--tear-pending {
+  opacity: 0.35;
+}

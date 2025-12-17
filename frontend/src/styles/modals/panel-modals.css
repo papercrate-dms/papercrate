@@ -1,0 +1,44 @@
+.panel-modal__header {
+  padding: 1rem 1rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-modal__body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.modal__body {
+  width: 100%;
+}
+
+.modal h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.modal__form label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modal__error {
+  margin: -0.45rem 0 0;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.25rem;
+  gap: 0.6rem;
+}

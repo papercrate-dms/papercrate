@@ -1,0 +1,157 @@
+.document-viewer__message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-on-dark);
+  background: var(--overlay-dark);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+
+.panel-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0 0.5rem;
+}
+
+.panel-section__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.panel-section__header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.documents-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.panel-section__subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.breadcrumb-trail {
+  display: flex;
+  align-items: center;
+  gap: 0.05rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+  overflow: hidden;
+  margin-left: -0.25rem;
+}
+
+.breadcrumb-trail--measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  left: -9999px;
+  top: -9999px;
+  max-width: none;
+  overflow: visible;
+}
+
+.breadcrumb-trail__link {
+  display: block;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  min-width: 0;
+}
+
+.breadcrumb-trail--measure .breadcrumb-trail__link,
+.breadcrumb-trail--measure .breadcrumb-trail__ellipsis-button {
+  max-width: none;
+  overflow: visible;
+}
+
+button.breadcrumb-trail__link,
+.breadcrumb-trail__ellipsis-button,
+.breadcrumb-trail__link.is-current {
+  padding: 0.25rem;
+  background: none;
+  border-radius: 0.25rem;
+}
+
+.breadcrumb-trail__link:not(.is-current) {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.breadcrumb-trail__link:not(.is-current):hover,
+.breadcrumb-trail__link:not(.is-current):focus-visible,
+.panel-header .breadcrumb-trail__link:not(.is-current):hover,
+.panel-header .breadcrumb-trail__link:not(.is-current):focus-visible {
+  text-decoration: underline;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.breadcrumb-trail__separator {
+  color: var(--muted-subtle);
+  margin: 0;
+}
+
+.breadcrumb-trail__ellipsis {
+  position: relative;
+  display: inline-flex;
+}
+
+.breadcrumb-trail__ellipsis-button {
+  cursor: pointer;
+}
+
+.documents-panel__breadcrumbs {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.documents-panel__breadcrumbs {
+  max-width: 22rem;
+}
+
+.panel-header__breadcrumbs-wrapper {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.panel-section__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel-section__body--scrollable,
+.panel-section__body.scrollable {
+  overflow-y: auto;
+}

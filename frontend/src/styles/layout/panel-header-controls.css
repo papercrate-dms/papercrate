@@ -1,0 +1,43 @@
+.panel-header .icon-button,
+.panel-header button,
+.panel-header a.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+  text-align: left;
+}
+
+.panel-header .icon-button:hover:not([disabled]),
+.panel-header button:hover:not([disabled]),
+.panel-header a.icon-button:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--fg);
+}
+
+.panel-header .icon-button.active:hover:not([disabled]),
+.panel-header button.active:hover:not([disabled]),
+.panel-header a.icon-button.active:hover {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+.panel-header .icon-button.ghost,
+.panel-header button.icon-button.ghost {
+  color: var(--muted);
+  padding: 0.25rem;
+}
+
+.panel-header .icon-button.ghost:hover:not([disabled]),
+.panel-header button.icon-button.ghost:hover:not([disabled]) {
+  color: var(--fg);
+  background: var(--sidebar-hover-bg);
+}
+

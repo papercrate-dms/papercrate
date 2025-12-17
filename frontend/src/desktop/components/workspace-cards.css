@@ -1,0 +1,74 @@
+/* Workspace cards, thumbnails, and hover controls */
+.desk-item__shadow {
+  display: none;
+}
+
+.desk-item__card {
+  position: relative;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 12px 32px var(--shadow-medium);
+  overflow: hidden;
+}
+
+.desk-item--swoop {
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.desk-item__card img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.desk-item__card--empty {
+  box-shadow: 0 12px 32px var(--shadow-medium);
+  background:
+    radial-gradient(circle at 42% 38%, color-mix(in oklch, var(--surface-subtle) 75%, var(--selection) 25%), color-mix(in oklch, var(--surface-subtle) 85%, var(--selection) 15%) 70%),
+    linear-gradient(135deg, color-mix(in oklch, var(--surface-subtle) 88%, var(--selection-soft) 12%) 0%, color-mix(in oklch, var(--surface-subtle) 65%, var(--shadow-faint) 35%) 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.desk-item__placeholder {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--muted);
+}
+
+.desk-item__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.desk-item__title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--fg);
+  max-width: 90%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}

@@ -1,0 +1,71 @@
+Papercrate REST API
+===================
+
+Unless noted otherwise, endpoints below require a valid `Authorization: Bearer <token>` header.
+
+Authentication
+--------------
+- POST /api/auth/login - Exchange username/password for an access token and refresh cookie (public). Returns the active tenant as `{ tenant: { id, name } }`. When multiple tenants are available, the response contains an `access_token` (tenant-selector token) and tenant list instead.
+- POST /api/auth/refresh - Rotate the refresh cookie and return a new access token (public, requires refresh cookie). Response also includes the current tenant `{ tenant: { id, name } }`.
+- POST /api/auth/logout - Revoke the caller's refresh tokens and clear the cookie.
+- GET  /api/auth/me - Return the authenticated principal payload.
+
+Health
+------
+- GET  /api/health - Lightweight liveness probe (no authentication required).
+
+Documents
+---------
+- GET  /api/documents - List or search documents. Optional filters: `folder_id` (defaults to root when omitted), `include_descendants` (defaults to true unless explicitly set to `false` without filters), `status` (`active`, `deleted`, or `all`; defaults to `active`), `query` (Quickwit full-text), `tags` (comma-separated tag UUIDs), and `correspondents` (comma-separated correspondent UUIDs). Each entry includes tags, correspondent assignments, and current version info.
+- GET  /api/documents/check?checksum=<sha256> - Lightweight checksum preflight. Returns `exists=false` when no document with the supplied SHA-256 checksum is present; otherwise returns `exists=true` plus the current document metadata.
+- POST /api/documents - Upload a document via multipart form-data. Required field: `file`. Optional fields: `title`, `folder_id`, JSON `metadata`, JSON array `tag_ids`, JSON array `correspondents` (each with `correspondent_id`), and `issued_at` (RFC3339). When `title` is supplied, the stored filename becomes `<title><original_extension>`. Include `skip_existing=true` to receive `204 No Content` instead of reusing a matching document.
+- POST /api/documents/bulk/move - Move multiple documents to a target folder.
+- POST /api/documents/bulk/tags - Add or remove tags across multiple documents.
+- POST /api/documents/bulk/correspondents - Bulk correspondent actions. Use `action=add` (default) to attach correspondents or `action=remove` to detach the provided correspondents.
+- POST /api/documents/bulk/reanalyze - Queue re-analysis jobs for selected documents.
+- GET  /api/documents/:id - Retrieve metadata and current version details for a document.
+- PATCH /api/documents/:id - Update document metadata (currently title).
+- POST /api/documents/:id/trash - Move a document to trash (soft delete, reversible).
+- DELETE /api/documents/:id - Permanently erase a trashed document. Returns 202 Accepted, queues a purge job, and fails with 409 if the document is still active.
+- PATCH /api/documents/:id/folder - Move a document to another folder.
+- POST /api/documents/:id/restore - Restore a soft-deleted document. Optional body `{ "folder_id": <uuid> }` to send it to a specific folder; defaults to the original folder or root if missing.
+- GET  /api/documents/:id/versions - List version history for a document.
+- GET  /api/documents/:id/versions/:version_id - Fetch metadata and assets for a specific version.
+- POST /api/documents/:id/tags - Assign one or more tags to a document.
+- DELETE /api/documents/:id/tags/:tag_id - Remove a single tag from a document.
+- POST /api/documents/:id/correspondents - Assign correspondents (`assignments[]` with `correspondent_id`; optional `replace=true` overwrites existing assignments).
+- DELETE /api/documents/:id/correspondents/:correspondent_id - Remove a correspondent assignment.
+
+Document Assets
+---------------
+- GET  /api/documents/:id/assets - List generated assets for the current version.
+- POST /api/documents/:id/assets - Request (re)generation of document assets; accepts optional `force` query flag.
+- GET  /api/assets/:asset_id - Fetch asset metadata plus a presigned URL for a range of objects (query params: `start` and `limit`, defaulting to the first object).
+
+Downloads
+---------
+- GET  /api/download/:token - Follow a one-time download token; redirects to a pre-signed URL (public token required).
+
+Folders
+-------
+- POST /api/folders - Create a folder (optionally under a parent).
+- POST /api/folders/path - Ensure a nested folder path exists, creating missing segments.
+- GET  /api/folders/:id - Fetch folder metadata.
+- GET  /api/folders/:id/contents - List subfolders and documents inside a folder; use `root` for the workspace root.
+- DELETE /api/folders/:id - Soft-delete a folder.
+- PATCH /api/folders/:id - Update a folder's parent (`parent_id`) and/or rename it (`name`).
+- GET  /api/docs/openapi.json - Generated OpenAPI specification (JSON).
+
+Tags
+----
+- GET  /api/tags - List all tags with usage counts.
+- POST /api/tags - Create a new tag.
+- PATCH /api/tags/:id - Update a tag's label or color.
+- DELETE /api/tags/:id - Remove a tag; fails with 400 if still assigned to any document.
+
+Correspondents
+--------------
+- GET  /api/correspondents - List correspondents with usage totals.
+- POST /api/correspondents - Create a correspondent (name + optional metadata JSON).
+- PATCH /api/correspondents/:id - Update name and/or metadata.
+- DELETE /api/correspondents/:id - Remove a correspondent; fails with 400 if referenced by any document.

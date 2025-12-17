@@ -1,0 +1,56 @@
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.icon-inline {
+  width: 1rem;
+  height: 1rem;
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon--spin {
+  animation: icon-spin 0.9s linear infinite;
+}
+
+.icon--flip-y {
+  transform: scaleX(-1);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.icon path {
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+}
+
+.icon--fill path {
+  stroke: none;
+  fill: currentColor;
+}
+
+
