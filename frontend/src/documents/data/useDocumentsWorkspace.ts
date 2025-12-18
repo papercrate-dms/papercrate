@@ -582,12 +582,18 @@ const useDocumentsWorkspace = ({
     upload,
   ]);
 
+  // Use a ref to hold the latest resetWorkspaceState to avoid triggering the effect below
+  // when resetWorkspaceState changes (which happens on every render due to dependencies).
+  const resetWorkspaceStateRef = useRef(resetWorkspaceState);
+  useEffect(() => {
+    resetWorkspaceStateRef.current = resetWorkspaceState;
+  });
+
   useEffect(() => {
     if (appStatus === 'logged-out' || appStatus === 'selecting-tenant') {
-      foldersManager.invalidateTree();
-      resetWorkspaceState();
+      resetWorkspaceStateRef.current();
     }
-  }, [appStatus, resetWorkspaceState, foldersManager]);
+  }, [appStatus]);
 
   const documentsState = {
     documentLookup,
