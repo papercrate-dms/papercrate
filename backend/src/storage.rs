@@ -46,6 +46,11 @@ impl S3Storage {
     }
 }
 
+pub fn build_storage(config: &crate::config::AppConfig) -> Result<Arc<dyn ObjectStorage>> {
+    let bucket = crate::s3::build_bucket(config)?;
+    Ok(Arc::new(S3Storage::new(bucket)))
+}
+
 #[async_trait]
 impl ObjectStorage for S3Storage {
     async fn put_object(
@@ -123,6 +128,7 @@ impl ObjectStorage for S3Storage {
         Ok(())
     }
 }
+
 #[derive(Clone)]
 pub struct TenantStorage {
     inner: Arc<dyn ObjectStorage>,

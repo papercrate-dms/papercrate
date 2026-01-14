@@ -22,9 +22,8 @@ use papercrate::{
         DocumentAsset, MagicToken, MagicTokenKind, NewUser, NewUserMembership, Tenant,
         TenantStatus, User,
     },
-    s3,
     schema::{document_assets, documents, magic_tokens, tenants, user_memberships, users},
-    storage::{ObjectStorage, S3Storage, TenantStorage},
+    storage::TenantStorage,
     tenants::{apply_tenant_guc, clear_tenant_context, TenantService},
     utils::{text::normalize_identifier, tracing::init_tracing},
     workers::tenants::{build_delete_proof_message, sign_delete_proof, DeleteAction},
@@ -45,6 +44,10 @@ struct Cli {
 enum Command {
     CreateUser {
         username: String,
+        #[arg(long = "with-token")]
+        with_token: bool,
+        #[arg(long = "personal-tenant", help = "Create a personal tenant for this user")]
+        personal_tenant: bool,
     },
     ListUsers,
     DeleteUser {
@@ -166,7 +169,11 @@ async fn main() -> Result<()> {
     let pool = db::init_pool_with_size(&config.database_url, config.database_max_pool_size)?;
 
     match cli.command {
-        Command::CreateUser { username } => create_user(&pool, &username)?,
+        Command::CreateUser {
+            username,
+            with_token,
+            personal_tenant,
+        } => create_user(&pool, &username, with_token, personal_tenant)?,
         Command::ListUsers => list_users(&pool)?,
         Command::DeleteUser { username } => delete_user(&pool, &username)?,
         Command::CreateTenant {
@@ -216,14 +223,21 @@ async fn main() -> Result<()> {
             tenant_name,
             remove_tenant,
             final_status,
-        } => enqueue_delete_tenant_job(
-            &config,
-            &pool,
-            tenant_id,
-            &tenant_name,
-            remove_tenant,
-            final_status,
-        )?,
+        } => {
+            let mode = if remove_tenant {
+                DeletionMode::HardDelete
+            } else {
+                DeletionMode::Reset
+            };
+            enqueue_delete_tenant_job_internal(
+                &config,
+                &pool,
+                tenant_id,
+                &tenant_name,
+                mode,
+                final_status,
+            )?
+        }
         Command::MagicToken {
             username,
             ttl_minutes,
@@ -260,7 +274,12 @@ async fn migrate_database(database_url: String) -> Result<()> {
     Ok(())
 }
 
-fn create_user(pool: &PgPool, username: &str) -> Result<()> {
+fn create_user(
+    pool: &PgPool,
+    username: &str,
+    with_token: bool,
+    personal_tenant: bool,
+) -> Result<()> {
     let username = normalize_identifier(
         username,
         100,
@@ -272,55 +291,116 @@ fn create_user(pool: &PgPool, username: &str) -> Result<()> {
     .map_err(|err| anyhow!("{:?}", err))?;
 
     let mut conn = pool.get().context("failed to get database connection")?;
-    let exists: bool =
-        select(exists(users::table.filter(users::username.eq(&username)))).get_result(&mut conn)?;
-    if exists {
-        bail!("user '{}' already exists", username);
-    }
-
+    let user_id = Uuid::new_v4();
     let new_user = NewUser {
-        id: Uuid::new_v4(),
+        id: user_id,
         username: username.clone(),
     };
 
     diesel::insert_into(users::table)
         .values(&new_user)
-        .execute(&mut conn)?;
+        .execute(&mut conn)
+        .map_err(|err| match err {
+            diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _) => {
+                if with_token {
+                    anyhow!("User '{}' already exists. Use the 'magic-token' command to generate a new token for existing users.", username)
+                } else {
+                    anyhow!("User '{}' already exists.", username)
+                }
+            }
+            _ => anyhow::Error::new(err).context(format!("failed to create user '{}'", username)),
+        })?;
 
     println!("created user '{}' (id: {})", username, new_user.id);
+    
+    if personal_tenant {
+        // Drop connection to allow TenantService to use the pool
+        drop(conn); 
+        
+        // Create personal tenant (same name as user)
+        let tenant_service = TenantService::new(pool.clone());
+        if let Err(e) = tenant_service.create_tenant(
+            &username,
+            None,
+            None,
+            TenantStatus::Active,
+            &[user_id],
+            Some(user_id), // Default capabilities for owner
+        ) {
+            eprintln!("Failed to create personal tenant: {:#}", e);
+            eprintln!("Rolling back: Deleting user '{}'...", username);
+            
+            // Manual Rollback: precise deletion of the user we just created
+            let mut conn = pool.get().context("failed to recover connection for rollback")?;
+             diesel::delete(users::table.filter(users::id.eq(user_id)))
+                .execute(&mut conn)
+                .context("failed to rollback user creation")?;
+                
+            bail!("failed to create personal tenant (user creation rolled back)");
+        }
+        
+        println!("created personal tenant '{}'", username);
+    }
+
+    if with_token {
+        create_magic_token(pool, &username, 24 * 60, None, MagicTokenKind::EmailLogin)?;
+    }
+
     Ok(())
 }
+
 
 fn list_users(pool: &PgPool) -> Result<()> {
     let mut conn = pool.get().context("failed to get database connection")?;
 
-    let users_list: Vec<User> = users::table.order(users::username.asc()).load(&mut conn)?;
-    if users_list.is_empty() {
+    // Perform a LEFT JOIN to fetch users and their tenant memberships in one go.
+    // Result: List of (User, Option<String>) where String is the tenant name.
+    let data: Vec<(User, Option<String>)> = users::table
+        .left_join(user_memberships::table.inner_join(tenants::table))
+        .select((users::all_columns, tenants::name.nullable()))
+        .order((users::username.asc(), tenants::name.asc()))
+        .load(&mut conn)?;
+
+    if data.is_empty() {
         println!("No users found.");
         return Ok(());
     }
 
-    for user in users_list {
-        let memberships: Vec<String> = user_memberships::table
-            .inner_join(tenants::table)
-            .filter(user_memberships::user_id.eq(user.id))
-            .select(tenants::name)
-            .order(tenants::name.asc())
-            .load(&mut conn)?;
+    // Since results are ordered by username, we can iterate sequentially to group tenants.
+    let mut current_user: Option<&User> = None;
+    let mut current_tenants: Vec<String> = Vec::new();
 
-        if memberships.is_empty() {
-            println!("{} ({})", user.username, user.id);
+    for (user, tenant_name) in &data {
+        if let Some(curr) = current_user {
+            if curr.id != user.id {
+                // Flush previous user
+                print_user_entry(curr, &current_tenants);
+                current_tenants.clear();
+                current_user = Some(user);
+            }
         } else {
-            println!(
-                "{} ({}) -> {}",
-                user.username,
-                user.id,
-                memberships.join(", ")
-            );
+            current_user = Some(user);
+        }
+
+        if let Some(t_name) = tenant_name {
+            current_tenants.push(t_name.clone());
         }
     }
 
+    // Flush last user
+    if let Some(curr) = current_user {
+        print_user_entry(curr, &current_tenants);
+    }
+
     Ok(())
+}
+
+fn print_user_entry(user: &User, tenants: &[String]) {
+    if tenants.is_empty() {
+        println!("{} ({})", user.username, user.id);
+    } else {
+        println!("{} ({}) -> {}", user.username, user.id, tenants.join(", "));
+    }
 }
 
 fn delete_user(pool: &PgPool, username: &str) -> Result<()> {
@@ -404,7 +484,7 @@ fn create_magic_token(
         user_id: user.id,
         kind,
         token_hash,
-        metadata: serde_json::json!({}),
+        metadata: serde_json::json!({ "source": "admin-cli" }),
         expires_at: expires_at.naive_utc(),
         max_uses,
         used_count: 0,
@@ -418,13 +498,13 @@ fn create_magic_token(
         .execute(&mut conn)?;
 
     println!(
-        "Magic token created for '{}' (kind: {}, expires_at: {}, max_uses: {})",
+        "\nMagic token created for '{}' (kind: {}, expires_at: {}, max_uses: {})",
         username,
         kind.as_str(),
         expires_at,
         max_uses.map_or("∞".to_string(), |v| v.to_string())
     );
-    println!("Token: {}", raw_token);
+    println!("Token: {}\n", raw_token);
 
     Ok(())
 }
@@ -449,7 +529,7 @@ fn delete_tenant(
     tenant_id: Uuid,
     tenant_name: &str,
 ) -> Result<()> {
-    enqueue_delete_tenant_job_internal(config, pool, tenant_id, tenant_name, true, None)?;
+    enqueue_delete_tenant_job_internal(config, pool, tenant_id, tenant_name, DeletionMode::HardDelete, None)?;
     println!(
         "delete job enqueued; tenant '{}' will be permanently removed",
         tenant_name
@@ -469,7 +549,7 @@ fn reset_tenant(
         pool,
         tenant_id,
         tenant_name,
-        false,
+        DeletionMode::Reset,
         Some(final_status),
     )?;
     println!(
@@ -480,12 +560,17 @@ fn reset_tenant(
     Ok(())
 }
 
+enum DeletionMode {
+    HardDelete,
+    Reset,
+}
+
 fn enqueue_delete_tenant_job_internal(
     config: &AppConfig,
     pool: &PgPool,
     tenant_id: Uuid,
     expected_name: &str,
-    remove_tenant: bool,
+    mode: DeletionMode,
     final_status: Option<TenantFinalStatusArg>,
 ) -> Result<()> {
     let mut conn = pool.get().context("failed to get database connection")?;
@@ -514,19 +599,19 @@ fn enqueue_delete_tenant_job_internal(
     let nonce = generate_random_token();
     let issued_at = Utc::now();
     let issued_at_str = issued_at.to_rfc3339();
-    let action = if remove_tenant {
-        DeleteAction::Delete
-    } else {
-        DeleteAction::Reset
+    let action = match mode {
+        DeletionMode::HardDelete => DeleteAction::Delete,
+        DeletionMode::Reset => DeleteAction::Reset,
     };
-    let resolved_final_status = if remove_tenant {
-        None
-    } else {
-        Some(
+    let remove_tenant = matches!(mode, DeletionMode::HardDelete);
+
+    let resolved_final_status = match mode {
+        DeletionMode::HardDelete => None,
+        DeletionMode::Reset => Some(
             final_status
                 .unwrap_or(TenantFinalStatusArg::Suspended)
                 .as_str(),
-        )
+        ),
     };
 
     let message = build_delete_proof_message(
@@ -572,23 +657,6 @@ fn enqueue_delete_tenant_job_internal(
     Ok(())
 }
 
-fn enqueue_delete_tenant_job(
-    config: &AppConfig,
-    pool: &PgPool,
-    tenant_id: Uuid,
-    tenant_name: &str,
-    remove_tenant: bool,
-    final_status: Option<TenantFinalStatusArg>,
-) -> Result<()> {
-    enqueue_delete_tenant_job_internal(
-        config,
-        pool,
-        tenant_id,
-        tenant_name,
-        remove_tenant,
-        final_status,
-    )
-}
 
 fn add_user_to_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Result<()> {
     let mut conn = pool.get().context("failed to get database connection")?;
@@ -734,10 +802,9 @@ async fn delete_assets_for_tenant(
     tenant_id: Uuid,
     asset_type: Option<&str>,
 ) -> Result<()> {
-    let bucket = s3::build_bucket(config)?;
-    let storage: Arc<dyn ObjectStorage> = Arc::new(S3Storage::new(bucket));
-
+    let storage = papercrate::storage::build_storage(config)?;
     let mut conn = pool.get().context("failed to get database connection")?;
+
     let tenant: Tenant = tenants::table
         .find(tenant_id)
         .first(&mut conn)

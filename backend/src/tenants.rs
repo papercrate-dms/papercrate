@@ -6,10 +6,12 @@ use crate::{
     db::PgPool,
     error::{AppError, AppResult},
     jobs::{enqueue_job, JOB_PROVISION_TENANT},
-    models::{Tenant, TenantStatus},
-    schema::tenants::dsl,
+    models::{NewUserMembership, Tenant, TenantStatus},
+    schema::{tenants::dsl, user_memberships},
     utils::text::normalize_identifier,
 };
+
+use crate::auth::capability_sets::{ensure_capability_set, owner_capabilities};
 
 pub struct TenantRepository;
 
@@ -99,41 +101,67 @@ impl TenantService {
         initial_members: &[Uuid],
         created_by: Option<Uuid>,
     ) -> AppResult<Tenant> {
-        let name = name.trim();
-        if name.is_empty() {
-            return Err(AppError::bad_request("tenant name must not be empty"));
-        }
+        conn.transaction(|conn| {
+            let name = name.trim();
+            if name.is_empty() {
+                return Err(AppError::bad_request("tenant name must not be empty"));
+            }
 
-        let name = normalize_tenant_name(name)?;
+            let name = normalize_tenant_name(name)?;
 
-        let id = Uuid::new_v4();
-        let storage_root = normalize_storage_root(storage_root, id);
-        let quickwit_index = normalize_quickwit_index(quickwit_index, id);
+            let id = Uuid::new_v4();
+            let storage_root = normalize_storage_root(storage_root, id);
+            let quickwit_index = normalize_quickwit_index(quickwit_index, id);
 
-        diesel::insert_into(dsl::tenants)
-            .values((
-                dsl::id.eq(id),
-                dsl::name.eq(&name),
-                dsl::storage_root.eq(Some(storage_root.clone())),
-                dsl::quickwit_index.eq(Some(quickwit_index.clone())),
-                dsl::config.eq(json!({})),
-                dsl::status.eq(status),
-                dsl::created_by.eq(created_by),
-            ))
-            .execute(conn)?;
+            diesel::insert_into(dsl::tenants)
+                .values((
+                    dsl::id.eq(id),
+                    dsl::name.eq(&name),
+                    dsl::storage_root.eq(Some(storage_root.clone())),
+                    dsl::quickwit_index.eq(Some(quickwit_index.clone())),
+                    dsl::config.eq(json!({})),
+                    dsl::status.eq(status),
+                    dsl::created_by.eq(created_by),
+                ))
+                .execute(conn)?;
 
-        if status == TenantStatus::Creating {
-            let payload = json!({
-                "members": initial_members,
-            });
+            if status == TenantStatus::Creating {
+                let payload = json!({
+                    "members": initial_members,
+                });
 
-            enqueue_job(conn, id, JOB_PROVISION_TENANT, payload, None).map_err(|err| {
-                tracing::error!(error = ?err, tenant_id = %id, "failed to enqueue tenant provisioning job");
-                AppError::internal("failed to enqueue tenant provisioning job")
-            })?;
-        }
+                enqueue_job(conn, id, JOB_PROVISION_TENANT, payload, None).map_err(|err| {
+                    tracing::error!(error = ?err, tenant_id = %id, "failed to enqueue tenant provisioning job");
+                    AppError::internal("failed to enqueue tenant provisioning job")
+                })?;
+            } else if !initial_members.is_empty() {
+                // Synchronously add members if not provisioning via job
+                apply_tenant_guc(conn, id)?;
 
-        TenantRepository::get_by_id(conn, id)
+                let owner_cap_set_id = ensure_capability_set(conn, id, owner_capabilities())
+                    .map_err(AppError::from)?
+                    .id;
+
+                for member_id in initial_members {
+                    let membership = NewUserMembership {
+                        id: Uuid::new_v4(),
+                        user_id: *member_id,
+                        tenant_id: id,
+                        capability_set_id: Some(owner_cap_set_id),
+                    };
+
+                    diesel::insert_into(user_memberships::table)
+                        .values(&membership)
+                        .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
+                        .do_nothing()
+                        .execute(conn)?;
+                }
+
+                clear_tenant_context(conn)?;
+            }
+
+            TenantRepository::get_by_id(conn, id)
+        })
     }
 
     pub fn update_name(&self, tenant_id: Uuid, name: &str) -> AppResult<Tenant> {

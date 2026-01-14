@@ -36,8 +36,7 @@ impl AppState {
     ) -> anyhow::Result<Self> {
         let pool_size = pool_size_override.unwrap_or(config.database_max_pool_size);
         let pool = crate::db::init_pool_with_size(&config.database_url, pool_size)?;
-        let bucket = crate::s3::build_bucket(&config)?;
-        let storage = Arc::new(crate::storage::S3Storage::new(bucket));
+        let storage = crate::storage::build_storage(&config)?;
         let jwt = crate::auth::jwt::JwtService::from_config(&config)?;
 
         Ok(Self::new(pool, config, storage, jwt))
