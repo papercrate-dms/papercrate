@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-app-env: &app-env
   DATABASE_URL: postgres://papercrate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/papercrate
   DATABASE_MAX_POOL_SIZE: ${DATABASE_MAX_POOL_SIZE:-8}
@@ -171,6 +169,29 @@ services:
       <<: *app-env
     entrypoint: ["/usr/local/bin/papercrate-admin"]
     command: ["migrate-database"]
+    restart: "no"
+
+  bootstrap:
+    image: ghcr.io/papercrate-dms/papercrate-backend:latest-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+      backend:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      PAPERCRATE_INITIAL_USER: ${PAPERCRATE_INITIAL_USER}
+    entrypoint: >
+      /bin/sh -c "
+        if [ ! -z \"$${PAPERCRATE_INITIAL_USER}\" ]; then
+          echo \"[bootstrap] Bootstrapping initial user: $${PAPERCRATE_INITIAL_USER}\";
+          /usr/local/bin/papercrate-admin create-user \"$${PAPERCRATE_INITIAL_USER}\" --with-token --personal-tenant || true;
+        else
+          echo \"[bootstrap] No PAPERCRATE_INITIAL_USER set.\";
+        fi
+      "
     restart: "no"
 
 volumes:

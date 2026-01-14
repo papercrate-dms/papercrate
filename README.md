@@ -24,31 +24,26 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
     docker compose up -d
     ```
 
-3.  Create a demo user and tenant:
+3.  **Bootstrapping (Auto-Create User)**:
+    Set the `PAPERCRATE_INITIAL_USER` environment variable in your `.env` file (e.g. `PAPERCRATE_INITIAL_USER=myuser`). When the stack starts, a bootstrap container will automatically create this user with a personal tenant and generate a magic login token.
 
     ```bash
-    # Create user 'demo' and tenant 'demo'
-    docker compose exec backend /usr/local/bin/papercrate-admin create-user demo
-    docker compose exec backend /usr/local/bin/papercrate-admin create-tenant demo
-
-    # Add user to tenant (replace <TENANT_ID> from output)
-    docker compose exec backend /usr/local/bin/papercrate-admin add-user-to-tenant demo <TENANT_ID>
-
-    # Generate a magic link for initial login
-    docker compose exec backend /usr/local/bin/papercrate-admin magic-token demo
+    # Check the logs for your login token
+    docker compose logs bootstrap
     ```
 
-4.  Visit `http://localhost:8080` (or your configured host) and log in.
+    *Alternatively, created manually:*
+    ```bash
+    docker compose exec backend /usr/local/bin/papercrate-admin create-user myuser --personal-tenant --with-token
+    ```
 
-## Building from Source
+    > **Lost your token?** You can generate a new one at any time:
+    > ```bash
+    > docker compose exec backend /usr/local/bin/papercrate-admin magic-token myuser
+    > ```
 
-To build the images locally (for development or custom modifications), use `docker-compose.build.yml`:
+4.  Visit `http://localhost:8080` (or your configured host) and log in with the token.
 
-```bash
-# Create .env as usual
-docker compose -f docker-compose.build.yml build
-docker compose -f docker-compose.build.yml up -d
-```
 
 ## Authentication
 
