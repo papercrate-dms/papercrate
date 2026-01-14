@@ -8,6 +8,8 @@
     "build": "webpack --mode production",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "check": "tsc --noEmit && npx knip && npm run lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:engine": "node --test tests/workspaceEngine.test.js"
   },
   "dependencies": {
@@ -28,6 +30,11 @@
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/js": "^9.39.1",
     "@svgr/webpack": "^8.1.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25.0.8",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.18.1",
     "babel-loader": "^10.0.0",
@@ -38,9 +45,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^16.5.0",
     "html-webpack-plugin": "^5.6.4",
+    "jsdom": "^27.4.0",
     "knip": "^5.71.0",
     "style-loader": "^4.0.0",
     "typescript": "^5.7.3",
+    "vitest": "^4.0.17",
     "webpack": "^5.102.1",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"

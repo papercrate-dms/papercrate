@@ -42,7 +42,7 @@ Items required for the beta release.
 ### Features
 - [ ] feat: Trash view and restore
 - [ ] arch: **Routing**: "URL as Single Source of Truth" (Fixes refresh/sync regressions).
-- [ ] feat: Login via Magic Token (UI Support)
+- [x] feat: Login via Magic Token (UI Support)
 
 ## v0.2 / Future
 

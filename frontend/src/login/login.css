@@ -1,3 +1,5 @@
+/* Global button/input styles (e.g., from controls.css, elements.css) handle components.
+   This file only handles the specific layout of the login screen. */
 
 .login-screen {
   min-height: 100vh;
@@ -87,38 +89,6 @@
   width: 100%;
 }
 
-.login-card .login-card__fields input {
-  appearance: none;
-  border-radius: 0.45rem;
-  border: 1px solid var(--border);
-  padding: 0.55rem 0.65rem;
-  font-size: 0.95rem;
-  background: var(--surface);
-  color: var(--fg);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.login-card .login-card__fields input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-  background: var(--surface);
-}
-
-.login-card__passkey-button {
-  margin-top: 1rem;
-  width: 100%;
-  display: inline-flex;
-  justify-content: center;
-}
-
-.login-card__signup-button {
-  margin-top: 0.75rem;
-  width: 100%;
-  display: inline-flex;
-  justify-content: center;
-}
-
 .login-card .status-banner {
   margin-bottom: 0;
 }
@@ -135,52 +105,47 @@
   gap: 0.6rem;
 }
 
-.login-card__tenant-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.login-card__passkey-button {
+  margin-top: 1rem;
   width: 100%;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.6rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: inherit;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  display: inline-flex;
+  justify-content: center;
 }
 
-.login-card__tenant-button:hover:not([disabled]) {
-  background: var(--surface-hover);
-  border-color: var(--border-strong);
+.login-card__signup-button {
+  margin-top: 0.75rem;
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
 }
 
-.login-card__tenant-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
+/* Overrides for global .text-button */
+.login-card .text-button {
+  width: 100%;
+  color: var(--muted);
+  padding: 0.5rem;
+  text-align: center;
 }
 
-.login-card__tenant-button.is-loading {
-  opacity: 0.6;
-}
-
-.login-card__back-button {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--accent);
-  font-size: 0.85rem;
-  cursor: pointer;
+.login-card .text-button:hover:not([disabled]) {
+  color: var(--fg);
   text-decoration: underline;
 }
 
-.login-card__back-button:hover {
-  text-decoration: none;
+.login-card__separator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.login-card__back-button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.login-card__separator::before,
+.login-card__separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border);
 }
