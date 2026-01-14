@@ -605,6 +605,9 @@ fn add_user_to_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Result<
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
+    apply_tenant_guc(&mut conn, tenant.id)
+        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
+
     let owner_capability_set_id = ensure_capability_set(&mut conn, tenant.id, owner_capabilities())
         .map_err(|err| anyhow!("failed to ensure owner capability set: {:?}", err))?
         .id;
@@ -640,6 +643,9 @@ fn remove_user_from_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Re
         .first(&mut conn)
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
+
+    apply_tenant_guc(&mut conn, tenant.id)
+        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
 
     let removed = diesel::delete(
         user_memberships::table

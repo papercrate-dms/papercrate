@@ -25,6 +25,9 @@ All capabilities live in the `ApiCapability` enum. The current list is:
 - `webdav:write`
 - `capability_sets:read`
 - `capability_sets:write`
+- `tenants:write`
+- `tenants:reset`
+- `tenants:delete`
 
 ## Default Sets
 

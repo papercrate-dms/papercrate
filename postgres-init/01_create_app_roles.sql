@@ -13,9 +13,13 @@ $$;
 
 -- Ensure the login role inherits and uses a sensible search path by default
 ALTER ROLE papercrate_app_login INHERIT;
-ALTER ROLE papercrate_app_login SET search_path = 'tenant, shared, public';
+ALTER ROLE papercrate_app_login SET search_path = 'public';
 
-GRANT CONNECT ON DATABASE papercrate TO papercrate_app;
+GRANT CONNECT, CREATE ON DATABASE papercrate TO papercrate_app;
 GRANT CONNECT ON DATABASE papercrate TO papercrate_app_login;
-GRANT USAGE ON SCHEMA public TO papercrate_app;
-GRANT USAGE ON SCHEMA public TO papercrate_app_login;
+GRANT USAGE, CREATE ON SCHEMA public TO papercrate_app;
+GRANT USAGE, CREATE ON SCHEMA public TO papercrate_app_login;
+
+-- Ensure the app user can access existing tables (if any)
+GRANT ALL ON ALL TABLES IN SCHEMA public TO papercrate_app;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO papercrate_app;
