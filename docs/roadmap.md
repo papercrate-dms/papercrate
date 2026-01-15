@@ -5,8 +5,7 @@ Items required for the beta release.
 ## General
 
 - [ ] Document and test Docker/Kubernetes deployment thoroughly
-- [ ] Ensure all Rust/NPM dependencies are on recent versions
-    - Check `npm outdated`
+- [x] Ensure all Rust/NPM dependencies are on recent versions
 
 ## Backend
 

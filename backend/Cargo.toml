@@ -12,7 +12,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 axum-extra = { version = "0.12", features = ["typed-header"] }
 
 # Database
-diesel = { version = "2.3.3", features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
+diesel = { version = "2.3", features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
 diesel_migrations = "2.1"
 uuid = { version = "1.6", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -36,10 +36,10 @@ hmac = "0.12"
 bytes = "1.5"
 async-trait = "0.1"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
-pdfium-render = "0.8.36"
+pdfium-render = "0.8"
 mime_guess = "2.0"
 tempfile = "3.10"
-reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 percent-encoding = "2.3"
 base64 = "0.22"
 quick-xml = "0.38"
