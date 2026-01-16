@@ -139,7 +139,7 @@ async fn persist_issued_at(
                 .filter(documents_dsl::id.eq(document_id)),
         )
         .set(documents_dsl::issued_at.eq(issued_at))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .map_err(|err| format!("failed to update issued_at: {err}"))?;
         Ok(())
     })

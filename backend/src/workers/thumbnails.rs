@@ -177,7 +177,7 @@ async fn delete_asset_object(ctx: &DocumentVersionTaskContext, asset: &DocumentA
     let state = ctx.state().clone();
     match task::spawn_blocking(move || -> AppResult<()> {
         let mut conn = state.db_for_tenant(tenant_id)?;
-        delete_asset(&mut conn, tenant_id, asset_id)
+        delete_asset(&mut *conn, tenant_id, asset_id)
     })
     .await
     {
@@ -559,7 +559,7 @@ fn persist_assets_metadata(
                 document_assets::metadata.eq(excluded(document_assets::metadata)),
                 document_assets::s3_key.eq(excluded(document_assets::s3_key)),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .map_err(|err| format!("{err:?}"))?;
     }
 
@@ -582,7 +582,7 @@ fn persist_document_page_count(
         .filter(document_versions::document_id.eq(document_id))
         .filter(document_versions::tenant_id.eq(tenant_id))
         .select(document_versions::metadata)
-        .first(&mut conn)
+        .first(&mut *conn)
         .map_err(|err| format!("{err:?}"))?;
 
     let updated = match existing_metadata {
@@ -604,7 +604,7 @@ fn persist_document_page_count(
             .filter(document_versions::tenant_id.eq(tenant_id)),
     )
     .set(document_versions::metadata.eq(updated))
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .map_err(|err| format!("{err:?}"))?;
 
     Ok(())

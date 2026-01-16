@@ -10,7 +10,7 @@ use crate::documents::correspondents::{
 use crate::error::{AppError, AppResult};
 use crate::schema::{document_correspondents, documents};
 use crate::services::helpers::load_active_document;
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::db::validate_bulk_ids;
 
 #[derive(Serialize, ToSchema)]
@@ -62,7 +62,7 @@ impl<'a> CorrespondentsService<'a> {
 
     pub fn assign_to_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -130,7 +130,7 @@ impl<'a> CorrespondentsService<'a> {
 
     pub fn bulk_update(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         mut payload: BulkCorrespondentsRequest,
@@ -229,7 +229,7 @@ impl<'a> CorrespondentsService<'a> {
 
     pub fn remove_from_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
         correspondent_id: Uuid,

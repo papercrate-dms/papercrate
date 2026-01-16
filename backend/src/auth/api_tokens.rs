@@ -29,7 +29,7 @@ pub struct IssuedApiToken {
 
 /// Creates a new API token for the supplied user/tenant combination.
 pub fn create_api_token(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     user_id: Uuid,
     tenant_id: Uuid,
     label: Option<String>,
@@ -65,7 +65,7 @@ pub fn create_api_token(
 
 /// Lists API tokens belonging to a user within an optional tenant scope.
 pub fn list_api_tokens(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     user_id: Uuid,
     tenant_id: Option<Uuid>,
 ) -> Result<Vec<ApiToken>, AppError> {
@@ -86,7 +86,7 @@ pub fn list_api_tokens(
 
 /// Regenerates the secret value for an API token.
 pub fn regenerate_api_token(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     token_id: Uuid,
     user_id: Uuid,
     tenant_id: Option<Uuid>,
@@ -168,7 +168,7 @@ pub fn find_active_token_by_secret(
 
 /// Revokes an API token belonging to the specified user.
 pub fn revoke_api_token(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     token_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), AppError> {
@@ -182,7 +182,7 @@ pub fn revoke_api_token(
 }
 
 /// Updates the last-used timestamp for a token.
-pub fn touch_api_token(conn: &mut PgPooledConnection, token_id: Uuid) -> Result<(), AppError> {
+pub fn touch_api_token(conn: &mut PgConnection, token_id: Uuid) -> Result<(), AppError> {
     diesel::update(api_tokens::table.filter(api_tokens::id.eq(token_id)))
         .set(api_tokens::last_used_at.eq(Utc::now().naive_utc()))
         .execute(conn)?;
@@ -198,7 +198,7 @@ pub fn verify_token_secret(secret: &str, token_hash: &str) -> Result<bool, AppEr
 }
 
 fn find_user_token(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     token_id: Uuid,
     user_id: Uuid,
     tenant_id: Option<Uuid>,
@@ -220,7 +220,7 @@ fn find_user_token(
 }
 
 fn validate_capability_set_belongs_to_tenant(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     capability_set_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<CapabilitySet, AppError> {

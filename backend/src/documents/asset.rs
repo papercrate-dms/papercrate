@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::{Document, DocumentAsset, DocumentVersion};
 use crate::schema::{document_assets, document_versions};
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::{http::inline_content_disposition, time::to_iso};
 
 #[derive(Serialize, Clone, ToSchema)]
@@ -134,7 +134,7 @@ pub fn asset_disposition(asset: &DocumentAsset) -> Option<String> {
 }
 
 pub fn delete_asset(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     asset_id: Uuid,
 ) -> AppResult<()> {
@@ -149,7 +149,7 @@ pub fn delete_asset(
 }
 
 pub fn load_asset_responses_with_conn(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     version_id: Uuid,
 ) -> AppResult<Vec<DocumentAssetResponse>> {
@@ -163,7 +163,7 @@ pub fn load_asset_responses_with_conn(
 }
 
 pub fn load_primary_assets(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     documents: &[Document],
 ) -> AppResult<HashMap<Uuid, (DocumentVersionResponse, Vec<DocumentAssetResponse>)>> {
     if documents.is_empty() {

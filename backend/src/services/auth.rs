@@ -33,10 +33,9 @@ use crate::schema::{
     user_sessions::{self, dsl as session_dsl},
     users::dsl,
 };
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::tenants::{
-    apply_tenant_guc, apply_user_guc, apply_user_session_hash, clear_user_guc,
-    clear_user_session_hash,
+    apply_user_session_hash, clear_user_guc, clear_user_session_hash, TenantGucGuard, UserGucGuard,
 };
 use crate::utils::text::normalize_identifier;
 
@@ -177,13 +176,14 @@ impl<'a> AuthService<'a> {
 
         let user: User = dsl::users.find(token.user_id).first(&mut conn)?;
 
-        apply_user_guc(&mut conn, user.id)?;
-        let membership = memberships_dsl::user_memberships
-            .filter(memberships_dsl::user_id.eq(user.id))
-            .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
-            .first::<UserMembership>(&mut conn)
-            .optional()?;
-        clear_user_guc(&mut conn)?;
+        let membership = {
+            let guard = UserGucGuard::new(&mut conn, user.id)?;
+            memberships_dsl::user_memberships
+                .filter(memberships_dsl::user_id.eq(user.id))
+                .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
+                .first::<UserMembership>(guard.conn)
+                .optional()?
+        };
 
         let membership = membership.ok_or_else(AppError::unauthorized)?;
 
@@ -197,22 +197,23 @@ impl<'a> AuthService<'a> {
         let token_capability_set = load_capability_set(&mut conn, token.capability_set_id)?;
         let _membership_set = load_capability_set(&mut conn, membership_capability_set)?;
 
-        apply_tenant_guc(&mut conn, token.tenant_id)?;
-        touch_api_token(&mut conn, token.id)?;
+        let access_token = {
+            let guard = TenantGucGuard::new(&mut conn, token.tenant_id)?;
+            touch_api_token(guard.conn, token.id)?;
 
-        let access_token = self
-            .state
-            .jwt
-            .generate_token(AccessTokenContext {
-                user_id: user.id,
-                tenant_id: token.tenant_id,
-                username: user.username.clone(),
-                principal_kind: PrincipalKind::ApiToken,
-                principal_id: token.id,
-                capability_set_id: token_capability_set.id,
-                cap_version: token_capability_set.cap_version,
-            })
-            .map_err(AppError::from)?;
+            self.state
+                .jwt
+                .generate_token(AccessTokenContext {
+                    user_id: user.id,
+                    tenant_id: token.tenant_id,
+                    username: user.username.clone(),
+                    principal_kind: PrincipalKind::ApiToken,
+                    principal_id: token.id,
+                    capability_set_id: token_capability_set.id,
+                    cap_version: token_capability_set.cap_version,
+                })
+                .map_err(AppError::from)?
+        };
 
         let tenant_name: String = tenant_dsl::tenants
             .find(token.tenant_id)
@@ -301,7 +302,7 @@ impl<'a> AuthService<'a> {
         let response = conn.transaction::<Response, AppError, _>(|conn| {
             insert_user(conn, claims.sub, &claims.username)?;
 
-            let tenant = state_clone.tenants.create_tenant_with_conn(
+            let _tenant = state_clone.tenants.create_tenant_with_conn(
                 conn,
                 &claims.username,
                 None,
@@ -320,7 +321,28 @@ impl<'a> AuthService<'a> {
                 .map_err(AppError::from)?;
 
             let user: User = dsl::users.find(claims.sub).first(conn)?;
-            self.issue_session(conn, &user, tenant.id)
+            
+            // Return Selection Response so user can see the new tenant (Creating).
+            let user_tenants = self.get_user_tenants(conn, user.id)?;
+            
+            let mut available_tenants = Vec::new();
+            for (id, name, status) in user_tenants {
+                if status == TenantStatus::Active || status == TenantStatus::Creating {
+                    available_tenants.push(TenantSnippet { id, name });
+                }
+            }
+
+            let selection_token = state_clone
+                .jwt
+                .generate_tenant_selector_token(user.id)
+                .map_err(AppError::from)?;
+
+            let response_body = LoginResponseVariants::Selection(TenantSelectionResponse {
+                access_token: selection_token,
+                tenants: available_tenants,
+            });
+            let json = ok_json(response_body)?;
+            Ok(json.into_response())
         })?;
 
         Ok(response)
@@ -345,15 +367,18 @@ impl<'a> AuthService<'a> {
         };
 
         clear_user_session_hash(&mut conn)?;
-        apply_tenant_guc(&mut conn, token.tenant_id)?;
-        clear_user_guc(&mut conn)?;
+        
+        {
+            let guard = TenantGucGuard::new(&mut conn, token.tenant_id)?;
+            clear_user_guc(guard.conn)?;
 
-        diesel::update(session_dsl::user_sessions.filter(session_dsl::id.eq(token.id)))
-            .set((
-                session_dsl::revoked_at.eq(now_naive),
-                session_dsl::updated_at.eq(now_naive),
-            ))
-            .execute(&mut conn)?;
+            diesel::update(session_dsl::user_sessions.filter(session_dsl::id.eq(token.id)))
+                .set((
+                    session_dsl::revoked_at.eq(now_naive),
+                    session_dsl::updated_at.eq(now_naive),
+                ))
+                .execute(guard.conn)?;
+        }
 
         let user: User = dsl::users
             .find(token.user_id)
@@ -375,16 +400,15 @@ impl<'a> AuthService<'a> {
         };
 
         let mut conn = self.state.db_unscoped()?;
-        apply_user_guc(&mut conn, user_id)?;
-
-        let membership_exists = memberships_dsl::user_memberships
-            .filter(memberships_dsl::user_id.eq(user_id))
-            .filter(memberships_dsl::tenant_id.eq(tenant_id))
-            .select(memberships_dsl::tenant_id)
-            .first::<Uuid>(&mut conn)
-            .optional()?;
-
-        clear_user_guc(&mut conn)?;
+        let membership_exists = {
+            let guard = UserGucGuard::new(&mut conn, user_id)?;
+            memberships_dsl::user_memberships
+                .filter(memberships_dsl::user_id.eq(user_id))
+                .filter(memberships_dsl::tenant_id.eq(tenant_id))
+                .select(memberships_dsl::tenant_id)
+                .first::<Uuid>(guard.conn)
+                .optional()?
+        };
 
         if membership_exists.is_none() {
             return Err(AppError::unauthorized());
@@ -400,7 +424,7 @@ impl<'a> AuthService<'a> {
 
     pub fn logout(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         user: &AuthenticatedUser,
         refresh_cookie: Option<&str>,
     ) -> AppResult<(HeaderMap, StatusCode)> {
@@ -444,14 +468,13 @@ impl<'a> AuthService<'a> {
 
     pub fn list_tenants(&self, user_id: Uuid) -> AppResult<JsonResponse<TenantListResponse>> {
         let mut conn = self.state.db_unscoped()?;
-        apply_user_guc(&mut conn, user_id)?;
-
-        let tenant_ids: Vec<Uuid> = memberships_dsl::user_memberships
-            .filter(memberships_dsl::user_id.eq(user_id))
-            .select(memberships_dsl::tenant_id)
-            .load(&mut conn)?;
-
-        clear_user_guc(&mut conn)?;
+        let tenant_ids: Vec<Uuid> = {
+            let guard = UserGucGuard::new(&mut conn, user_id)?;
+            memberships_dsl::user_memberships
+                .filter(memberships_dsl::user_id.eq(user_id))
+                .select(memberships_dsl::tenant_id)
+                .load(guard.conn)?
+        };
 
         let mut tenants = Vec::with_capacity(tenant_ids.len());
         for tenant_id in tenant_ids {
@@ -478,16 +501,15 @@ impl<'a> AuthService<'a> {
         tenant_id: Uuid,
     ) -> AppResult<JsonResponse<TenantSnippet>> {
         let mut conn = self.state.db_unscoped()?;
-        apply_user_guc(&mut conn, user_id)?;
-
-        let is_member: bool = diesel::select(diesel::dsl::exists(
-            memberships_dsl::user_memberships
-                .filter(memberships_dsl::user_id.eq(user_id))
-                .filter(memberships_dsl::tenant_id.eq(tenant_id)),
-        ))
-        .get_result(&mut conn)?;
-
-        clear_user_guc(&mut conn)?;
+        let is_member: bool = {
+            let guard = UserGucGuard::new(&mut conn, user_id)?;
+            diesel::select(diesel::dsl::exists(
+                memberships_dsl::user_memberships
+                    .filter(memberships_dsl::user_id.eq(user_id))
+                    .filter(memberships_dsl::tenant_id.eq(tenant_id)),
+            ))
+            .get_result(guard.conn)?
+        };
 
         if !is_member {
             return Err(AppError::not_found());
@@ -601,55 +623,58 @@ impl<'a> AuthService<'a> {
         user: &User,
         preferred_tenant_id: Option<Uuid>,
     ) -> AppResult<Response> {
-        apply_user_guc(conn, user.id)?;
-        let tenant_ids: Vec<Uuid> = memberships_dsl::user_memberships
-            .filter(memberships_dsl::user_id.eq(user.id))
-            .select(memberships_dsl::tenant_id)
-            .load(conn)?;
-        clear_user_guc(conn)?;
+        let user_tenants = self.get_user_tenants(conn, user.id)?;
 
-        if tenant_ids.is_empty() {
+        if user_tenants.is_empty() {
             return Err(AppError::unauthorized());
         }
 
-        let mut active_tenants = Vec::new();
-        for tenant_id in tenant_ids {
-            let (name, status): (String, TenantStatus) = tenant_dsl::tenants
-                .find(tenant_id)
-                .select((tenant_dsl::name, tenant_dsl::status))
-                .first(conn)
-                .map_err(AppError::from)?;
-            if status == TenantStatus::Active {
-                active_tenants.push((tenant_id, name));
+        let mut candidate_tenants = Vec::new();
+        for (id, name, status) in user_tenants {
+            if status == TenantStatus::Active || status == TenantStatus::Creating {
+                candidate_tenants.push((id, name, status));
             }
         }
-
-        if active_tenants.is_empty() {
-            return Err(AppError::new(
-                StatusCode::FORBIDDEN,
-                "no active tenants available",
-            ));
+        
+        if candidate_tenants.is_empty() {
+             return Err(AppError::new(
+                 StatusCode::FORBIDDEN,
+                 "no active tenants available",
+             ));
         }
 
         if let Some(preferred_id) = preferred_tenant_id {
-            if active_tenants.iter().any(|(id, _)| *id == preferred_id) {
-                return self.issue_session(conn, user, preferred_id);
+            if let Some((id, _, status)) = candidate_tenants.iter().find(|(id, _, _)| *id == preferred_id) {
+                if *status == TenantStatus::Active {
+                    return self.issue_session(conn, user, *id);
+                }
+                // If preferred is not active (e.g. Creating), we fall through to selection (or could return error potentially, but selection is safer transparency)
             }
         }
 
-        if active_tenants.len() == 1 {
-            return self.issue_session(conn, user, active_tenants[0].0);
+        // Auto-login only if exactly one ACTIVE tenant exists and others are... wait.
+        // Original logic: if 1 active, auto login.
+        // New logic: If 1 candidate (Creating or Active).
+        // If 1 candidate and it is Active -> Login.
+        // If 1 candidate and it is Creating -> Show Selection (don't login).
+        
+        if candidate_tenants.len() == 1 {
+            let (id, _, status) = candidate_tenants[0];
+            if status == TenantStatus::Active {
+                return self.issue_session(conn, user, id);
+            }
         }
-
+        
+        // Return selection list
         let selection_token = self
             .state
             .jwt
             .generate_tenant_selector_token(user.id)
             .map_err(AppError::from)?;
 
-        let tenants = active_tenants
+        let tenants = candidate_tenants
             .into_iter()
-            .map(|(id, name)| TenantSnippet { id, name })
+            .map(|(id, name, _)| TenantSnippet { id, name })
             .collect();
 
         let response = ok_json(LoginResponseVariants::Selection(TenantSelectionResponse {
@@ -724,14 +749,18 @@ impl<'a> AuthService<'a> {
         tenant_id: Uuid,
     ) -> AppResult<Response> {
         crate::auth::ensure_active_tenant_with_conn(conn, tenant_id)?;
-        apply_tenant_guc(conn, tenant_id)?;
-        clear_user_guc(conn)?;
-        clear_user_session_hash(conn)?;
+        
+        let tenant_guard = TenantGucGuard::new(conn, tenant_id)?;
+
+        // user_session_hash and user_guc clearing is done on the shared conn inside the guard scope
+        // Note: Since tenant_guard borrows conn exclusively, we use tenant_guard.conn
+        clear_user_guc(tenant_guard.conn)?;
+        clear_user_session_hash(tenant_guard.conn)?;
 
         let membership: UserMembership = memberships_dsl::user_memberships
             .filter(memberships_dsl::user_id.eq(user.id))
             .filter(memberships_dsl::tenant_id.eq(tenant_id))
-            .first(conn)?;
+            .first(tenant_guard.conn)?;
 
         let capability_set_id = membership.capability_set_id.ok_or_else(|| {
             AppError::new(
@@ -740,7 +769,7 @@ impl<'a> AuthService<'a> {
             )
         })?;
 
-        let capability_set = load_capability_set(conn, capability_set_id)?;
+        let capability_set = load_capability_set(tenant_guard.conn, capability_set_id)?;
 
         let now = Utc::now();
         let session_id = Uuid::new_v4();
@@ -761,7 +790,7 @@ impl<'a> AuthService<'a> {
         let tenant_name: String = tenant_dsl::tenants
             .find(tenant_id)
             .select(tenant_dsl::name)
-            .first(conn)
+            .first(tenant_guard.conn)
             .map_err(AppError::from)?;
 
         let session_value = generate_session_token();
@@ -775,12 +804,23 @@ impl<'a> AuthService<'a> {
             token_hash: session_hash,
             issued_at: now.naive_utc(),
             expires_at: refresh_expires_at.naive_utc(),
-            tenant_id,
+            tenant_id: tenant_id, // Passed from argument
         };
 
-        diesel::insert_into(user_sessions::table)
+        match diesel::insert_into(user_sessions::table)
             .values(&new_session)
-            .execute(conn)?;
+            .execute(tenant_guard.conn)
+        {
+            Ok(_) => Ok(()),
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation,
+                _,
+            )) => Err(AppError::new(
+                StatusCode::BAD_REQUEST,
+                "User not a member of this tenant",
+            )),
+            Err(e) => Err(AppError::from(e)),
+        }?;
 
         let json = ok_json(LoginResponseVariants::Token(LoginResponse {
             access_token,
@@ -800,6 +840,31 @@ impl<'a> AuthService<'a> {
         );
 
         Ok(response)
+    }
+    fn get_user_tenants(
+        &self,
+        conn: &mut PgConnection,
+        user_id: Uuid,
+    ) -> AppResult<Vec<(Uuid, String, TenantStatus)>> {
+        let tenant_ids: Vec<Uuid> = {
+            let guard = UserGucGuard::new(conn, user_id)?;
+            memberships_dsl::user_memberships
+                .filter(memberships_dsl::user_id.eq(user_id))
+                .select(memberships_dsl::tenant_id)
+                .load(guard.conn)?
+        };
+
+        let mut results = Vec::new();
+        for tenant_id in tenant_ids {
+            let (name, status): (String, TenantStatus) = tenant_dsl::tenants
+                .find(tenant_id)
+                .select((tenant_dsl::name, tenant_dsl::status))
+                .first(conn)
+                .map_err(AppError::from)?;
+            results.push((tenant_id, name, status));
+        }
+
+        Ok(results)
     }
 }
 

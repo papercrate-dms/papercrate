@@ -211,7 +211,7 @@ async fn update_document_mime(
             crate::schema::documents::table.filter(crate::schema::documents::id.eq(document_id)),
         )
         .set(crate::schema::documents::mime_type.eq(Some(mime_type_clone)))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .map_err(|err| format!("{err:?}"))
         .map(|_| ())
     })

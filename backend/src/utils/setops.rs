@@ -4,7 +4,7 @@ use std::hash::Hash;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::state::PgPooledConnection;
+
 
 /// Intersect an optional base set with a new set, returning the resulting option.
 pub fn intersect_option_sets<T>(base: Option<HashSet<T>>, next: HashSet<T>) -> Option<HashSet<T>>
@@ -19,12 +19,12 @@ where
 
 /// Iteratively intersect documents linked via a join table loader.
 pub fn load_linked_doc_ids<F>(
-    conn: &mut PgPooledConnection,
+    conn: &mut diesel::PgConnection,
     ids: &[Uuid],
     mut loader: F,
 ) -> AppResult<HashSet<Uuid>>
 where
-    F: FnMut(&mut PgPooledConnection, Uuid) -> AppResult<HashSet<Uuid>>,
+    F: FnMut(&mut diesel::PgConnection, Uuid) -> AppResult<HashSet<Uuid>>,
 {
     let mut current: Option<HashSet<Uuid>> = None;
 

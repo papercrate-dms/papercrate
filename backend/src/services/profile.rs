@@ -1,3 +1,4 @@
+use diesel::PgConnection;
 use axum::http::StatusCode;
 use chrono::{DateTime, NaiveDateTime};
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,7 @@ use crate::auth::{
 use crate::error::{AppError, AppResult};
 use crate::http::responders::{created_json, no_content, ok_json, JsonResponse};
 use crate::models::ApiToken;
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::time::to_iso;
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -67,7 +68,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn list_passkeys(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         user_id: Uuid,
     ) -> AppResult<JsonResponse<Vec<PasskeySummary>>> {
         let service = self
@@ -82,7 +83,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn list_api_tokens(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
     ) -> AppResult<JsonResponse<Vec<ApiTokenResponse>>> {
@@ -93,7 +94,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn create_api_token(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         payload: CreateApiTokenRequest,
@@ -128,7 +129,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn regenerate_api_token(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         token_id: Uuid,
@@ -143,7 +144,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn delete_api_token(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         user_id: Uuid,
         token_id: Uuid,
     ) -> AppResult<StatusCode> {
@@ -153,7 +154,7 @@ impl<'a> ProfileService<'a> {
 
     pub fn delete_passkey(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         user_id: Uuid,
         passkey_id: Uuid,
         reason: Option<String>,
@@ -208,7 +209,7 @@ fn parse_timestamp(value: &str) -> AppResult<NaiveDateTime> {
 }
 
 fn validate_capability_set(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     capability_set_id: Uuid,
 ) -> AppResult<Uuid> {

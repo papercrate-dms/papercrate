@@ -8,11 +8,11 @@ use crate::documents::correspondents::{
 use crate::documents::tags::load_tags_for_documents;
 use crate::error::AppResult;
 use crate::models::Tag;
-use crate::state::PgPooledConnection;
+use diesel::pg::PgConnection;
 
 /// Loads tags and correspondents for the provided documents in a single pass.
 pub fn load_tags_and_correspondents(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     document_ids: &[Uuid],
 ) -> AppResult<HashMap<Uuid, (Vec<Tag>, Vec<DocumentCorrespondentResponse>)>> {
     if document_ids.is_empty() {

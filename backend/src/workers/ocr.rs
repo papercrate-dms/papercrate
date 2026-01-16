@@ -168,7 +168,7 @@ async fn remove_existing_ocr_asset(ctx: &DocumentVersionTaskContext, context: &O
         let state = ctx.state().clone();
         match task::spawn_blocking(move || -> AppResult<()> {
             let mut conn = state.db_for_tenant(tenant_id)?;
-            delete_asset(&mut conn, tenant_id, asset_id)
+            delete_asset(&mut *conn, tenant_id, asset_id)
         })
         .await
         {
@@ -214,7 +214,7 @@ fn persist_ocr_metadata(
                 .filter(document_assets::id.eq(existing_asset))
                 .filter(document_assets::tenant_id.eq(tenant_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .map_err(|err| format!("{err:?}"))?;
     }
 
@@ -246,7 +246,7 @@ fn persist_ocr_metadata(
             document_assets::s3_key.eq(excluded(document_assets::s3_key)),
             document_assets::id.eq(excluded(document_assets::id)),
         ))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .map_err(|err| format!("{err:?}"))?;
 
     Ok(())

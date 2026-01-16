@@ -48,7 +48,7 @@ pub async fn get_folder(
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let folder = service.get_folder(&mut conn, tenant_id, folder_id)?;
+    let folder = service.get_folder(&mut *conn, tenant_id, folder_id)?;
     ok_json(FolderResponse { folder })
 }
 
@@ -69,7 +69,7 @@ pub async fn ensure_folder_path(
     Json(payload): Json<EnsureFolderPathRequest>,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let folder = service.ensure_folder_path(&mut conn, tenant_id, payload)?;
+    let folder = service.ensure_folder_path(&mut *conn, tenant_id, payload)?;
     ok_json(FolderResponse { folder })
 }
 
@@ -93,7 +93,7 @@ pub async fn create_folder(
     Json(payload): Json<CreateFolderRequest>,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let (folder, created) = service.create_folder(&mut conn, tenant_id, payload)?;
+    let (folder, created) = service.create_folder(&mut *conn, tenant_id, payload)?;
     let response = FolderResponse { folder };
     if created {
         created_json(response)
@@ -141,7 +141,7 @@ pub async fn list_folder_contents(
         subfolders,
         documents,
     } = service.list_folder_contents(
-        &mut conn,
+        &mut *conn,
         tenant_id,
         folder_id,
         sort,
@@ -150,7 +150,7 @@ pub async fn list_folder_contents(
     )?;
 
     let documents = if include_documents {
-        service.hydrate_documents(&mut conn, tenant_id, user_id, documents)?
+        service.hydrate_documents(&mut *conn, tenant_id, user_id, documents)?
     } else {
         Vec::new()
     };
@@ -177,7 +177,7 @@ pub async fn list_folder_tree(
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<FolderTreeNode>>> {
     let service = FolderService::new(&state);
-    let tree = service.list_folder_tree(&mut conn, tenant_id)?;
+    let tree = service.list_folder_tree(&mut *conn, tenant_id)?;
     ok_json(tree)
 }
 
@@ -197,7 +197,7 @@ pub async fn delete_folder(
         ..
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
-    FolderService::new(&state).delete_folder(&mut conn, tenant_id, folder_id)?;
+    FolderService::new(&state).delete_folder(&mut *conn, tenant_id, folder_id)?;
     no_content()
 }
 
@@ -219,7 +219,7 @@ pub async fn update_folder(
     }: TenantScopedConn,
     Json(payload): Json<UpdateFolderRequest>,
 ) -> AppResult<StatusCode> {
-    FolderService::new(&state).update_folder(&mut conn, tenant_id, folder_id, payload)?;
+    FolderService::new(&state).update_folder(&mut *conn, tenant_id, folder_id, payload)?;
     no_content()
 }
 

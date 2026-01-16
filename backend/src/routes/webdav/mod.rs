@@ -26,20 +26,22 @@ use crate::schema::{
     document_versions::dsl as document_versions_dsl, documents::dsl as documents_dsl,
     folders::dsl as folders_dsl, user_memberships::dsl as memberships_dsl, users::dsl as users_dsl,
 };
-use crate::state::{AppState, PgPooledConnection};
-use crate::tenants::{apply_tenant_guc, apply_user_guc, clear_user_guc};
+use crate::state::AppState;
+use crate::tenants::{TenantScopedConnection, UserGucGuard};
 use crate::utils::{error::StorageResultExt, http::inline_content_disposition, time::to_http_date};
 
 const REALM: &str = "Papercrate WebDAV";
 const DOWNLOAD_URL_TTL_SECONDS: u64 = 300;
-
+ 
 struct WebDavContext {
     tenant_id: Uuid,
     _user_id: Uuid,
     _username: String,
-    conn: PgPooledConnection,
+    conn: TenantScopedConnection,
 }
 
+
+ 
 pub fn create_router() -> Router<AppState> {
     Router::new().fallback(webdav_entrypoint)
 }
@@ -237,7 +239,7 @@ fn parse_segments(path: &str) -> AppResult<Vec<String>> {
 }
 
 fn fetch_folder_contents(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     folder_id: Option<Uuid>,
 ) -> AppResult<WebDavFolderContents> {
@@ -345,6 +347,23 @@ async fn stream_document(
     if !(status.is_success() || status == StatusCode::PARTIAL_CONTENT) {
         tracing::error!(status = %status, "upstream download returned error status");
         return Err(AppError::internal("failed to fetch document stream"));
+    }
+
+    if let Some(s3_size) = upstream
+        .headers()
+        .get(header::CONTENT_LENGTH)
+        .and_then(|val| val.to_str().ok())
+        .and_then(|s| s.parse::<i64>().ok())
+    {
+        if s3_size != version.size_bytes {
+            tracing::warn!(
+                document_id = %document.id,
+                version_id = %version.id,
+                db_size = %version.size_bytes,
+                s3_size = %s3_size,
+                "WebDAV content-length mismatch: DB vs S3"
+            );
+        }
     }
 
     let mut builder = Response::builder().status(status);
@@ -462,27 +481,27 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
         Err(err) => return Err(AppError::from(err)),
     };
 
-    apply_user_guc(&mut conn, user.id)?;
+    let tenant_id = {
+        let guard = UserGucGuard::new(&mut conn, user.id)?;
 
-    let membership_exists = memberships_dsl::user_memberships
-        .filter(memberships_dsl::user_id.eq(user.id))
-        .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
-        .select(memberships_dsl::tenant_id)
-        .first::<Uuid>(&mut conn)
-        .optional()?;
+        let membership_exists = memberships_dsl::user_memberships
+            .filter(memberships_dsl::user_id.eq(user.id))
+            .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
+            .select(memberships_dsl::tenant_id)
+            .first::<Uuid>(guard.conn)
+            .optional()?;
 
-    clear_user_guc(&mut conn)?;
-
-    let tenant_id = match membership_exists {
-        Some(id) => id,
-        None => {
-            tracing::warn!(
-                presented_username = %presented_username,
-                username = %user.username,
-                tenant_id = %token.tenant_id,
-                "webdav token tenant membership missing"
-            );
-            return Ok(None);
+        match membership_exists {
+            Some(id) => id,
+            None => {
+                tracing::warn!(
+                    presented_username = %presented_username,
+                    username = %user.username,
+                    tenant_id = %token.tenant_id,
+                    "webdav token tenant membership missing"
+                );
+                return Ok(None);
+            }
         }
     };
 
@@ -491,8 +510,14 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
         return Ok(None);
     }
 
-    apply_tenant_guc(&mut conn, tenant_id)?;
-    touch_api_token(&mut conn, token.id)?;
+    let mut context = WebDavContext {
+        tenant_id,
+        _user_id: user.id,
+        _username: user.username.clone(),
+        conn: TenantScopedConnection::new(conn, tenant_id)?,
+    };
+
+    touch_api_token(&mut *context.conn, token.id)?;
 
     tracing::debug!(
         presented_username = %presented_username,
@@ -501,12 +526,7 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
         token_id = %token.id,
         "webdav token login success"
     );
-    Ok(Some(WebDavContext {
-        tenant_id,
-        _user_id: user.id,
-        _username: user.username,
-        conn,
-    }))
+    Ok(Some(context))
 }
 
 fn build_resources_for_folder(
@@ -697,7 +717,7 @@ enum ResolvedPath {
 }
 
 fn resolve_path(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     segments: &[String],
 ) -> AppResult<Option<ResolvedPath>> {

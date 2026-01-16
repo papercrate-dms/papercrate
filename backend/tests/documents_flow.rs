@@ -339,7 +339,7 @@ async fn asset_detail_uses_proxy_urls_when_configured() -> Result<()> {
             s3_key: s3_key.clone(),
             tenant_id,
         })
-        .execute(&mut conn)?;
+        .execute(&mut *conn)?;
 
     drop(conn);
 

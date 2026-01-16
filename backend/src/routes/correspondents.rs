@@ -70,13 +70,13 @@ pub async fn list_correspondents(
     let correspondents_list: Vec<Correspondent> = correspondents::table
         .filter(correspondents::tenant_id.eq(tenant_id))
         .order(correspondents::name.asc())
-        .load(&mut conn)?;
+        .load(&mut *conn)?;
 
     let usage_rows: Vec<(Uuid, i64)> = document_correspondents::table
         .filter(document_correspondents::tenant_id.eq(tenant_id))
         .group_by(document_correspondents::correspondent_id)
         .select((document_correspondents::correspondent_id, count_star()))
-        .load(&mut conn)?;
+        .load(&mut *conn)?;
 
     let mut usage_map: HashMap<Uuid, i64> = HashMap::new();
     for (correspondent_id, count) in usage_rows {
@@ -122,7 +122,7 @@ pub async fn create_correspondent(
 
     match diesel::insert_into(correspondents::table)
         .values(&new_correspondent)
-        .execute(&mut conn)
+        .execute(&mut *conn)
     {
         Ok(_) => {}
         Err(diesel::result::Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
@@ -134,7 +134,7 @@ pub async fn create_correspondent(
     let correspondent: Correspondent = correspondents::table
         .find(new_id)
         .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
 
     ok_json(build_summary(correspondent, 0))
@@ -160,7 +160,7 @@ pub async fn update_correspondent(
     let existing: Correspondent = correspondents::table
         .find(correspondent_id)
         .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
 
     let mut new_name: Option<String> = None;
@@ -175,7 +175,7 @@ pub async fn update_correspondent(
                         .filter(correspondents::name.eq(&normalized))
                         .filter(correspondents::id.ne(correspondent_id))
                         .filter(correspondents::tenant_id.eq(tenant_id))
-                        .first::<Correspondent>(&mut conn)
+                        .first::<Correspondent>(&mut *conn)
                         .optional()
                 },
                 || AppError::bad_request("correspondent name already exists"),
@@ -212,14 +212,14 @@ pub async fn update_correspondent(
             .filter(correspondents::tenant_id.eq(tenant_id)),
     )
     .set((&changeset, correspondents::updated_at.eq(now)))
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .into_app_result()?
     .or_not_found()?;
 
     let updated: Correspondent = correspondents::table
         .find(correspondent_id)
         .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
     let usage = load_usage_for_correspondent(&mut conn, tenant_id, correspondent_id)?;
     ok_json(build_summary(updated, usage))
@@ -244,7 +244,7 @@ pub async fn delete_correspondent(
         .filter(document_correspondents::tenant_id.eq(tenant_id))
         .filter(document_correspondents::correspondent_id.eq(correspondent_id))
         .select(count_star())
-        .first(&mut conn)?;
+        .first(&mut *conn)?;
 
     if usage > 0 {
         return Err(AppError::bad_request(
@@ -257,7 +257,7 @@ pub async fn delete_correspondent(
             .filter(correspondents::id.eq(correspondent_id))
             .filter(correspondents::tenant_id.eq(tenant_id)),
     )
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .into_app_result()?
     .or_not_found()?;
     no_content()

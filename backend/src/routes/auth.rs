@@ -187,7 +187,7 @@ pub async fn logout(
             .get(SESSION_COOKIE_NAME)
             .map(|value| value.to_owned())
     });
-    AuthService::new(&state).logout(&mut conn, &user, refresh_cookie.as_deref())
+    AuthService::new(&state).logout(&mut *conn, &user, refresh_cookie.as_deref())
 }
 
 #[utoipa::path(

@@ -415,13 +415,13 @@ impl TestApp {
             .db_for_tenant(tenant_id)
             .map_err(|err| anyhow!("failed to scope tenant connection: {err:?}"))?;
 
-        ensure_capability_set(&mut conn, tenant_id, owner_capabilities())
+        ensure_capability_set(&mut *conn, tenant_id, owner_capabilities())
             .map_err(|err| anyhow!("ensure owner capability set: {err:?}"))?;
-        ensure_capability_set(&mut conn, tenant_id, user_capabilities())
+        ensure_capability_set(&mut *conn, tenant_id, user_capabilities())
             .map_err(|err| anyhow!("ensure user capability set: {err:?}"))?;
-        ensure_capability_set(&mut conn, tenant_id, readonly_capabilities())
+        ensure_capability_set(&mut *conn, tenant_id, readonly_capabilities())
             .map_err(|err| anyhow!("ensure readonly capability set: {err:?}"))?;
-        ensure_capability_set(&mut conn, tenant_id, webdav_capabilities())
+        ensure_capability_set(&mut *conn, tenant_id, webdav_capabilities())
             .map_err(|err| anyhow!("ensure webdav capability set: {err:?}"))?;
 
         Ok(tenant_id)

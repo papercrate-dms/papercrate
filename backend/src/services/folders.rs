@@ -17,7 +17,7 @@ use crate::http::responders::{IntoAppResult, RowsAffectedExt};
 use crate::models::{Document, Folder, NewFolder};
 use crate::schema::{documents, folders};
 use crate::services::documents::{DocumentResponse, DocumentsService};
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::{json::deserialize_patch_field, text::normalize_identifier, time::to_iso};
 
 const MAX_FOLDER_NAME_LEN: usize = 255;
@@ -99,7 +99,7 @@ impl<'a> FolderService<'a> {
 
     pub fn get_folder(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         folder_id: Uuid,
     ) -> AppResult<FolderInfo> {
@@ -112,7 +112,7 @@ impl<'a> FolderService<'a> {
 
     pub fn ensure_folder_path(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         payload: EnsureFolderPathRequest,
     ) -> AppResult<FolderInfo> {
@@ -192,7 +192,7 @@ impl<'a> FolderService<'a> {
 
     pub fn create_folder(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         payload: CreateFolderRequest,
     ) -> AppResult<(FolderInfo, bool)> {
@@ -265,7 +265,7 @@ impl<'a> FolderService<'a> {
 
     pub fn list_folder_contents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         folder_id: Option<Uuid>,
         sort: DocumentSortField,
@@ -332,7 +332,7 @@ impl<'a> FolderService<'a> {
 
     pub fn list_folder_tree(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
     ) -> AppResult<Vec<FolderTreeNode>> {
         let folders: Vec<Folder> = folders::table
@@ -392,7 +392,7 @@ impl<'a> FolderService<'a> {
 
     pub fn delete_folder(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         folder_id: Uuid,
     ) -> AppResult<()> {
@@ -444,7 +444,7 @@ impl<'a> FolderService<'a> {
 
     pub fn update_folder(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         folder_id: Uuid,
         payload: UpdateFolderRequest,
@@ -554,7 +554,7 @@ impl<'a> FolderService<'a> {
 
     pub fn hydrate_documents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         docs: Vec<Document>,

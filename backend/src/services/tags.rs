@@ -7,7 +7,7 @@ use crate::documents::tags::assign_tags as assign_tags_to_document;
 use crate::error::{AppError, AppResult};
 use crate::models::{Document, NewDocumentTag, Tag};
 use crate::schema::{document_tags, documents, tags};
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::db::validate_bulk_ids;
 
 #[derive(Deserialize, ToSchema)]
@@ -46,7 +46,7 @@ impl<'a> TagsService<'a> {
 
     pub fn assign_to_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -67,7 +67,7 @@ impl<'a> TagsService<'a> {
 
     pub fn bulk_update(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         mut payload: BulkTagRequest,
@@ -144,7 +144,7 @@ impl<'a> TagsService<'a> {
 
     pub fn remove_from_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
         tag_id: Uuid,

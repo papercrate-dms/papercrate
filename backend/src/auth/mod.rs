@@ -22,7 +22,8 @@ use crate::{
     error::{AppError, AppResult},
     models::{ApiCapability, TenantStatus},
     schema::tenants::dsl as tenant_dsl,
-    state::{AppState, PgPooledConnection},
+    state::AppState,
+    tenants::TenantScopedConnection,
 };
 use uuid::Uuid;
 
@@ -68,17 +69,17 @@ impl FromRequestParts<AppState> for TenantMembershipUser {
 
 #[derive(Clone)]
 pub struct TenantConnectionHolder {
-    inner: Arc<Mutex<Option<PgPooledConnection>>>,
+    inner: Arc<Mutex<Option<TenantScopedConnection>>>,
 }
 
 impl TenantConnectionHolder {
-    pub fn new(conn: PgPooledConnection) -> Self {
+    pub fn new(conn: TenantScopedConnection) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Some(conn))),
         }
     }
 
-    pub fn into_conn(self) -> Option<PgPooledConnection> {
+    pub fn into_conn(self) -> Option<TenantScopedConnection> {
         self.inner.lock().ok()?.take()
     }
 }
@@ -120,14 +121,14 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
                 .map_err(|_| AppError::unauthorized())?;
 
             let mut tenant_conn = state.db_for_tenant(claims.tenant_id)?;
-            let capability_set = load_capability_set(&mut tenant_conn, claims.capability_set_id)
+            let capability_set = load_capability_set(&mut *tenant_conn, claims.capability_set_id)
                 .map_err(|_| AppError::unauthorized())?;
 
             if capability_set.cap_version != claims.cap_version {
                 return Err(AppError::unauthorized());
             }
 
-            let capabilities = load_capabilities_for_set(&mut tenant_conn, capability_set.id)
+            let capabilities = load_capabilities_for_set(&mut *tenant_conn, capability_set.id)
                 .map_err(|_| AppError::unauthorized())?;
 
             let user = AuthenticatedUser {
@@ -152,14 +153,14 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
 }
 
 pub struct TenantScopedConn {
-    pub conn: PgPooledConnection,
+    pub conn: TenantScopedConnection,
     pub tenant_id: Uuid,
     pub user_id: Uuid,
     pub user: AuthenticatedUser,
 }
 
 impl TenantScopedConn {
-    pub fn conn(&mut self) -> &mut PgPooledConnection {
+    pub fn conn(&mut self) -> &mut PgConnection {
         &mut self.conn
     }
 }
@@ -185,7 +186,7 @@ impl FromRequestParts<AppState> for TenantScopedConn {
                 state.db_for_tenant(tenant_id)?
             };
 
-            ensure_active_tenant_with_conn(&mut conn, tenant_id)?;
+            ensure_active_tenant_with_conn(&mut *conn, tenant_id)?;
 
             Ok(Self {
                 conn,

@@ -90,13 +90,13 @@ pub async fn list_tags(
     let tag_list: Vec<Tag> = tags::table
         .filter(tags::tenant_id.eq(tenant_id))
         .order(tags::label.asc())
-        .load(&mut conn)?;
+        .load(&mut *conn)?;
 
     let usage_rows: Vec<(Uuid, i64)> = document_tags::table
         .filter(document_tags::tenant_id.eq(tenant_id))
         .group_by(document_tags::tag_id)
         .select((document_tags::tag_id, count_star()))
-        .load(&mut conn)?;
+        .load(&mut *conn)?;
 
     let usage_map: HashMap<Uuid, i64> = usage_rows.into_iter().collect();
 
@@ -141,7 +141,7 @@ pub async fn create_tag(
 
     match diesel::insert_into(tags::table)
         .values(&new_tag)
-        .execute(&mut conn)
+        .execute(&mut *conn)
     {
         Ok(_) => {}
         Err(diesel::result::Error::DatabaseError(
@@ -156,7 +156,7 @@ pub async fn create_tag(
     let tag: Tag = tags::table
         .find(new_tag.id)
         .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
 
     ok_json(TagCatalogEntry {
@@ -187,7 +187,7 @@ pub async fn update_tag(
     let existing: Tag = tags::table
         .find(tag_id)
         .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
     let UpdateTagRequest { label, color } = payload;
 
@@ -195,7 +195,7 @@ pub async fn update_tag(
         let usage_count: i64 = document_tags::table
             .filter(document_tags::tag_id.eq(tag_id))
             .select(count_star())
-            .first(&mut conn)?;
+            .first(&mut *conn)?;
         return ok_json(TagCatalogEntry {
             id: existing.id,
             label: existing.label.clone(),
@@ -221,7 +221,7 @@ pub async fn update_tag(
                             .filter(tags::label.eq(&normalized))
                             .filter(tags::id.ne(tag_id))
                             .filter(tags::tenant_id.eq(tenant_id))
-                            .first::<Tag>(&mut conn)
+                            .first::<Tag>(&mut *conn)
                             .optional()
                     },
                     || AppError::bad_request("tag label already exists"),
@@ -257,7 +257,7 @@ pub async fn update_tag(
             .filter(document_tags::tag_id.eq(tag_id))
             .filter(document_tags::tenant_id.eq(tenant_id))
             .select(count_star())
-            .first(&mut conn)?;
+            .first(&mut *conn)?;
         return ok_json(TagCatalogEntry {
             id: existing.id,
             label: existing.label.clone(),
@@ -279,20 +279,20 @@ pub async fn update_tag(
             .filter(tags::tenant_id.eq(tenant_id)),
     )
     .set(&changeset)
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .into_app_result()?
     .or_not_found()?;
 
     let updated: Tag = tags::table
         .find(tag_id)
         .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut conn)
+        .first(&mut *conn)
         .into_app_result()?;
     let usage_count: i64 = document_tags::table
         .filter(document_tags::tag_id.eq(tag_id))
         .filter(document_tags::tenant_id.eq(tenant_id))
         .select(count_star())
-        .first(&mut conn)?;
+        .first(&mut *conn)?;
 
     ok_json(TagCatalogEntry {
         id: updated.id,
@@ -321,7 +321,7 @@ pub async fn delete_tag(
         .filter(document_tags::tag_id.eq(tag_id))
         .filter(document_tags::tenant_id.eq(tenant_id))
         .select(count_star())
-        .first(&mut conn)?;
+        .first(&mut *conn)?;
 
     if usage > 0 {
         return Err(AppError::bad_request(
@@ -334,7 +334,7 @@ pub async fn delete_tag(
             .find(tag_id)
             .filter(tags::tenant_id.eq(tenant_id)),
     )
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .into_app_result()?
     .or_not_found()?;
 

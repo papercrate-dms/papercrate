@@ -29,7 +29,7 @@ pub async fn list_passkeys(
         mut conn, user_id, ..
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<PasskeySummary>>> {
-    ProfileService::new(&state).list_passkeys(&mut conn, user_id)
+    ProfileService::new(&state).list_passkeys(&mut *conn, user_id)
 }
 
 #[utoipa::path(
@@ -47,7 +47,7 @@ pub async fn list_api_tokens(
         ..
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<ApiTokenResponse>>> {
-    ProfileService::new(&state).list_api_tokens(&mut conn, tenant_id, user_id)
+    ProfileService::new(&state).list_api_tokens(&mut *conn, tenant_id, user_id)
 }
 
 #[utoipa::path(
@@ -67,7 +67,7 @@ pub async fn create_api_token(
     }: TenantScopedConn,
     Json(payload): Json<CreateApiTokenRequest>,
 ) -> AppResult<JsonResponse<ApiTokenCreatedResponse>> {
-    ProfileService::new(&state).create_api_token(&mut conn, tenant_id, user_id, payload)
+    ProfileService::new(&state).create_api_token(&mut *conn, tenant_id, user_id, payload)
 }
 
 #[utoipa::path(
@@ -87,7 +87,7 @@ pub async fn regenerate_api_token(
     }: TenantScopedConn,
     Path(token_id): Path<Uuid>,
 ) -> AppResult<JsonResponse<ApiTokenCreatedResponse>> {
-    ProfileService::new(&state).regenerate_api_token(&mut conn, tenant_id, user_id, token_id)
+    ProfileService::new(&state).regenerate_api_token(&mut *conn, tenant_id, user_id, token_id)
 }
 
 #[utoipa::path(
@@ -104,7 +104,7 @@ pub async fn delete_api_token(
     }: TenantScopedConn,
     Path(token_id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    ProfileService::new(&state).delete_api_token(&mut conn, user_id, token_id)
+    ProfileService::new(&state).delete_api_token(&mut *conn, user_id, token_id)
 }
 
 #[utoipa::path(
@@ -125,7 +125,7 @@ pub async fn delete_passkey(
     Path(passkey_id): Path<Uuid>,
     Query(query): Query<RevokePasskeyQuery>,
 ) -> AppResult<StatusCode> {
-    ProfileService::new(&state).delete_passkey(&mut conn, user_id, passkey_id, query.reason)
+    ProfileService::new(&state).delete_passkey(&mut *conn, user_id, passkey_id, query.reason)
 }
 
 #[derive(OpenApi)]

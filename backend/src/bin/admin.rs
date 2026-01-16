@@ -24,7 +24,7 @@ use papercrate::{
     },
     schema::{document_assets, documents, magic_tokens, tenants, user_memberships, users},
     storage::TenantStorage,
-    tenants::{apply_tenant_guc, clear_tenant_context, TenantService},
+    tenants::{TenantGucGuard, TenantService},
     utils::{text::normalize_identifier, tracing::init_tracing},
     workers::tenants::{build_delete_proof_message, sign_delete_proof, DeleteAction},
 };
@@ -581,78 +581,74 @@ fn enqueue_delete_tenant_job_internal(
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    apply_tenant_guc(&mut conn, tenant.id)
-        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
+    {
+        let guard = TenantGucGuard::new(&mut conn, tenant.id)
+            .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
 
-    if tenant.name != expected_name {
-        bail!(
-            "tenant name mismatch: expected '{}', database has '{}'",
+        if tenant.name != expected_name {
+            bail!(
+                "tenant name mismatch: expected '{}', database has '{}'",
+                expected_name,
+                tenant.name
+            );
+        }
+
+        diesel::update(tenants::table.find(tenant.id))
+            .set(tenants::status.eq(TenantStatus::Deleting))
+            .execute(guard.conn)?;
+
+        let nonce = generate_random_token();
+        let issued_at = Utc::now();
+        let issued_at_str = issued_at.to_rfc3339();
+        let action = match mode {
+            DeletionMode::HardDelete => DeleteAction::Delete,
+            DeletionMode::Reset => DeleteAction::Reset,
+        };
+        let remove_tenant = matches!(mode, DeletionMode::HardDelete);
+
+        let resolved_final_status = match mode {
+            DeletionMode::HardDelete => None,
+            DeletionMode::Reset => Some(
+                final_status
+                    .unwrap_or(TenantFinalStatusArg::Suspended)
+                    .as_str(),
+            ),
+        };
+
+        let message = build_delete_proof_message(
+            tenant.id,
             expected_name,
-            tenant.name
+            action,
+            &nonce,
+            &issued_at_str,
+            resolved_final_status,
+        );
+        let signature =
+            sign_delete_proof(&config.jwt_secret, &message).map_err(|err| anyhow!(err))?;
+
+        let mut payload = serde_json::json!({
+            "remove_tenant": remove_tenant,
+            "tenant_name": tenant.name.clone(),
+            "action": action.as_str(),
+            "nonce": nonce,
+            "issued_at": issued_at_str,
+            "signature": signature,
+        });
+        if let Some(status) = resolved_final_status {
+            payload["final_status"] = serde_json::json!(status);
+        }
+
+        enqueue_job(guard.conn, tenant.id, JOB_DELETE_TENANT, payload, None)?;
+        let status_label = if remove_tenant {
+            "deleted"
+        } else {
+            final_status.map(|s| s.as_str()).unwrap_or("suspended")
+        };
+        println!(
+            "delete-tenant job enqueued for '{}' (remove_tenant={}, final_status={})",
+            tenant.name, remove_tenant, status_label
         );
     }
-
-    diesel::update(tenants::table.find(tenant.id))
-        .set(tenants::status.eq(TenantStatus::Deleting))
-        .execute(&mut conn)?;
-
-    let nonce = generate_random_token();
-    let issued_at = Utc::now();
-    let issued_at_str = issued_at.to_rfc3339();
-    let action = match mode {
-        DeletionMode::HardDelete => DeleteAction::Delete,
-        DeletionMode::Reset => DeleteAction::Reset,
-    };
-    let remove_tenant = matches!(mode, DeletionMode::HardDelete);
-
-    let resolved_final_status = match mode {
-        DeletionMode::HardDelete => None,
-        DeletionMode::Reset => Some(
-            final_status
-                .unwrap_or(TenantFinalStatusArg::Suspended)
-                .as_str(),
-        ),
-    };
-
-    let message = build_delete_proof_message(
-        tenant.id,
-        expected_name,
-        action,
-        &nonce,
-        &issued_at_str,
-        resolved_final_status,
-    );
-    let signature = sign_delete_proof(&config.jwt_secret, &message).map_err(|err| anyhow!(err))?;
-
-    let mut payload = serde_json::json!({
-        "remove_tenant": remove_tenant,
-        "tenant_name": tenant.name.clone(),
-        "action": action.as_str(),
-        "nonce": nonce,
-        "issued_at": issued_at_str,
-        "signature": signature,
-    });
-    if let Some(status) = resolved_final_status {
-        payload["final_status"] = serde_json::json!(status);
-    }
-
-    enqueue_job(&mut conn, tenant.id, JOB_DELETE_TENANT, payload, None)?;
-    let status_label = if remove_tenant {
-        "deleted"
-    } else {
-        final_status.map(|s| s.as_str()).unwrap_or("suspended")
-    };
-    println!(
-        "delete-tenant job enqueued for '{}' (remove_tenant={}, final_status={})",
-        tenant.name, remove_tenant, status_label
-    );
-
-    clear_tenant_context(&mut conn).map_err(|err| {
-        anyhow!(
-            "failed to clear tenant context for {}: {err:?}",
-            tenant.name
-        )
-    })?;
 
     Ok(())
 }
@@ -673,10 +669,10 @@ fn add_user_to_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Result<
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    apply_tenant_guc(&mut conn, tenant.id)
+    let guard = TenantGucGuard::new(&mut conn, tenant.id)
         .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
 
-    let owner_capability_set_id = ensure_capability_set(&mut conn, tenant.id, owner_capabilities())
+    let owner_capability_set_id = ensure_capability_set(guard.conn, tenant.id, owner_capabilities())
         .map_err(|err| anyhow!("failed to ensure owner capability set: {:?}", err))?
         .id;
 
@@ -691,7 +687,7 @@ fn add_user_to_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Result<
         .values(&membership)
         .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
         .do_nothing()
-        .execute(&mut conn)?;
+        .execute(guard.conn)?;
 
     println!("added user '{}' to tenant '{}'", username, tenant.name);
     Ok(())
@@ -712,7 +708,7 @@ fn remove_user_from_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Re
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    apply_tenant_guc(&mut conn, tenant.id)
+    let guard = TenantGucGuard::new(&mut conn, tenant.id)
         .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
 
     let removed = diesel::delete(
@@ -720,7 +716,7 @@ fn remove_user_from_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Re
             .filter(user_memberships::user_id.eq(user.id))
             .filter(user_memberships::tenant_id.eq(tenant.id)),
     )
-    .execute(&mut conn)?;
+    .execute(guard.conn)?;
 
     if removed == 0 {
         println!(
@@ -811,7 +807,7 @@ async fn delete_assets_for_tenant(
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    apply_tenant_guc(&mut conn, tenant.id)
+    let guard = TenantGucGuard::new(&mut conn, tenant.id)
         .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
 
     let result = async {
@@ -827,7 +823,7 @@ async fn delete_assets_for_tenant(
         }
 
         let assets: Vec<DocumentAsset> = asset_query
-            .load(&mut conn)
+            .load(guard.conn)
             .with_context(|| format!("failed to load assets for tenant {}", tenant.name))?;
 
         if assets.is_empty() {
@@ -872,7 +868,7 @@ async fn delete_assets_for_tenant(
                 .filter(document_assets::tenant_id.eq(tenant.id))
                 .filter(document_assets::id.eq_any(&asset_ids)),
         )
-        .execute(&mut conn)
+        .execute(guard.conn)
         .with_context(|| format!("failed to remove asset records for tenant {}", tenant.name))?;
 
         println!("Tenant {}: asset records deleted.", tenant.name);
@@ -880,12 +876,7 @@ async fn delete_assets_for_tenant(
     }
     .await;
 
-    clear_tenant_context(&mut conn).map_err(|err| {
-        anyhow!(
-            "failed to clear tenant context for {}: {err:?}",
-            tenant.name
-        )
-    })?;
+
 
     result
 }

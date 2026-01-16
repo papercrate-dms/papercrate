@@ -14,20 +14,7 @@ struct SchemaCustomizer;
 impl CustomizeConnection<PgConnection, diesel::r2d2::Error> for SchemaCustomizer {
     fn on_acquire(&self, conn: &mut PgConnection) -> Result<(), diesel::r2d2::Error> {
         diesel::sql_query(
-            "SELECT set_config('search_path', (
-                SELECT string_agg(schema_name, ', ')
-                FROM (
-                    SELECT 'tenant' AS schema_name WHERE EXISTS (
-                        SELECT 1 FROM pg_namespace WHERE nspname = 'tenant'
-                    )
-                    UNION ALL
-                    SELECT 'shared' AS schema_name WHERE EXISTS (
-                        SELECT 1 FROM pg_namespace WHERE nspname = 'shared'
-                    )
-                    UNION ALL
-                    SELECT 'public' AS schema_name
-                ) AS schemas
-            ), false)",
+            "SELECT set_config('search_path', 'tenant, shared, public', false)",
         )
         .execute(conn)
         .map(|_| ())

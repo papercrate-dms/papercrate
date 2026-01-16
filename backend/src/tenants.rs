@@ -12,6 +12,7 @@ use crate::{
 };
 
 use crate::auth::capability_sets::{ensure_capability_set, owner_capabilities};
+use crate::state::PgPooledConnection;
 
 pub struct TenantRepository;
 
@@ -134,8 +135,10 @@ impl TenantService {
                     tracing::error!(error = ?err, tenant_id = %id, "failed to enqueue tenant provisioning job");
                     AppError::internal("failed to enqueue tenant provisioning job")
                 })?;
-            } else if !initial_members.is_empty() {
-                // Synchronously add members if not provisioning via job
+            } 
+            
+            if !initial_members.is_empty() {
+                // Synchronously add members so they appear in selection lists immediately
                 apply_tenant_guc(conn, id)?;
 
                 let owner_cap_set_id = ensure_capability_set(conn, id, owner_capabilities())
@@ -175,7 +178,7 @@ impl TenantService {
     }
 }
 
-pub fn apply_tenant_guc(conn: &mut PgConnection, tenant_id: Uuid) -> AppResult<()> {
+fn apply_tenant_guc(conn: &mut PgConnection, tenant_id: Uuid) -> AppResult<()> {
     diesel::sql_query("SELECT set_config('papercrate.tenant_id', $1, false)")
         .bind::<Text, _>(tenant_id.to_string())
         .execute(conn)
@@ -183,7 +186,7 @@ pub fn apply_tenant_guc(conn: &mut PgConnection, tenant_id: Uuid) -> AppResult<(
         .map_err(AppError::from)
 }
 
-pub fn apply_user_guc(conn: &mut PgConnection, user_id: Uuid) -> AppResult<()> {
+fn apply_user_guc(conn: &mut PgConnection, user_id: Uuid) -> AppResult<()> {
     diesel::sql_query("SELECT set_config('papercrate.user_id', $1, false)")
         .bind::<Text, _>(user_id.to_string())
         .execute(conn)
@@ -269,5 +272,76 @@ fn normalize_quickwit_index(raw: Option<&str>, tenant_id: Uuid) -> String {
     match raw.map(str::trim) {
         Some(value) if !value.is_empty() => value.to_owned(),
         _ => format!("documents-{tenant_id}"),
+    }
+}
+pub struct UserGucGuard<'a> {
+    pub conn: &'a mut PgConnection,
+}
+
+impl<'a> UserGucGuard<'a> {
+    pub fn new(conn: &'a mut PgConnection, user_id: Uuid) -> AppResult<Self> {
+        apply_user_guc(conn, user_id)?;
+        Ok(Self { conn })
+    }
+}
+
+impl<'a> Drop for UserGucGuard<'a> {
+    fn drop(&mut self) {
+        if let Err(err) = clear_user_guc(self.conn) {
+            tracing::error!(error = ?err, "failed to clear user GUC in guard drop");
+        }
+    }
+}
+
+pub struct TenantGucGuard<'a> {
+    pub conn: &'a mut PgConnection,
+}
+
+impl<'a> TenantGucGuard<'a> {
+    pub fn new(conn: &'a mut PgConnection, tenant_id: Uuid) -> AppResult<Self> {
+        apply_tenant_guc(conn, tenant_id)?;
+        Ok(Self { conn })
+    }
+}
+
+impl<'a> Drop for TenantGucGuard<'a> {
+    fn drop(&mut self) {
+        if let Err(err) = clear_tenant_context(self.conn) {
+            tracing::error!(error = ?err, "failed to clear tenant context in guard drop");
+        }
+    }
+}
+
+pub struct TenantScopedConnection {
+    conn: PgPooledConnection,
+}
+
+impl TenantScopedConnection {
+    pub(crate) fn new(mut conn: PgPooledConnection, tenant_id: Uuid) -> AppResult<Self> {
+        apply_tenant_guc(&mut conn, tenant_id)?;
+        clear_user_guc(&mut conn)?;
+        Ok(Self { conn })
+    }
+}
+
+impl std::ops::Deref for TenantScopedConnection {
+    type Target = PgConnection;
+
+    fn deref(&self) -> &Self::Target {
+        &self.conn
+    }
+}
+
+impl std::ops::DerefMut for TenantScopedConnection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.conn
+    }
+}
+
+impl Drop for TenantScopedConnection {
+    fn drop(&mut self) {
+        if let Err(err) = clear_tenant_context(&mut self.conn) {
+            tracing::error!(error = ?err, "failed to clear tenant context in scoped connection drop");
+        }
     }
 }

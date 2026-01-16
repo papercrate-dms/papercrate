@@ -145,7 +145,7 @@ impl Task<ProvisionContext> for ProvisionTask {
             .db_unscoped()
             .map_err(|err| TaskError::retry(Duration::from_secs(30), format!("{err:?}")))?;
 
-        let tenant = TenantRepository::get_by_id(&mut conn, ctx.tenant_id).map_err(|err| {
+        let tenant = TenantRepository::get_by_id(&mut *conn, ctx.tenant_id).map_err(|err| {
             TaskError::fail(format!("tenant not found for provisioning: {err:?}"))
         })?;
         drop(conn);
@@ -193,22 +193,22 @@ impl Task<ProvisionContext> for ProvisionTask {
             .map_err(|err| TaskError::retry(Duration::from_secs(30), err.to_string()))?;
 
         let owner_capability_set_id =
-            ensure_capability_set(&mut conn, tenant.id, owner_capabilities())
+            ensure_capability_set(&mut *conn, tenant.id, owner_capabilities())
                 .map_err(|_| {
                     TaskError::retry(Duration::from_secs(30), "owner capability set unavailable")
                 })?
                 .id;
 
-        ensure_capability_set(&mut conn, tenant.id, user_capabilities()).map_err(|_| {
+        ensure_capability_set(&mut *conn, tenant.id, user_capabilities()).map_err(|_| {
             TaskError::retry(Duration::from_secs(30), "user capability set unavailable")
         })?;
-        ensure_capability_set(&mut conn, tenant.id, readonly_capabilities()).map_err(|_| {
+        ensure_capability_set(&mut *conn, tenant.id, readonly_capabilities()).map_err(|_| {
             TaskError::retry(
                 Duration::from_secs(30),
                 "readonly capability set unavailable",
             )
         })?;
-        ensure_capability_set(&mut conn, tenant.id, webdav_capabilities()).map_err(|_| {
+        ensure_capability_set(&mut *conn, tenant.id, webdav_capabilities()).map_err(|_| {
             TaskError::retry(Duration::from_secs(30), "webdav capability set unavailable")
         })?;
 
@@ -224,7 +224,7 @@ impl Task<ProvisionContext> for ProvisionTask {
                 .values(&new_membership)
                 .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
                 .do_nothing()
-                .execute(&mut conn)
+                .execute(&mut *conn)
             {
                 warn!(
                     job_id = %ctx.job_id(),
@@ -242,7 +242,7 @@ impl Task<ProvisionContext> for ProvisionTask {
                 tenants::quickwit_index.eq(Some(index_id)),
                 tenants::updated_at.eq(Utc::now().naive_utc()),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .map_err(|err| {
                 TaskError::retry(
                     Duration::from_secs(30),
@@ -366,12 +366,12 @@ async fn delete_tenant(
         .bind::<diesel::sql_types::Uuid, _>(tenant_id)
         .bind::<diesel::sql_types::Uuid, _>(current_job_id)
         .bind::<Jsonb, _>(detach_result)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .map_err(|err| format!("failed to detach tenant jobs: {err}"))?;
 
         if remove_tenant {
             diesel::delete(tenants::table.find(tenant_id))
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .map_err(|err| format!("failed to delete tenant row: {err}"))?;
         } else {
             let new_status = match resolved_final_status.unwrap_or(FinalTenantStatus::Suspended) {
@@ -383,7 +383,7 @@ async fn delete_tenant(
                     tenants::status.eq(new_status),
                     tenants::updated_at.eq(Utc::now().naive_utc()),
                 ))
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .map_err(|err| format!("failed to update tenant status: {err}"))?;
         }
     }

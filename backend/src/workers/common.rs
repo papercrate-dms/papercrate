@@ -24,7 +24,7 @@ pub(crate) fn load_document_version(
 
     let version: DocumentVersion = document_versions::table
         .find(version_id)
-        .first(&mut conn)
+        .first(&mut *conn)
         .map_err(|err| format!("{err:?}"))?;
 
     if version.document_id != document_id {
@@ -33,7 +33,7 @@ pub(crate) fn load_document_version(
 
     let document: Document = documents::table
         .find(document_id)
-        .first(&mut conn)
+        .first(&mut *conn)
         .map_err(|err| format!("{err:?}"))?;
 
     Ok(LoadedDocumentVersion { document, version })

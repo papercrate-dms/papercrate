@@ -12,7 +12,7 @@ use crate::schema::{
     capability_sets::dsl as cs_dsl, user_memberships::dsl as memberships_dsl,
     user_sessions::dsl as session_dsl, users::dsl as users_dsl,
 };
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 
 #[derive(Deserialize, ToSchema)]
 pub struct UpdateTenantRequest {
@@ -105,7 +105,7 @@ impl<'a> TenantApiService<'a> {
                     cs_dsl::slug.nullable(),
                 ))
                 .order(users_dsl::username.asc())
-                .load(&mut conn)?;
+                .load(&mut *conn)?;
 
         let users = rows
             .into_iter()
@@ -130,7 +130,7 @@ impl<'a> TenantApiService<'a> {
     ) -> AppResult<JsonResponse<TenantUserSummary>> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
-        let summary = self.load_membership_summary(&mut conn, tenant_id, target_user_id)?;
+        let summary = self.load_membership_summary(&mut *conn, tenant_id, target_user_id)?;
         ok_json(summary)
     }
 
@@ -144,7 +144,7 @@ impl<'a> TenantApiService<'a> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
 
-        let capability_set_id = self.resolve_capability_set_id(&mut conn, tenant_id, &payload)?;
+        let capability_set_id = self.resolve_capability_set_id(&mut *conn, tenant_id, &payload)?;
 
         let updated = diesel::update(
             memberships_dsl::user_memberships
@@ -155,13 +155,13 @@ impl<'a> TenantApiService<'a> {
             memberships_dsl::capability_set_id.eq(Some(capability_set_id)),
             memberships_dsl::updated_at.eq(Utc::now().naive_utc()),
         ))
-        .execute(&mut conn)?;
+        .execute(&mut *conn)?;
 
         if updated == 0 {
             return Err(AppError::not_found());
         }
 
-        let summary = self.load_membership_summary(&mut conn, tenant_id, target_user_id)?;
+        let summary = self.load_membership_summary(&mut *conn, tenant_id, target_user_id)?;
         ok_json(summary)
     }
 
@@ -179,7 +179,7 @@ impl<'a> TenantApiService<'a> {
                 .filter(memberships_dsl::tenant_id.eq(tenant_id))
                 .filter(memberships_dsl::user_id.eq(target_user_id)),
         )
-        .execute(&mut conn)?;
+        .execute(&mut *conn)?;
 
         if removed == 0 {
             return Err(AppError::not_found());
@@ -190,7 +190,7 @@ impl<'a> TenantApiService<'a> {
                 .filter(session_dsl::tenant_id.eq(tenant_id))
                 .filter(session_dsl::user_id.eq(target_user_id)),
         )
-        .execute(&mut conn)?;
+        .execute(&mut *conn)?;
 
         Ok(())
     }
@@ -209,7 +209,7 @@ impl<'a> TenantApiService<'a> {
 
     fn resolve_capability_set_id(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         payload: &UpdateTenantUserRequest,
     ) -> AppResult<Uuid> {
@@ -224,7 +224,7 @@ impl<'a> TenantApiService<'a> {
 
     fn load_membership_summary(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
     ) -> AppResult<TenantUserSummary> {

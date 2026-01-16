@@ -4,11 +4,11 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::Document;
 use crate::schema::documents;
-use crate::state::PgPooledConnection;
+use diesel::pg::PgConnection;
 
 /// Load a document that belongs to the tenant and is not soft-deleted.
 pub fn load_active_document(
-    conn: &mut PgPooledConnection,
+    conn: &mut PgConnection,
     tenant_id: Uuid,
     document_id: Uuid,
 ) -> AppResult<Document> {

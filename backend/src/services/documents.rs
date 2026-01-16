@@ -44,7 +44,7 @@ use crate::services::{
     correspondents::CorrespondentAssignmentInput, folders::gather_descendant_folder_ids,
     helpers::load_active_document,
 };
-use crate::state::{AppState, PgPooledConnection};
+use crate::state::AppState;
 use crate::utils::{
     db::validate_bulk_ids, error::StorageResultExt, http::inline_content_disposition,
     json::classify_nullable, json::NullableValue, setops::intersect_option_sets,
@@ -338,7 +338,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_document_detail(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -367,7 +367,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn check_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         checksum_hex: &str,
     ) -> AppResult<DocumentCheckResponse> {
@@ -407,7 +407,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn list_documents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         params: DocumentListQuery,
@@ -622,7 +622,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn hydrate_documents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         docs: Vec<Document>,
@@ -693,7 +693,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn upload_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         request: DocumentUploadRequest,
@@ -870,7 +870,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn request_document_assets(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
         force: bool,
@@ -898,7 +898,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn reanalyze_documents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_ids: &mut Vec<Uuid>,
         force: bool,
@@ -943,7 +943,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn list_document_assets(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -967,7 +967,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_document_asset(
         &self,
-        mut conn: PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         asset_id: Uuid,
@@ -975,14 +975,14 @@ impl<'a> DocumentsService<'a> {
         let asset: DocumentAsset = match document_assets::table
             .find(asset_id)
             .filter(document_assets::tenant_id.eq(tenant_id))
-            .first(&mut conn)
+            .first(conn)
             .optional()?
         {
             Some(asset) => asset,
             None => return Err(AppError::not_found()),
         };
 
-        drop(conn);
+
 
         let download = self.asset_download_link(asset.id, tenant_id, user_id)?;
 
@@ -991,7 +991,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_document_download_link(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -1007,7 +1007,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_document_version_download_link(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -1031,7 +1031,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_asset_download_link(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         asset_id: Uuid,
@@ -1051,7 +1051,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn list_document_versions(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
     ) -> AppResult<Vec<DocumentVersionResponse>> {
@@ -1068,7 +1068,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn get_document_version(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -1095,7 +1095,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn trash_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
     ) -> AppResult<()> {
@@ -1130,7 +1130,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn delete_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
     ) -> AppResult<()> {
@@ -1163,7 +1163,7 @@ impl<'a> DocumentsService<'a> {
 
     pub async fn update_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         document_id: Uuid,
@@ -1237,7 +1237,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn restore_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
         folder_id: Option<Uuid>,
@@ -1285,7 +1285,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn move_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         document_id: Uuid,
         folder_id: Option<Uuid>,
@@ -1311,7 +1311,7 @@ impl<'a> DocumentsService<'a> {
 
     pub fn bulk_move_documents(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         mut document_ids: Vec<Uuid>,
         folder_id: Option<Uuid>,
@@ -1426,7 +1426,7 @@ impl<'a> DocumentsService<'a> {
 
     async fn try_reuse_existing_document(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         user_id: Uuid,
         checksum_hex: &str,
@@ -1599,7 +1599,7 @@ impl<'a> DocumentsService<'a> {
 
     fn load_asset_responses(
         &self,
-        conn: &mut PgPooledConnection,
+        conn: &mut PgConnection,
         tenant_id: Uuid,
         version_id: Uuid,
         user_id: Uuid,
