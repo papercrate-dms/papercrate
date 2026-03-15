@@ -22,7 +22,7 @@ const DocumentsListContainer: React.FC<DocumentsListContainerProps> = ({
             >
                 <tr>
                     <th>&nbsp;</th>
-                    <th>Name</th>
+                    <th>Title</th>
                     <th>Issued</th>
                     <th>Added</th>
                 </tr>
