@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { getTagColorStyle } from '../../utils/colors';
+import { resolveTags } from '../../utils/resolveAssets';
 import type { Document, Tag } from '../../types/documents';
 import type { Identifier } from '../../types/identifiers';
 import type { TagInteractionHandlers } from '../interactions/useTagInteractions';
@@ -17,17 +18,10 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
     doc,
     tagHandlers,
 }) => {
-    const resolvedTags = useMemo(() => {
-        if (!tags) return [];
-        return tags
-            .map(id => tagLookupById?.get(id))
-            .filter((tag): tag is Tag => Boolean(tag))
-            .sort((a, b) => {
-                const labelA = a.label.toLowerCase();
-                const labelB = b.label.toLowerCase();
-                return labelA.localeCompare(labelB);
-            });
-    }, [tags, tagLookupById]);
+    const resolvedTags = useMemo(
+        () => resolveTags(tags, tagLookupById),
+        [tags, tagLookupById],
+    );
 
     if (resolvedTags.length === 0) {
         return null;

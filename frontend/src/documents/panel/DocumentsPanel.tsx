@@ -11,11 +11,7 @@ import type { ReactNode } from 'react';
 import type {
   DocumentsListEntry,
 } from '../../types/documents';
-
-const EntryType = {
-  folder: 'folder' as const,
-  document: 'document' as const,
-};
+import { EntryType } from '../../constants/documents';
 
 import DesktopWorkspace from '../../desktop/components/DesktopWorkspace';
 import {
@@ -37,7 +33,11 @@ import { DocumentsAssetContext } from '../context/DocumentsAssetContext';
 import { DocumentsViewStateContext } from '../context/DocumentsViewStateContext';
 import { DocumentsCommandContext } from '../context/DocumentsCommandContext';
 import { useDocumentsContextValues } from './useDocumentsContextValues';
-import { useAppShell } from '../../lib/context/AppShellContext';
+import { useTags } from '../../lib/context/TagsContext';
+import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
+import { useFolderTree } from '../../lib/context/FolderTreeContext';
+import { useDocumentsSearch } from '../../lib/context/DocumentsSearchContext';
+import { useDocumentsWorkspaceContext } from '../../lib/context/DocumentsWorkspaceContext';
 import type { TagInteractionHandlers } from '../interactions/useTagInteractions';
 
 export interface DocumentsViewProps {
@@ -52,16 +52,13 @@ interface DocumentsPanelProps {
 
 const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) => {
   const { headerLeading } = props;
-  const shell = useAppShell();
-  const {
-    search: { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle },
-    folderTree: { currentFolderName, breadcrumbs, currentSubfolders: subfolders, folderOptions, moveDocumentsToFolder: onMoveDocumentsToFolder, refreshCurrentFolder: onRefresh, handleBreadcrumbNavigate: onBreadcrumbNavigate },
-    selection: { handleDeleteSelection: onDeleteSelection },
-    managers: { documentLookup },
-    tags: { tags, handleBulkTagAddFromDetail: onBulkTagAdd, handleBulkTagRemoveFromDetail: onBulkTagRemove },
-    correspondents: { correspondents, handleBulkCorrespondentAdd: onBulkCorrespondentAdd, handleBulkCorrespondentRemove: onBulkCorrespondentRemove },
-    mutations: { handleBulkSelectionReanalyze: onBulkReanalyze },
-  } = shell as any;
+
+  const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup } = useDocumentsSearch();
+  const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, folderOptions, moveDocumentsToFolder: onMoveDocumentsToFolder, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
+  const { handleDeleteSelection: onDeleteSelection, handleBulkSelectionReanalyze: onBulkReanalyze } = useDocumentsWorkspaceContext();
+  const { tags, tagLookupById, handleBulkTagAddFromDetail: onBulkTagAdd, handleBulkTagRemoveFromDetail: onBulkTagRemove } = useTags();
+  const { correspondents, correspondentLookupById, handleBulkCorrespondentAdd: onBulkCorrespondentAdd, handleBulkCorrespondentRemove: onBulkCorrespondentRemove } = useCorrespondents();
+  const { searchLoading: isSearchLoading } = useDocumentsSearch();
 
   const {
     assetContextValue,
@@ -124,8 +121,6 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
       toggleIncludeDescendants,
     ],
   );
-
-  const { tagLookupById, correspondentLookupById } = (shell as any).tags;
 
   const floatingActions = useMemo(() => (
     <SelectionFloatingPanel
@@ -206,7 +201,7 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
   }, [showingSearchResults, currentFolderId, searchResultIds, clearSelection]);
 
   const entries = useMemo(() => {
-    const list: DocumentsListEntry[] = []; // Explicit type
+    const list: DocumentsListEntry[] = [];
     if (!showingSearchResults) {
       (subfolders || []).forEach((folder: any) => {
         if (!folder || !folder.id) {
@@ -238,8 +233,6 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     grid: DEFAULT_GRID_ICON_SIZE,
     desk: DEFAULT_DESKTOP_CARD_SIZE,
   });
-
-  const isSearchLoading = (shell as any).search?.isSearchLoading || false;
 
   const renderBody = () => {
     const hasEntries = entries.length > 0;
@@ -309,8 +302,7 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
 DocumentsPanelInner.displayName = 'DocumentsPanelInner';
 
 const DocumentsPanel: React.FC<DocumentsPanelProps> = (props) => {
-  const shell = useAppShell();
-  const selectionValue = (shell as any).selection?.selectionValue;
+  const { selectionValue } = useDocumentsWorkspaceContext();
 
   return (
     <WorkspaceSelectionProvider value={selectionValue}>

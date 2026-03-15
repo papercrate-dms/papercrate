@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import SettingsModal from '../settings/SettingsModal';
-import { useAppShell } from '../lib/context/AppShellContext';
+import { useSession } from '../lib/context/SessionContext';
+import { useUI } from '../lib/context/UIContext';
 import useApiTokens from '../settings/useApiTokens';
 import useCapabilitySets from '../settings/useCapabilitySets';
 import useCapabilities from '../settings/useCapabilities';
@@ -11,9 +12,8 @@ interface SettingsRouteProps {
 }
 
 const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) => {
-  const shell = useAppShell() as any;
-  const { token } = shell.session || {};
-  const { notifyApiError, setStatusMessage } = shell.ui || {};
+  const { token, passkeys: passkeysState } = useSession();
+  const { notifyApiError } = useUI();
   const {
     passkeys,
     passkeysSupported,
@@ -23,7 +23,7 @@ const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) =
     refreshPasskeys,
     registerPasskey,
     revokePasskey,
-  } = shell.passkeys || {};
+  } = passkeysState;
 
   const {
     tokens,
@@ -37,7 +37,7 @@ const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) =
     revoke: revokeToken,
     regenerate: regenerateToken,
     dismissSecret,
-  } = useApiTokens({ token, notifyApiError, setStatusMessage });
+  } = useApiTokens({ token, notifyApiError });
 
   const {
     capabilitySets,
@@ -50,7 +50,7 @@ const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) =
     createCapabilitySet,
     updateCapabilitySet,
     deleteCapabilitySet,
-  } = useCapabilitySets({ token, notifyApiError, setStatusMessage });
+  } = useCapabilitySets({ token, notifyApiError });
 
   const {
     capabilities,

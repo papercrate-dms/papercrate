@@ -53,17 +53,8 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
                             <div className="doc-list__name-content">
                                 <span className="doc-name__title">
                                     <span className="doc-name__primary">
-                                        <EditableEntryTitle
-                                            isEditing={logic.isFolderEditing}
-                                            draftValue={logic.folderDraftValue}
-                                            onChange={logic.handlers.onRenameChange}
-                                            onSubmit={logic.handlers.onRenameSubmit}
-                                            onCancel={logic.handlers.onRenameCancel}
-                                            isSaving={logic.isFolderSaving}
-                                            canSubmit={logic.canSubmitFolder}
-                                            inputRef={logic.attachFolderInputRef}
-                                            allowInlineEdit={logic.allowInlineFolderEdit}
-                                            onBeginEditing={logic.handlers.onRenameBegin}
+                                         <EditableEntryTitle
+                                            rename={logic.folderRenameProps}
                                             className="doc-name__primary-text"
                                         >
                                             {folder.name}
@@ -118,16 +109,7 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
                                     />
                                     <span className="doc-name__primary">
                                         <EditableEntryTitle
-                                            isEditing={logic.isEditingDoc}
-                                            draftValue={logic.documentDraftValue}
-                                            onChange={logic.handlers.onRenameChange}
-                                            onSubmit={logic.handlers.onRenameSubmit}
-                                            onCancel={logic.handlers.onRenameCancel}
-                                            isSaving={logic.isDocumentSaving}
-                                            canSubmit={logic.canSubmitDocument}
-                                            inputRef={logic.attachDocumentInputRef}
-                                            allowInlineEdit={logic.allowInlineDocumentEdit}
-                                            onBeginEditing={logic.handlers.onRenameBegin}
+                                            rename={logic.documentRenameProps}
                                             className="doc-name__primary-text"
                                         >
                                             {doc.title}

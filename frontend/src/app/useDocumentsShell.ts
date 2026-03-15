@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { useAppShell } from '../lib/context/AppShellContext';
+import { useUI } from '../lib/context/UIContext';
+import { useFolderTree } from '../lib/context/FolderTreeContext';
+import { useDocumentsSearch } from '../lib/context/DocumentsSearchContext';
+import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
 import type { DocumentsFilterValue } from '../documents/context/DocumentsFilterContext';
 import type { UseWorkspaceSurfaceArgs } from './useWorkspaceSurface';
 import type { Identifier } from '../types/identifiers';
@@ -18,32 +21,35 @@ interface DocumentsShellView {
 }
 
 const useDocumentsShell = (): DocumentsShellView => {
-  const shell = useAppShell() as any;
+  const { notifyApiError } = useUI();
+  const { foldersManager, handleBreadcrumbNavigate } = useFolderTree();
+  const { documentsViewMode, documentsFilter, documentsManager } = useDocumentsSearch();
+  const workspace = useDocumentsWorkspaceContext();
 
   return useMemo(() => {
     const surfaceConfig: WorkspaceSurfaceConfig = {
-      viewMode: shell.search?.documentsViewMode,
-      detailPanelProps: (shell.detailPanel?.detailPanelProps ?? null) as WorkspaceSurfaceConfig['detailPanelProps'],
-      detailPanelOpen: Boolean(shell.detailPanel?.detailPanelOpen),
-      openDetailPanel: shell.detailPanel?.openDetailPanel as WorkspaceSurfaceConfig['openDetailPanel'],
-      closeDetailPanel: shell.detailPanel?.closeDetailPanel as WorkspaceSurfaceConfig['closeDetailPanel'],
-      viewerWorkspaceDocument: shell.preview?.viewerWorkspaceDocument,
-      viewerDocumentId: (shell.preview?.viewerDocumentId as Identifier) ?? null,
-      closeDocumentViewer: shell.preview?.closeDocumentViewer as WorkspaceSurfaceConfig['closeDocumentViewer'],
-      ensureViewerData: shell.preview?.ensureViewerData as WorkspaceSurfaceConfig['ensureViewerData'],
-      ensureAssetUrl: shell.preview?.ensureAssetUrl as WorkspaceSurfaceConfig['ensureAssetUrl'],
-      getDocumentAsset: shell.preview?.getDocumentAsset as WorkspaceSurfaceConfig['getDocumentAsset'],
-      notifyApiError: shell.ui?.notifyApiError as WorkspaceSurfaceConfig['notifyApiError'],
-      handleBreadcrumbNavigate: shell.folderTree?.handleBreadcrumbNavigate as WorkspaceSurfaceConfig['handleBreadcrumbNavigate'],
+      viewMode: documentsViewMode,
+      detailPanelProps: (workspace.detailPanelProps ?? null) as WorkspaceSurfaceConfig['detailPanelProps'],
+      detailPanelOpen: Boolean(workspace.detailPanelOpen),
+      openDetailPanel: workspace.openDetailPanel as WorkspaceSurfaceConfig['openDetailPanel'],
+      closeDetailPanel: workspace.closeDetailPanel as WorkspaceSurfaceConfig['closeDetailPanel'],
+      viewerWorkspaceDocument: workspace.viewerWorkspaceDocument,
+      viewerDocumentId: (workspace.viewerDocumentId as Identifier) ?? null,
+      closeDocumentViewer: workspace.closeDocumentViewer as WorkspaceSurfaceConfig['closeDocumentViewer'],
+      ensureViewerData: workspace.ensureViewerData as WorkspaceSurfaceConfig['ensureViewerData'],
+      ensureAssetUrl: workspace.ensureAssetUrl as WorkspaceSurfaceConfig['ensureAssetUrl'],
+      getDocumentAsset: workspace.getDocumentAsset as WorkspaceSurfaceConfig['getDocumentAsset'],
+      notifyApiError: notifyApiError as WorkspaceSurfaceConfig['notifyApiError'],
+      handleBreadcrumbNavigate: handleBreadcrumbNavigate as WorkspaceSurfaceConfig['handleBreadcrumbNavigate'],
     };
 
     return {
       surfaceConfig,
-      documentsFilter: shell.search?.documentsFilter as DocumentsFilterValue,
-      documentsManager: shell.managers?.documentsManager,
-      foldersManager: shell.folderTree?.foldersManager,
+      documentsFilter: documentsFilter as DocumentsFilterValue,
+      documentsManager,
+      foldersManager,
     };
-  }, [shell]);
+  }, [documentsViewMode, documentsFilter, documentsManager, workspace, notifyApiError, handleBreadcrumbNavigate, foldersManager]);
 };
 
 export default useDocumentsShell;

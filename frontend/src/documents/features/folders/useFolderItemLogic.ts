@@ -3,6 +3,7 @@ import { isTagTransferEvent } from '../tagging/tagTransfer';
 import type { DocumentViewLogic } from '../../logic/useDocumentViewLogic';
 import { useDocumentsCommandContext } from '../../context/DocumentsCommandContext';
 import { useDocumentsViewStateContext } from '../../context/DocumentsViewStateContext';
+import type { RenameState } from '../../components/EditableEntryTitle';
 
 interface UseFolderItemLogicProps {
     folder: any;
@@ -105,6 +106,24 @@ export const useFolderItemLogic = (props: UseFolderItemLogicProps) => {
         },
     };
 
+    const folderRenameProps: RenameState = {
+        isEditing: isFolderEditing,
+        draftValue: folderDraftValue,
+        onChange: setFolderDraft,
+        onSubmit: () => submitFolderEditing(folder),
+        onCancel: (event?: React.SyntheticEvent) => cancelFolderEditing(event),
+        isSaving: isFolderSaving,
+        canSubmit: canSubmitFolder,
+        inputRef: attachFolderInputRef,
+        allowInlineEdit: allowInlineFolderEdit,
+        onBeginEditing: (event: React.SyntheticEvent) => {
+            if (!allowInlineFolderEdit) return;
+            event.preventDefault();
+            event.stopPropagation();
+            beginFolderEditing(folder);
+        },
+    };
+
     return {
         canDragFolder,
         isDraggingFolder,
@@ -115,6 +134,7 @@ export const useFolderItemLogic = (props: UseFolderItemLogicProps) => {
         canSubmitFolder,
         allowInlineFolderEdit,
         attachFolderInputRef,
+        folderRenameProps,
         handlers,
     };
 };

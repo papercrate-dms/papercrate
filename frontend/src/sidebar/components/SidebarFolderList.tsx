@@ -1,57 +1,40 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
-import type { Identifier } from '../../types/identifiers';
+import type { FolderNodeId } from '../../types/identifiers';
 import { FolderPlusIcon } from '../../components/icons';
-import FolderNode, { FolderIdentifier } from './SidebarFolderNode';
+import FolderNode from './SidebarFolderNode';
 import type { FolderTreeNode } from '../../lib/api/apiTypes';
-import { useAppShell } from '../../lib/context/AppShellContext';
-import FoldersManager from '../../documents/FoldersManager';
-import { useSyncExternalStore } from 'react';
+import { useFolderTree } from '../../lib/context/FolderTreeContext';
+import type FoldersManager from '../../documents/FoldersManager';
 
-interface SidebarFolderListProps {
-    selectedFolder: FolderIdentifier | null;
-    onSelect: (folderId: FolderIdentifier) => void;
-    onDrop: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
-    onDragOver: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
-    onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDeleteFolder: (folderId: FolderIdentifier) => void;
-    onRenameFolder?: (folderId: FolderIdentifier, name: string) => void;
-    onFolderDragStart?: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
-    onFolderDragEnd?: (event: React.DragEvent<HTMLDivElement>) => void;
-    draggedFolderId?: FolderIdentifier | null;
-    onCreateFolder?: (parentId?: Identifier | null) => void;
-    creatingFolder?: boolean;
-}
+const SidebarFolderList: React.FC = () => {
+    const {
+        foldersManager,
+        selectedFolder,
+        folderClickHandlers,
+        handleFolderDelete,
+        handleFolderRename,
+        handleFolderDragStart,
+        handleFolderDragEnd,
+        draggedFolderId,
+        handlePromptCreateFolder,
+        creatingFolder,
+    } = useFolderTree();
 
-const SidebarFolderList: React.FC<SidebarFolderListProps> = ({
-    selectedFolder,
-    onSelect,
-    onDrop,
-    onDragOver,
-    onDragLeave,
-    onDeleteFolder,
-    onRenameFolder,
-    onFolderDragStart,
-    onFolderDragEnd,
-    draggedFolderId,
-    onCreateFolder,
-    creatingFolder,
-}) => {
-    const shell = useAppShell() as any;
-    const foldersManager = shell.folderTree?.foldersManager;
+    const onSelect = folderClickHandlers.onSelect;
+    const onDrop = folderClickHandlers.onDrop;
+    const onDragOver = folderClickHandlers.onDragOver;
+    const onDragLeave = folderClickHandlers.onDragLeave;
 
     const getTreeSnapshot = useCallback(() => {
-        if (!foldersManager) return [];
         return (foldersManager as FoldersManager).getTreeSnapshot();
     }, [foldersManager]);
 
     const getFolderMap = useCallback(() => {
-        if (!foldersManager) return new Map();
         return (foldersManager as FoldersManager).getSnapshot();
     }, [foldersManager]);
 
     const subscribeToTree = useCallback((callback: () => void) => {
-        if (!foldersManager) return () => { };
         return (foldersManager as FoldersManager).subscribe(callback);
     }, [foldersManager]);
 
@@ -89,7 +72,7 @@ const SidebarFolderList: React.FC<SidebarFolderListProps> = ({
         }
     }, [selectedFolder, folderMap]);
 
-    const handleToggle = useCallback((folderId: FolderIdentifier) => {
+    const handleToggle = useCallback((folderId: FolderNodeId) => {
         setExpandedIds((prev) => {
             const next = new Set(prev);
             const id = String(folderId);
@@ -121,13 +104,13 @@ const SidebarFolderList: React.FC<SidebarFolderListProps> = ({
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
-                        onDelete={onDeleteFolder}
-                        onRename={onRenameFolder}
+                        onDelete={handleFolderDelete}
+                        onRename={handleFolderRename}
                         renderChildren={renderNodes}
-                        onFolderDragStart={onFolderDragStart}
-                        onFolderDragEnd={onFolderDragEnd}
+                        onFolderDragStart={handleFolderDragStart}
+                        onFolderDragEnd={handleFolderDragEnd}
                         draggingFolderId={draggedFolderId}
-                        onCreateFolder={onCreateFolder}
+                        onCreateFolder={handlePromptCreateFolder}
                     />
                 );
             }),
@@ -140,12 +123,12 @@ const SidebarFolderList: React.FC<SidebarFolderListProps> = ({
             onDrop,
             onDragOver,
             onDragLeave,
-            onDeleteFolder,
-            onRenameFolder,
-            onFolderDragStart,
-            onFolderDragEnd,
+            handleFolderDelete,
+            handleFolderRename,
+            handleFolderDragStart,
+            handleFolderDragEnd,
             draggedFolderId,
-            onCreateFolder,
+            handlePromptCreateFolder,
         ],
     );
 
@@ -153,12 +136,12 @@ const SidebarFolderList: React.FC<SidebarFolderListProps> = ({
         <div className="sidebar-section sidebar-section--folders">
             <div className="sidebar-section__header">
                 <h3>Folders</h3>
-                {onCreateFolder ? (
+                {handlePromptCreateFolder ? (
                     <div className="sidebar-section__actions">
                         <button
                             type="button"
                             className="icon-button"
-                            onClick={() => onCreateFolder('root')}
+                            onClick={() => handlePromptCreateFolder('root')}
                             aria-label="Create folder"
                             disabled={creatingFolder}
                         >

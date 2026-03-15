@@ -1,3 +1,8 @@
+export const EntryType = Object.freeze({
+  document: 'document' as const,
+  folder: 'folder' as const,
+});
+
 export const DEFAULT_THUMBNAIL_SIZE = 48;
 
 export const TAG_MIME_TYPES = ['application/x-papercrate-tag', 'text/papercrate-tag'] as const;

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_FOLDER_NAME } from '../../../app/workspaceUtils';
-import { useAppShell } from '../../../lib/context/AppShellContext';
-import FoldersManager from '../../FoldersManager';
+import { useFolderTree } from '../../../lib/context/FolderTreeContext';
 
 import {
   TrashIcon,
@@ -235,8 +234,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
   ), [documentLookup]);
   const tagLookupMap = tagLookupById instanceof Map ? tagLookupById : null;
 
-  const shell = useAppShell() as any;
-  const foldersManager = shell.folderTree?.foldersManager as FoldersManager;
+  const { foldersManager } = useFolderTree();
 
   const [remoteFolderTree, setRemoteFolderTree] = useState<FolderTreeNode[]>([]);
 

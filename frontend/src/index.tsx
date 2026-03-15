@@ -16,8 +16,8 @@ import LoginRoute from './app/LoginRoute';
 import SettingsRoute from './app/SettingsRoute';
 import { AppStateProvider, useAppState } from './lib/store/appState';
 import { useDocumentsPreferences } from './app/useDocumentsPreferences';
-import { AppShellContext } from './lib/context/AppShellContext';
 import useDocumentsWorkspace from './documents/data/useDocumentsWorkspace';
+import DomainProviderStack from './lib/context/DomainProviderStack';
 import UploadQueueOverlay from './app/UploadQueueOverlay';
 import { StatusToastProvider } from './lib/context/StatusToastContext';
 import StatusToastOverlay from './components/StatusToastOverlay';
@@ -30,7 +30,7 @@ const AppLayout: React.FC = () => {
     shellRef,
     dropOverlayState,
     managementModals,
-    contextValue,
+    domains,
     settingsOpen,
     closeSettings,
   } = useDocumentsWorkspace({
@@ -56,15 +56,15 @@ const AppLayout: React.FC = () => {
   }
 
   return (
-    <AppShellContext.Provider value={contextValue}>
+    <DomainProviderStack domains={domains}>
       <div className="app-shell" ref={shellRef}>
         <DropOverlay
           active={dropOverlayState.active}
           folderName={dropOverlayState.folderName}
         />
         <UploadQueueOverlay
-          queue={contextValue.upload.uploadQueue || []}
-          onClearQueue={contextValue.upload.clearUploadQueue}
+          queue={domains.ui.uploadQueue || []}
+          onClearQueue={domains.ui.clearUploadQueue}
         />
         <StatusToastOverlay />
         <Outlet />
@@ -73,7 +73,7 @@ const AppLayout: React.FC = () => {
           <SettingsRoute open onClose={closeSettings} />
         ) : null}
       </div>
-    </AppShellContext.Provider>
+    </DomainProviderStack>
   );
 };
 

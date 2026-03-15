@@ -1,66 +1,27 @@
 import React, { useRef } from 'react';
-import { useAppShell } from '../lib/context/AppShellContext';
 import { usePanelResizeBindings } from '../app/PanelManagerContext';
+import { useSession } from '../lib/context/SessionContext';
+import { useUI } from '../lib/context/UIContext';
+import { useTags } from '../lib/context/TagsContext';
+import { useCorrespondents } from '../lib/context/CorrespondentsContext';
+import { useFolderTree } from '../lib/context/FolderTreeContext';
 import SidebarFolderList from './components/SidebarFolderList';
 import SidebarTagList from './components/SidebarTagList';
 import SidebarCorrespondentList from './components/SidebarCorrespondentList';
-import { TenantOption } from './components/SidebarMenu';
+import type { TenantOption } from './components/SidebarMenu';
 import SidebarHeader from './components/SidebarHeader';
 import SidebarSearch from './components/SidebarSearch';
 
 const Sidebar: React.FC = () => {
-  const shell = useAppShell() as any;
-  const {
-    openTagsModal,
-    handleTagCreate,
-    tags = [],
-  } = shell.tags || {};
-  const {
-    openCorrespondentsModal,
-    handleCorrespondentCreate,
-    correspondents = [],
-  } = shell.correspondents || {};
-  const {
-    handleLogout,
-    tenant,
-    tenants,
-    tenantOptions,
-    handleTenantSelect,
-  } = shell.session || {};
-  const {
-    openSettings,
-  } = shell.ui || {};
-  const {
-    handleFileSelection,
-  } = shell.upload || {};
-  const {
-    folderClickHandlers = {},
-    handleFolderDelete,
-    handleFolderRename,
-    selectedFolder = null,
-    handleFolderDragStart,
-    handleFolderDragEnd,
-    draggedFolderId = null,
-    handlePromptCreateFolder,
-    creatingFolder = false,
-  } = shell.folderTree || {};
+  const { tags, handleTagCreate, openTagsModal } = useTags();
+  const { correspondents, handleCorrespondentCreate, openCorrespondentsModal } = useCorrespondents();
+  const { handleLogout, tenant, tenants, tenantOptions, handleTenantSelect } = useSession();
+  const { openSettings, handleFileSelection, sidebarSuppressed } = useUI();
+  const { selectedFolder } = useFolderTree();
 
-  const sidebarSuppressed = shell.ui?.sidebarSuppressed;
-
-  const onSelect = folderClickHandlers.onSelect;
-  const onDrop = folderClickHandlers.onDrop;
-  const onDragOver = folderClickHandlers.onDragOver;
-  const onDragLeave = folderClickHandlers.onDragLeave;
-
-  const onManageTags = openTagsModal;
-  const onManageCorrespondents = openCorrespondentsModal;
-
-  // Derived or context-based handlers/values
   const tenantName = (tenant as TenantOption)?.name;
   const effectiveTenants = (tenants || tenantOptions || []);
   const activeTenantId = (tenant as TenantOption)?.id;
-
-  const onUploadFiles = handleFileSelection;
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -95,39 +56,26 @@ const Sidebar: React.FC = () => {
         onSelectTenant={handleTenantSelect}
         onOpenSettings={openSettings}
         onLogout={handleLogout}
-        onUploadFiles={onUploadFiles}
+        onUploadFiles={handleFileSelection}
         selectedFolder={selectedFolder}
       />
 
       <div className="panel-body sidebar__body">
         <SidebarSearch />
 
-        <SidebarFolderList
-          selectedFolder={selectedFolder}
-          onSelect={onSelect}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDeleteFolder={handleFolderDelete}
-          onRenameFolder={handleFolderRename}
-          onFolderDragStart={handleFolderDragStart}
-          onFolderDragEnd={handleFolderDragEnd}
-          draggedFolderId={draggedFolderId}
-          onCreateFolder={handlePromptCreateFolder}
-          creatingFolder={creatingFolder}
-        />
+        <SidebarFolderList />
 
         <SidebarTagList
           tags={tags}
           untaggedFilterId={null}
           onCreateTag={handleTagCreate}
-          onManageTags={onManageTags}
+          onManageTags={openTagsModal}
         />
 
         <SidebarCorrespondentList
           correspondents={correspondents}
           onCreateCorrespondent={handleCorrespondentCreate}
-          onManageCorrespondents={onManageCorrespondents}
+          onManageCorrespondents={openCorrespondentsModal}
         />
       </div>
     </aside>

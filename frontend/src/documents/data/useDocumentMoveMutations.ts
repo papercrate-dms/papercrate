@@ -8,7 +8,7 @@ import {
     moveDocumentToFolder,
     listFolderContents,
 } from '../../lib/api/apiClient';
-import type { DocumentId, FolderId as FolderIdentifier } from '../../types/identifiers';
+import type { DocumentId, FolderNodeId } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import type {
     DocumentsState,
@@ -16,8 +16,7 @@ import type {
     SelectionState,
 } from '../types/workspaceTypes';
 
-type FolderId = FolderIdentifier | 'root';
-type NullableFolderId = FolderId | null;
+type NullableFolderId = FolderNodeId | null;
 
 interface UseDocumentMoveMutationsArgs {
     documentsState: DocumentsState;
@@ -51,7 +50,7 @@ export const useDocumentMoveMutations = ({
             const uniqueIdSet = new Set(uniqueIds);
             const target = targetFolderId === 'root' ? null : targetFolderId ?? null;
             const targetLabel =
-                target === null ? DEFAULT_FOLDER_NAME : folderState.folderLabelMap.get(targetFolderId as FolderId) || 'target folder';
+                target === null ? DEFAULT_FOLDER_NAME : folderState.folderLabelMap.get(targetFolderId as FolderNodeId) || 'target folder';
 
             const movedDocs = uniqueIds
                 .map((id) => {
@@ -155,7 +154,7 @@ export const useDocumentMoveMutations = ({
                 }
 
                 if (targetFolderId && targetFolderId !== folderState.selectedFolder) {
-                    await listFolderContents(targetFolderId as FolderId);
+                    await listFolderContents(targetFolderId as FolderNodeId);
                 }
 
             } catch (error) {

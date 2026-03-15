@@ -11,7 +11,7 @@ import {
   bulkReanalyzeDocuments,
   assignCorrespondentsBulk,
 } from '../../lib/api/apiClient';
-import type { DocumentId, FolderId as FolderIdentifier, Identifier } from '../../types/identifiers';
+import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
 import type { Document, MessageOptions } from '../../types/documents';
 import { useDocumentTagMutations } from './useDocumentTagMutations';
 import { useDocumentMoveMutations } from './useDocumentMoveMutations';
@@ -25,8 +25,7 @@ import type {
 import type { Tag, Correspondent } from '../../types/documents';
 import useDocumentCorrespondentMutations from './useDocumentCorrespondentMutations';
 
-type FolderId = FolderIdentifier | 'root';
-type NullableFolderId = FolderId | null;
+type NullableFolderId = FolderNodeId | null;
 
 interface DocumentTagExtras {
   option?: Tag | null;

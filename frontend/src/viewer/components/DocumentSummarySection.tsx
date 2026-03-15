@@ -15,6 +15,7 @@ import {
 import { describeDocumentSummary, type DocumentSummaryRow } from '../logic/documentSummary';
 
 import { useFolderManager } from '../../folders/FolderManagerContext';
+import { resolveTags, resolveCorrespondentIds } from '../../utils/resolveAssets';
 import type { Document, Tag, Correspondent } from '../../types/documents';
 import type { FolderId, Identifier, TagId } from '../../types/identifiers';
 
@@ -451,30 +452,16 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
   const editableTitle = Boolean(document && onUpdateTitle);
   const editableIssued = Boolean(document && onUpdateIssued);
 
-  const resolvedTags = useMemo(() => {
-    if (!Array.isArray(document?.tags)) {
-      return [];
-    }
-
-    return document.tags.map((tagId) => tagLookupById.get(tagId))
-      .filter((t): t is Tag => Boolean(t))
-      .sort((a, b) => {
-        const labelA = (a.label || '').toLowerCase();
-        const labelB = (b.label || '').toLowerCase();
-        return labelA.localeCompare(labelB);
-      });
-  }, [document?.tags, tagLookupById]);
+  const resolvedTags = useMemo(
+    () => resolveTags(document?.tags, tagLookupById),
+    [document?.tags, tagLookupById],
+  );
 
   const resolvedCorrespondents = useMemo(() => {
     if (Array.isArray(correspondents) && correspondents.length) {
       return correspondents;
     }
-    if (!document?.correspondents) return [];
-
-    return document.correspondents
-      .map((id) => correspondentLookupById?.get(id))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
+    return resolveCorrespondentIds(document?.correspondents, correspondentLookupById);
   }, [correspondents, document?.correspondents, correspondentLookupById]);
 
   const extraSummaryRows = useMemo(() => {

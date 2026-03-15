@@ -72,7 +72,7 @@ import useNotifyApiError from '../hooks/useNotifyApiError';
 
 interface UsePasskeysArgs { }
 
-interface UsePasskeysResult {
+export interface UsePasskeysResult {
   passkeys: PasskeyRecord[];
   passkeysSupported: boolean | null;
   passkeysLoading: boolean;

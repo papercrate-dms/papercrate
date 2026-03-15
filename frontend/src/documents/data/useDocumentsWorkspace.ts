@@ -58,11 +58,14 @@ import { useWorkspaceSelection } from '../../app/useWorkspaceSelection';
 import useDocumentViewer from '../../app/useDocumentViewer';
 import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
 import type { Document, Folder } from '../../types/documents';
-
-const EntryType = Object.freeze({
-  document: 'document',
-  folder: 'folder',
-});
+import { EntryType } from '../../constants/documents';
+import type { SessionContextValue } from '../../lib/context/SessionContext';
+import type { UIContextValue } from '../../lib/context/UIContext';
+import type { TagsContextValue } from '../../lib/context/TagsContext';
+import type { CorrespondentsContextValue } from '../../lib/context/CorrespondentsContext';
+import type { FolderTreeContextValue } from '../../lib/context/FolderTreeContext';
+import type { DocumentsSearchContextValue } from '../../lib/context/DocumentsSearchContext';
+import type { DocumentsWorkspaceContextValue } from '../../lib/context/DocumentsWorkspaceContext';
 
 const noop = () => { };
 
@@ -763,14 +766,6 @@ const useDocumentsWorkspace = ({
     clearDocumentSelection: selectionContext.clearDocumentSelection,
   });
 
-  const mutations = {
-    ...documentMutationsResult,
-    handleDocumentDragStart,
-    handleDocumentDragEnd,
-    draggedDocumentIds,
-    handleDeleteSelection,
-  };
-
   const ensureAssetUrl = useCallback(
     async (documentId, asset, { force = false } = {}) => {
       if (!documentId || !asset?.id) {
@@ -913,7 +908,9 @@ const useDocumentsWorkspace = ({
     handleDocumentsViewModeChange,
   });
 
-  const session = {
+  // --- Domain context values (typed) ---
+
+  const sessionDomain: SessionContextValue = {
     token,
     appStatus,
     handleLogout,
@@ -921,22 +918,28 @@ const useDocumentsWorkspace = ({
     tenants: tenantOptions,
     tenantOptions,
     handleTenantSelect,
+    passkeys,
   };
 
-  const ui = {
+  const uiDomain: UIContextValue = {
     notifyApiError,
     settingsOpen,
     openSettings,
     closeSettings,
     managementModals,
     refreshCurrentFolder: handleManualRefresh,
+    handleFileSelection: upload.handleFileSelection,
+    handleFileDrop: upload.handleFileDrop,
+    uploadQueue: upload.uploadQueue,
+    clearUploadQueue: upload.clearUploadQueue,
+    dropOverlayState: upload.dropOverlayState,
+    resetUploadsState: upload.resetUploadsState,
   };
 
-  const tags = {
+  const tagsDomain: TagsContextValue = {
     ...tagsState,
     tagManager,
     activeTagFilters: documentsSearch.activeTagFilters,
-    // Add derived/action handlers that were previously in tagsContext
     handleDocumentTagAttach,
     handleDocumentTagDetach,
     handleBulkTagAddFromDetail,
@@ -944,10 +947,9 @@ const useDocumentsWorkspace = ({
     openTagsModal,
   };
 
-  const correspondents = {
+  const correspondentsDomain: CorrespondentsContextValue = {
     ...correspondentsState,
     activeCorrespondentFilters: documentsSearch.activeCorrespondentFilters,
-    // Add derived/action handlers
     handleDocumentCorrespondentAttach,
     handleDocumentCorrespondentDetach,
     handleDocumentCorrespondentAdd,
@@ -956,32 +958,7 @@ const useDocumentsWorkspace = ({
     openCorrespondentsModal,
   };
 
-  const preview = {
-    openDocumentViewerForDetail,
-    viewerActive,
-    viewerWorkspaceDocument,
-    viewerDocumentId,
-    closeDocumentViewer,
-    selectionContext,
-    ensureAssetUrl,
-    getDocumentAsset,
-  };
-
-  const search = {
-    searchQuery: documentsSearch.searchQuery,
-    searchLoading: documentsSearch.searchLoading,
-    documentsViewMode,
-    handleDocumentsViewModeChange,
-    documentsSortField,
-    documentsSortDirection,
-    handleDocumentsSortFieldChange,
-    handleDocumentsSortDirectionToggle,
-    searchResultIds: documentsSearch.searchResultIds,
-    documents: viewDocuments,
-    documentsFilter: documentsSearch.documentsFilterValue,
-  };
-
-  const folderTree = {
+  const folderTreeDomain: FolderTreeContextValue = {
     foldersManager,
     selectedFolder,
     currentFolderName,
@@ -1000,35 +977,62 @@ const useDocumentsWorkspace = ({
     creatingFolder,
     currentSubfolders: visibleSubfolders,
     breadcrumbs,
+    refreshCurrentFolder: handleManualRefresh,
   };
 
-  const selection = {
+  const searchDomain: DocumentsSearchContextValue = {
+    searchQuery: documentsSearch.searchQuery,
+    searchLoading: documentsSearch.searchLoading,
+    documentsViewMode,
+    handleDocumentsViewModeChange,
+    documentsSortField,
+    documentsSortDirection,
+    handleDocumentsSortFieldChange,
+    handleDocumentsSortDirectionToggle,
+    searchResultIds: documentsSearch.searchResultIds,
+    documents: viewDocuments,
+    documentsFilter: documentsSearch.documentsFilterValue,
+    documentsManager,
+    documentLookup,
+  };
+
+  const workspaceDomain: DocumentsWorkspaceContextValue = {
+    // Selection
     clearDocumentSelection: selectionContext.clearDocumentSelection,
     handleDeleteSelection,
     handleEntryPointerCore,
     handleBulkSelectionReanalyze,
     selectionValue: selectionState,
+    // Mutations
+    handleDocumentDragStart,
+    handleDocumentDragEnd,
+    draggedDocumentIds,
+    handleDocumentTitleUpdate: handleDocumentTitleUpdate,
+    handleDocumentTagAttach,
+    handleDocumentTagDetach,
+    // Preview / viewer
+    openDocumentViewerForDetail,
+    viewerActive,
+    viewerWorkspaceDocument,
+    viewerDocumentId,
+    closeDocumentViewer,
+    ensureAssetUrl,
+    getDocumentAsset,
+    // Detail panel
+    detailPanelProps: detailWorkspace.detailPanelProps,
+    detailPanelOpen: detailWorkspace.detailPanelOpen,
+    openDetailPanel: detailWorkspace.openDetailPanel,
+    closeDetailPanel: detailWorkspace.closeDetailPanel,
   };
 
-  const managers = {
-    documentsManager,
-    documentLookup,
-  };
-
-  const contextValue = {
-    session,
-    ui,
-    upload,
-    tags,
-    correspondents,
-    passkeys,
-    preview,
-    detailPanel: detailWorkspace,
-    search,
-    folderTree,
-    selection,
-    mutations,
-    managers,
+  const domains = {
+    session: sessionDomain,
+    ui: uiDomain,
+    tags: tagsDomain,
+    correspondents: correspondentsDomain,
+    folderTree: folderTreeDomain,
+    search: searchDomain,
+    workspace: workspaceDomain,
   };
 
   // hook callers handle rendering / routing
@@ -1038,7 +1042,7 @@ const useDocumentsWorkspace = ({
     shellRef,
     dropOverlayState: upload.dropOverlayState,
     managementModals,
-    contextValue,
+    domains,
     settingsOpen,
     closeSettings,
   };

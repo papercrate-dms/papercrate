@@ -8,14 +8,13 @@ import {
 } from '../../components/icons';
 import PanelHeader from '../../components/PanelHeader';
 import useFloatingMenu from '../../components/useFloatingMenu';
-import type { Identifier } from '../../types/identifiers';
+import type { Identifier, FolderNodeId } from '../../types/identifiers';
 import SidebarMenu, { TenantOption } from './SidebarMenu';
 import { usePanelManager } from '../../app/PanelManagerContext';
-import { FolderIdentifier } from './SidebarFolderNode';
 
 type UploadHandler = (
     files: FileList | File[] | Iterable<File>,
-    targetFolderId?: FolderIdentifier | null,
+    targetFolderId?: FolderNodeId | null,
 ) => void;
 
 interface SidebarHeaderProps {
@@ -26,7 +25,7 @@ interface SidebarHeaderProps {
     onOpenSettings?: () => void;
     onLogout?: () => void;
     onUploadFiles?: UploadHandler;
-    selectedFolder?: FolderIdentifier | null;
+    selectedFolder?: FolderNodeId | null;
 }
 
 interface FloatingMenuControls {

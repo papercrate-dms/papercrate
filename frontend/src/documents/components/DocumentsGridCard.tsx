@@ -49,16 +49,7 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
                         <div className="folder-card__meta">
                             <div className="folder-card__label-row">
                                 <EditableEntryTitle
-                                    isEditing={logic.isFolderEditing}
-                                    draftValue={logic.folderDraftValue}
-                                    onChange={logic.handlers.onRenameChange}
-                                    onSubmit={logic.handlers.onRenameSubmit}
-                                    onCancel={logic.handlers.onRenameCancel}
-                                    isSaving={logic.isFolderSaving}
-                                    canSubmit={logic.canSubmitFolder}
-                                    inputRef={logic.attachFolderInputRef}
-                                    allowInlineEdit={logic.allowInlineFolderEdit}
-                                    onBeginEditing={logic.handlers.onRenameBegin}
+                                    rename={logic.folderRenameProps}
                                     className="folder-card__name"
                                 >
                                     {folder.name}
@@ -104,16 +95,7 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
                             />
                             <div className="document-card__title-row">
                                 <EditableEntryTitle
-                                    isEditing={logic.isEditingDoc}
-                                    draftValue={logic.documentDraftValue}
-                                    onChange={logic.handlers.onRenameChange}
-                                    onSubmit={logic.handlers.onRenameSubmit}
-                                    onCancel={logic.handlers.onRenameCancel}
-                                    isSaving={logic.isDocumentSaving}
-                                    canSubmit={logic.canSubmitDocument}
-                                    inputRef={logic.attachDocumentInputRef}
-                                    allowInlineEdit={logic.allowInlineDocumentEdit}
-                                    onBeginEditing={logic.handlers.onRenameBegin}
+                                    rename={logic.documentRenameProps}
                                     className="document-card__title-badge"
                                 >
                                     {doc.title}

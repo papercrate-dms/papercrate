@@ -1,7 +1,7 @@
 import React from 'react';
 import InlineRenameInput from './InlineRenameInput';
 
-interface EditableEntryTitleProps {
+export interface RenameState {
     isEditing: boolean;
     draftValue: string;
     onChange: (value: string) => void;
@@ -12,21 +12,27 @@ interface EditableEntryTitleProps {
     inputRef: (ref: HTMLInputElement | null) => void;
     allowInlineEdit: boolean | undefined;
     onBeginEditing: (event: React.SyntheticEvent) => void;
+}
+
+interface EditableEntryTitleProps {
+    rename: RenameState;
     children: React.ReactNode;
     className?: string;
 }
 
 const EditableEntryTitle: React.FC<EditableEntryTitleProps> = ({
-    isEditing,
-    draftValue,
-    onChange,
-    onSubmit,
-    onCancel,
-    isSaving,
-    canSubmit,
-    inputRef,
-    allowInlineEdit,
-    onBeginEditing,
+    rename: {
+        isEditing,
+        draftValue,
+        onChange,
+        onSubmit,
+        onCancel,
+        isSaving,
+        canSubmit,
+        inputRef,
+        allowInlineEdit,
+        onBeginEditing,
+    },
     children,
     className,
 }) => {

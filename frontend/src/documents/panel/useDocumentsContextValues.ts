@@ -5,24 +5,20 @@ import { useWorkspaceSelectionContext } from '../../app/WorkspaceSelectionContex
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import { useTagInteractions } from '../interactions/useTagInteractions';
 import { subscribeToToast } from '../features/tagging/tagTransfer';
-import { useAppShell } from '../../lib/context/AppShellContext';
-
-const EntryType = {
-    folder: 'folder',
-    document: 'document',
-};
+import { useTags } from '../../lib/context/TagsContext';
+import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
+import { useFolderTree } from '../../lib/context/FolderTreeContext';
+import { useDocumentsSearch } from '../../lib/context/DocumentsSearchContext';
+import { useDocumentsWorkspaceContext } from '../../lib/context/DocumentsWorkspaceContext';
+import { EntryType } from '../../constants/documents';
 
 export const useDocumentsContextValues = () => {
-    const shell = useAppShell();
-    const {
-        preview: { ensureAssetUrl, getDocumentAsset },
-        search: { isSearchLoading, searchQuery, activeTagFilters, activeCorrespondentFilters, searchResultIds, documents },
-        folderTree: { selectedFolder },
-        mutations: { handleDocumentDragStart, handleDocumentDragEnd, draggedDocumentIds: draggingDocumentIds, handleDocumentTagAttach, handleDocumentTagDetach },
-        selection: { handleEntryPointerCore: onEntryPointer },
-        correspondents: { activeCorrespondentIds, correspondentLookupById },
-        tags: { tagLookupById },
-    } = shell as any;
+    const { ensureAssetUrl, getDocumentAsset } = useDocumentsWorkspaceContext();
+    const { searchLoading: isSearchLoading, searchQuery, searchResultIds, documents } = useDocumentsSearch();
+    const { selectedFolder, draggedFolderId, selectFolder, handleFolderRename, handleFolderDragStart, handleFolderDragEnd, folderClickHandlers } = useFolderTree();
+    const { handleDocumentDragStart, handleDocumentDragEnd, draggedDocumentIds: draggingDocumentIds, handleDocumentTagAttach, handleDocumentTagDetach, handleEntryPointerCore: onEntryPointer, handleDocumentTitleUpdate } = useDocumentsWorkspaceContext();
+    const { activeCorrespondentIds, correspondentLookupById } = useCorrespondents();
+    const { tagLookupById, activeTagFilters } = useTags();
 
     const {
         setFocusedEntryKey,
@@ -32,6 +28,8 @@ export const useDocumentsContextValues = () => {
         toggleTag: toggleTagFilter,
         toggleCorrespondent: toggleCorrespondentFilter,
     } = useDocumentsFilter();
+
+    const activeCorrespondentFilters = useCorrespondents().activeCorrespondentFilters;
 
     const scrollRef = useRef<HTMLElement | null>(null);
     const suppressDocumentClickRef = useRef(false);
@@ -47,8 +45,8 @@ export const useDocumentsContextValues = () => {
 
     // Handlers
     const tagHandlers = useTagInteractions({
-        onAssignTagToDocument: handleDocumentTagAttach,
-        onRemoveTagFromDocument: handleDocumentTagDetach,
+        onAssignTagToDocument: handleDocumentTagAttach as (docId: string, tagId: string) => Promise<boolean> | void,
+        onRemoveTagFromDocument: handleDocumentTagDetach as (docId: string, tagId: string) => Promise<boolean> | void,
         onTagClick: toggleTagFilter,
     });
 
@@ -130,8 +128,6 @@ export const useDocumentsContextValues = () => {
         getDocumentAsset,
     }), [ensureAssetUrl, getDocumentAsset]);
 
-    const draggedFolderId = (shell as any).folderTree?.draggedFolderId;
-
     const viewStateContextValue = useMemo(() => ({
         viewId,
         scrollRef,
@@ -150,36 +146,38 @@ export const useDocumentsContextValues = () => {
         correspondentLookupById,
     ]);
 
-    const commandContextValue = useMemo(() => {
-        const anyShell = shell as any;
-        return {
-            folder: {
-                onClick: handleFolderClick,
-                onSelect: anyShell.folderTree?.selectFolder,
-                onRename: anyShell.folderTree?.handleFolderRename,
-                onDrag: {
-                    start: anyShell.folderTree?.handleFolderDragStart,
-                    end: anyShell.folderTree?.handleFolderDragEnd,
-                    over: anyShell.folderTree?.folderClickHandlers?.onDragOver,
-                    leave: anyShell.folderTree?.folderClickHandlers?.onDragLeave,
-                    drop: anyShell.folderTree?.folderClickHandlers?.onDrop,
-                },
+    const commandContextValue = useMemo(() => ({
+        folder: {
+            onClick: handleFolderClick,
+            onSelect: selectFolder,
+            onRename: handleFolderRename,
+            onDrag: {
+                start: handleFolderDragStart,
+                end: handleFolderDragEnd,
+                over: folderClickHandlers?.onDragOver,
+                leave: folderClickHandlers?.onDragLeave,
+                drop: folderClickHandlers?.onDrop,
             },
-            document: {
-                onRename: anyShell.mutations?.handleDocumentTitleUpdate,
-                onDrag: {
-                    start: handleDocumentDragStartLocal,
-                    end: handleDocumentDragEndLocal,
-                },
+        },
+        document: {
+            onRename: handleDocumentTitleUpdate,
+            onDrag: {
+                start: handleDocumentDragStartLocal,
+                end: handleDocumentDragEndLocal,
             },
-            correspondents: {
-                onClick: toggleCorrespondentFilter,
-            },
-            onEntryPointer,
-        }
-    }, [
+        },
+        correspondents: {
+            onClick: toggleCorrespondentFilter,
+        },
+        onEntryPointer,
+    }), [
         handleFolderClick,
-        shell,
+        selectFolder,
+        handleFolderRename,
+        handleFolderDragStart,
+        handleFolderDragEnd,
+        folderClickHandlers,
+        handleDocumentTitleUpdate,
         handleDocumentDragStartLocal,
         handleDocumentDragEndLocal,
         toggleCorrespondentFilter,

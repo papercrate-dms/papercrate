@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { DragEvent } from 'react';
 import { createDocumentEntryKey, createFolderEntryKey } from '../../../app/entryKey';
-import type { FolderId, Identifier } from '../../../types/identifiers';
+import type { FolderNodeId, Identifier } from '../../../types/identifiers';
 
-type FolderIdentifier = FolderId | 'root';
-type FolderInput = FolderIdentifier | number;
+type FolderInput = FolderNodeId | number;
 
 import type { Document } from '../../../types/documents';
 
@@ -26,7 +25,7 @@ interface UseDocumentDragHandlersOptions {
   handleEntrySelection: HandleEntrySelectionFn;
   documentLookup: Map<Identifier, Document>;
   setDraggedDocumentIds: (ids: Identifier[] | []) => void;
-  setDraggedFolderId: (id: FolderIdentifier | null) => void;
+  setDraggedFolderId: (id: FolderNodeId | null) => void;
   documentsViewMode: string;
 }
 
@@ -43,7 +42,7 @@ const useDocumentDragHandlers = ({
 }: UseDocumentDragHandlersOptions) => {
   const dragPreviewRef = useRef<HTMLDivElement | null>(null);
   const normalizedFolderIds = useMemo(
-    () => selectedFolderIds.map((id) => (id === 'root' ? 'root' : String(id))) as FolderIdentifier[],
+    () => selectedFolderIds.map((id) => (id === 'root' ? 'root' : String(id))) as FolderNodeId[],
     [selectedFolderIds],
   );
 
@@ -58,7 +57,7 @@ const useDocumentDragHandlers = ({
   useEffect(() => destroyDragPreview, [destroyDragPreview]);
 
   const createDragPreview = useCallback(
-    ({ documents = [], folders = [], prioritizeFolders = false }: { documents?: Document[]; folders?: FolderIdentifier[]; prioritizeFolders?: boolean } = {}) => {
+    ({ documents = [], folders = [], prioritizeFolders = false }: { documents?: Document[]; folders?: FolderNodeId[]; prioritizeFolders?: boolean } = {}) => {
       destroyDragPreview();
 
       const docEntries = (documents || []).filter(Boolean);
@@ -170,7 +169,7 @@ const useDocumentDragHandlers = ({
           }
         } else {
           const payload = item.payload;
-          const folderId = payload as FolderIdentifier;
+          const folderId = payload as FolderNodeId;
           const rowEl = folderId
             ? document.getElementById(`folder-${folderId}`)
             : null;
@@ -246,7 +245,7 @@ const useDocumentDragHandlers = ({
         : [documentId];
 
       // If the document is part of the selection, we also want to include any selected folders
-      const folderSelection: FolderIdentifier[] = isAlreadySelected
+      const folderSelection: FolderNodeId[] = isAlreadySelected
         ? normalizedFolderIds
         : [];
 
@@ -318,7 +317,7 @@ const useDocumentDragHandlers = ({
 
   const handleFolderDragStart = useCallback(
     (event: DragEvent<HTMLElement>, folderId: FolderInput) => {
-      const normalizedFolderId: FolderIdentifier = folderId === 'root' ? 'root' : String(folderId);
+      const normalizedFolderId: FolderNodeId = folderId === 'root' ? 'root' : String(folderId);
       if (normalizedFolderId === 'root') {
         return;
       }
@@ -326,7 +325,7 @@ const useDocumentDragHandlers = ({
       const folderKey = createFolderEntryKey(normalizedFolderId);
       const isAlreadySelected = folderKey ? selectedEntries.includes(folderKey) : false;
 
-      let effectiveFolderSelection: FolderIdentifier[] = normalizedFolderIds;
+      let effectiveFolderSelection: FolderNodeId[] = normalizedFolderIds;
       let effectiveDocumentSelection: Identifier[] = selectedDocumentIds;
 
       if (!isAlreadySelected && folderKey) {

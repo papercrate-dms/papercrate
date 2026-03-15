@@ -7,28 +7,26 @@ import {
     FolderIcon,
     FolderPlusIcon,
 } from '../../components/icons';
-import type { Identifier } from '../../types/identifiers';
+import type { Identifier, FolderNodeId } from '../../types/identifiers';
 
 import type { FolderTreeNode } from '../../lib/api/apiTypes';
-
-export type FolderIdentifier = Identifier | 'root';
 
 interface FolderNodeProps {
     node: FolderTreeNode;
     depth: number;
     isSelected: boolean;
-    onToggle: (folderId: FolderIdentifier) => void;
-    onSelect: (folderId: FolderIdentifier) => void;
-    onDrop: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
-    onDragOver: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
+    onToggle: (folderId: FolderNodeId) => void;
+    onSelect: (folderId: FolderNodeId) => void;
+    onDrop: (event: React.DragEvent<HTMLDivElement>, folderId: FolderNodeId) => void;
+    onDragOver: (event: React.DragEvent<HTMLDivElement>, folderId: FolderNodeId) => void;
     onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDelete: (folderId: FolderIdentifier) => void;
-    onRename?: (folderId: FolderIdentifier, name: string) => void;
+    onDelete: (folderId: FolderNodeId) => void;
+    onRename?: (folderId: FolderNodeId, name: string) => void;
     renderChildren: (nodes: FolderTreeNode[], depth: number) => ReactNode;
     expanded: boolean;
-    onFolderDragStart?: (event: React.DragEvent<HTMLDivElement>, folderId: FolderIdentifier) => void;
+    onFolderDragStart?: (event: React.DragEvent<HTMLDivElement>, folderId: FolderNodeId) => void;
     onFolderDragEnd?: (event: React.DragEvent<HTMLDivElement>) => void;
-    draggingFolderId?: FolderIdentifier | null;
+    draggingFolderId?: FolderNodeId | null;
     onCreateFolder?: (parentId?: Identifier | null) => void;
 }
 

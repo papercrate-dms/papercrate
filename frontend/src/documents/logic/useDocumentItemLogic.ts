@@ -6,6 +6,7 @@ import { useDocumentsCommandContext } from '../context/DocumentsCommandContext';
 import { useDocumentsViewStateContext } from '../context/DocumentsViewStateContext';
 import type { DocumentViewLogic } from './useDocumentViewLogic';
 import { TagInteractionHandlers } from '../interactions/useTagInteractions';
+import type { RenameState } from '../components/EditableEntryTitle';
 
 interface UseDocumentItemLogicArgs {
     doc: Document;
@@ -84,6 +85,24 @@ export const useDocumentItemLogic = ({ doc, tagHandlers, viewLogic }: UseDocumen
         },
     };
 
+    const documentRenameProps: RenameState = {
+        isEditing: isEditingDoc,
+        draftValue: documentDraftValue,
+        onChange: setDocumentDraft,
+        onSubmit: () => submitDocumentEditing(doc),
+        onCancel: (event?: React.SyntheticEvent) => cancelDocumentEditing(event),
+        isSaving: isDocumentSaving,
+        canSubmit: canSubmitDocument,
+        inputRef: attachDocumentInputRef,
+        allowInlineEdit: allowInlineDocumentEdit,
+        onBeginEditing: (event: React.SyntheticEvent) => {
+            if (!allowInlineDocumentEdit) return;
+            event.preventDefault();
+            event.stopPropagation();
+            beginDocumentEditing(doc);
+        },
+    };
+
     return {
         isSelected,
         isDraggingDoc,
@@ -93,6 +112,7 @@ export const useDocumentItemLogic = ({ doc, tagHandlers, viewLogic }: UseDocumen
         canSubmitDocument,
         allowInlineDocumentEdit,
         attachDocumentInputRef,
+        documentRenameProps,
         handlers,
     };
 };
