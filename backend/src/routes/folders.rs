@@ -48,8 +48,10 @@ pub async fn get_folder(
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let folder = service.get_folder(&mut *conn, tenant_id, folder_id)?;
-    ok_json(FolderResponse { folder })
+    conn.scoped(|tx| {
+        let folder = service.get_folder(tx, tenant_id, folder_id)?;
+        ok_json(FolderResponse { folder })
+    })
 }
 
 #[utoipa::path(
@@ -69,8 +71,10 @@ pub async fn ensure_folder_path(
     Json(payload): Json<EnsureFolderPathRequest>,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let folder = service.ensure_folder_path(&mut *conn, tenant_id, payload)?;
-    ok_json(FolderResponse { folder })
+    conn.scoped(|tx| {
+        let folder = service.ensure_folder_path(tx, tenant_id, payload)?;
+        ok_json(FolderResponse { folder })
+    })
 }
 
 #[utoipa::path(
@@ -93,13 +97,15 @@ pub async fn create_folder(
     Json(payload): Json<CreateFolderRequest>,
 ) -> AppResult<JsonResponse<FolderResponse>> {
     let service = FolderService::new(&state);
-    let (folder, created) = service.create_folder(&mut *conn, tenant_id, payload)?;
-    let response = FolderResponse { folder };
-    if created {
-        created_json(response)
-    } else {
-        ok_json(response)
-    }
+    conn.scoped(|tx| {
+        let (folder, created) = service.create_folder(tx, tenant_id, payload)?;
+        let response = FolderResponse { folder };
+        if created {
+            created_json(response)
+        } else {
+            ok_json(response)
+        }
+    })
 }
 
 #[utoipa::path(
@@ -136,29 +142,31 @@ pub async fn list_folder_contents(
     };
 
     let service = FolderService::new(&state);
-    let FolderContentsData {
-        folder,
-        subfolders,
-        documents,
-    } = service.list_folder_contents(
-        &mut *conn,
-        tenant_id,
-        folder_id,
-        sort,
-        dir,
-        include_documents,
-    )?;
+    conn.scoped(|tx| {
+        let FolderContentsData {
+            folder,
+            subfolders,
+            documents,
+        } = service.list_folder_contents(
+            tx,
+            tenant_id,
+            folder_id,
+            sort,
+            dir,
+            include_documents,
+        )?;
 
-    let documents = if include_documents {
-        service.hydrate_documents(&mut *conn, tenant_id, user_id, documents)?
-    } else {
-        Vec::new()
-    };
+        let documents = if include_documents {
+            service.hydrate_documents(tx, tenant_id, user_id, documents)?
+        } else {
+            Vec::new()
+        };
 
-    ok_json(FolderContentsResponse {
-        folder,
-        subfolders,
-        documents,
+        ok_json(FolderContentsResponse {
+            folder,
+            subfolders,
+            documents,
+        })
     })
 }
 
@@ -177,8 +185,10 @@ pub async fn list_folder_tree(
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<FolderTreeNode>>> {
     let service = FolderService::new(&state);
-    let tree = service.list_folder_tree(&mut *conn, tenant_id)?;
-    ok_json(tree)
+    conn.scoped(|tx| {
+        let tree = service.list_folder_tree(tx, tenant_id)?;
+        ok_json(tree)
+    })
 }
 
 #[utoipa::path(
@@ -197,8 +207,10 @@ pub async fn delete_folder(
         ..
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
-    FolderService::new(&state).delete_folder(&mut *conn, tenant_id, folder_id)?;
-    no_content()
+    conn.scoped(|tx| {
+        FolderService::new(&state).delete_folder(tx, tenant_id, folder_id)?;
+        no_content()
+    })
 }
 
 #[utoipa::path(
@@ -219,8 +231,10 @@ pub async fn update_folder(
     }: TenantScopedConn,
     Json(payload): Json<UpdateFolderRequest>,
 ) -> AppResult<StatusCode> {
-    FolderService::new(&state).update_folder(&mut *conn, tenant_id, folder_id, payload)?;
-    no_content()
+    conn.scoped(|tx| {
+        FolderService::new(&state).update_folder(tx, tenant_id, folder_id, payload)?;
+        no_content()
+    })
 }
 
 #[derive(OpenApi)]

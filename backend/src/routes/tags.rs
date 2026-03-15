@@ -87,30 +87,32 @@ pub async fn list_tags(
         ..
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<TagCatalogEntry>>> {
-    let tag_list: Vec<Tag> = tags::table
-        .filter(tags::tenant_id.eq(tenant_id))
-        .order(tags::label.asc())
-        .load(&mut *conn)?;
+    conn.scoped(|tx| {
+        let tag_list: Vec<Tag> = tags::table
+            .filter(tags::tenant_id.eq(tenant_id))
+            .order(tags::label.asc())
+            .load(tx)?;
 
-    let usage_rows: Vec<(Uuid, i64)> = document_tags::table
-        .filter(document_tags::tenant_id.eq(tenant_id))
-        .group_by(document_tags::tag_id)
-        .select((document_tags::tag_id, count_star()))
-        .load(&mut *conn)?;
+        let usage_rows: Vec<(Uuid, i64)> = document_tags::table
+            .filter(document_tags::tenant_id.eq(tenant_id))
+            .group_by(document_tags::tag_id)
+            .select((document_tags::tag_id, count_star()))
+            .load(tx)?;
 
-    let usage_map: HashMap<Uuid, i64> = usage_rows.into_iter().collect();
+        let usage_map: HashMap<Uuid, i64> = usage_rows.into_iter().collect();
 
-    let response: Vec<TagCatalogEntry> = tag_list
-        .into_iter()
-        .map(|tag| TagCatalogEntry {
-            id: tag.id,
-            label: tag.label,
-            color: tag.color,
-            usage_count: *usage_map.get(&tag.id).unwrap_or(&0),
-        })
-        .collect();
+        let response: Vec<TagCatalogEntry> = tag_list
+            .into_iter()
+            .map(|tag| TagCatalogEntry {
+                id: tag.id,
+                label: tag.label,
+                color: tag.color,
+                usage_count: *usage_map.get(&tag.id).unwrap_or(&0),
+            })
+            .collect();
 
-    ok_json(response)
+        ok_json(response)
+    })
 }
 
 #[utoipa::path(
@@ -139,31 +141,33 @@ pub async fn create_tag(
         tenant_id,
     };
 
-    match diesel::insert_into(tags::table)
-        .values(&new_tag)
-        .execute(&mut *conn)
-    {
-        Ok(_) => {}
-        Err(diesel::result::Error::DatabaseError(
-            diesel::result::DatabaseErrorKind::UniqueViolation,
-            _,
-        )) => {
-            return Err(AppError::bad_request("tag label already exists"));
+    conn.scoped(|tx| {
+        match diesel::insert_into(tags::table)
+            .values(&new_tag)
+            .execute(tx)
+        {
+            Ok(_) => {}
+            Err(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UniqueViolation,
+                _,
+            )) => {
+                return Err(AppError::bad_request("tag label already exists"));
+            }
+            Err(err) => return Err(AppError::from(err)),
         }
-        Err(err) => return Err(AppError::from(err)),
-    }
 
-    let tag: Tag = tags::table
-        .find(new_tag.id)
-        .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
+        let tag: Tag = tags::table
+            .find(new_tag.id)
+            .filter(tags::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
 
-    ok_json(TagCatalogEntry {
-        id: tag.id,
-        label: tag.label,
-        color: tag.color,
-        usage_count: 0,
+        ok_json(TagCatalogEntry {
+            id: tag.id,
+            label: tag.label,
+            color: tag.color,
+            usage_count: 0,
+        })
     })
 }
 
@@ -184,121 +188,123 @@ pub async fn update_tag(
     }: TenantScopedConn,
     Json(payload): Json<UpdateTagRequest>,
 ) -> AppResult<JsonResponse<TagCatalogEntry>> {
-    let existing: Tag = tags::table
-        .find(tag_id)
-        .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
-    let UpdateTagRequest { label, color } = payload;
+    conn.scoped(|tx| {
+        let existing: Tag = tags::table
+            .find(tag_id)
+            .filter(tags::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
+        let UpdateTagRequest { label, color } = payload;
 
-    if label.is_none() && color.is_none() {
-        let usage_count: i64 = document_tags::table
-            .filter(document_tags::tag_id.eq(tag_id))
-            .select(count_star())
-            .first(&mut *conn)?;
-        return ok_json(TagCatalogEntry {
-            id: existing.id,
-            label: existing.label.clone(),
-            color: existing.color.clone(),
-            usage_count,
-        });
-    }
-
-    let mut new_label: Option<String> = None;
-    let mut label_changed = false;
-    match label {
-        None => {}
-        Some(None) => {
-            return Err(AppError::bad_request("label cannot be null"));
+        if label.is_none() && color.is_none() {
+            let usage_count: i64 = document_tags::table
+                .filter(document_tags::tag_id.eq(tag_id))
+                .select(count_star())
+                .first(tx)?;
+            return ok_json(TagCatalogEntry {
+                id: existing.id,
+                label: existing.label.clone(),
+                color: existing.color.clone(),
+                usage_count,
+            });
         }
-        Some(Some(value)) => {
-            let normalized =
-                normalize_name(&value, || AppError::bad_request("label must not be empty"))?;
-            if normalized != existing.label {
-                ensure_name_available(
-                    || {
-                        tags::table
-                            .filter(tags::label.eq(&normalized))
-                            .filter(tags::id.ne(tag_id))
-                            .filter(tags::tenant_id.eq(tenant_id))
-                            .first::<Tag>(&mut *conn)
-                            .optional()
-                    },
-                    || AppError::bad_request("tag label already exists"),
-                )?;
-                new_label = Some(normalized);
-                label_changed = true;
+
+        let mut new_label: Option<String> = None;
+        let mut label_changed = false;
+        match label {
+            None => {}
+            Some(None) => {
+                return Err(AppError::bad_request("label cannot be null"));
+            }
+            Some(Some(value)) => {
+                let normalized =
+                    normalize_name(&value, || AppError::bad_request("label must not be empty"))?;
+                if normalized != existing.label {
+                    ensure_name_available(
+                        || {
+                            tags::table
+                                .filter(tags::label.eq(&normalized))
+                                .filter(tags::id.ne(tag_id))
+                                .filter(tags::tenant_id.eq(tenant_id))
+                                .first::<Tag>(tx)
+                                .optional()
+                        },
+                        || AppError::bad_request("tag label already exists"),
+                    )?;
+                    new_label = Some(normalized);
+                    label_changed = true;
+                }
             }
         }
-    }
 
-    let mut color_change: Option<Option<String>> = None;
-    let mut color_changed = false;
-    match color {
-        None => {}
-        Some(None) => {
-            color_change = Some(None);
-            color_changed = true;
-        }
-        Some(Some(value)) => {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                return Err(AppError::bad_request("color must not be empty"));
-            }
-            if existing.color.as_deref() != Some(trimmed) {
-                color_change = Some(Some(trimmed.to_string()));
+        let mut color_change: Option<Option<String>> = None;
+        let mut color_changed = false;
+        match color {
+            None => {}
+            Some(None) => {
+                color_change = Some(None);
                 color_changed = true;
             }
+            Some(Some(value)) => {
+                let trimmed = value.trim();
+                if trimmed.is_empty() {
+                    return Err(AppError::bad_request("color must not be empty"));
+                }
+                if existing.color.as_deref() != Some(trimmed) {
+                    color_change = Some(Some(trimmed.to_string()));
+                    color_changed = true;
+                }
+            }
         }
-    }
 
-    if !label_changed && !color_changed {
+        if !label_changed && !color_changed {
+            let usage_count: i64 = document_tags::table
+                .filter(document_tags::tag_id.eq(tag_id))
+                .filter(document_tags::tenant_id.eq(tenant_id))
+                .select(count_star())
+                .first(tx)?;
+            return ok_json(TagCatalogEntry {
+                id: existing.id,
+                label: existing.label.clone(),
+                color: existing.color.clone(),
+                usage_count,
+            });
+        }
+
+        let changeset = UpdateTagChangeset {
+            label: new_label.as_deref(),
+            color: color_change
+                .as_ref()
+                .map(|opt| opt.as_ref().map(|value| value.as_str())),
+        };
+
+        diesel::update(
+            tags::table
+                .find(tag_id)
+                .filter(tags::tenant_id.eq(tenant_id)),
+        )
+        .set(&changeset)
+        .execute(tx)
+        .into_app_result()?
+        .or_not_found()?;
+
+        let updated: Tag = tags::table
+            .find(tag_id)
+            .filter(tags::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
         let usage_count: i64 = document_tags::table
             .filter(document_tags::tag_id.eq(tag_id))
             .filter(document_tags::tenant_id.eq(tenant_id))
             .select(count_star())
-            .first(&mut *conn)?;
-        return ok_json(TagCatalogEntry {
-            id: existing.id,
-            label: existing.label.clone(),
-            color: existing.color.clone(),
+            .first(tx)?;
+
+        ok_json(TagCatalogEntry {
+            id: updated.id,
+            label: updated.label,
+            color: updated.color,
             usage_count,
-        });
-    }
-
-    let changeset = UpdateTagChangeset {
-        label: new_label.as_deref(),
-        color: color_change
-            .as_ref()
-            .map(|opt| opt.as_ref().map(|value| value.as_str())),
-    };
-
-    diesel::update(
-        tags::table
-            .find(tag_id)
-            .filter(tags::tenant_id.eq(tenant_id)),
-    )
-    .set(&changeset)
-    .execute(&mut *conn)
-    .into_app_result()?
-    .or_not_found()?;
-
-    let updated: Tag = tags::table
-        .find(tag_id)
-        .filter(tags::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
-    let usage_count: i64 = document_tags::table
-        .filter(document_tags::tag_id.eq(tag_id))
-        .filter(document_tags::tenant_id.eq(tenant_id))
-        .select(count_star())
-        .first(&mut *conn)?;
-
-    ok_json(TagCatalogEntry {
-        id: updated.id,
-        label: updated.label,
-        color: updated.color,
-        usage_count,
+        })
     })
 }
 
@@ -317,28 +323,30 @@ pub async fn delete_tag(
         ..
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
-    let usage: i64 = document_tags::table
-        .filter(document_tags::tag_id.eq(tag_id))
-        .filter(document_tags::tenant_id.eq(tenant_id))
-        .select(count_star())
-        .first(&mut *conn)?;
+    conn.scoped(|tx| {
+        let usage: i64 = document_tags::table
+            .filter(document_tags::tag_id.eq(tag_id))
+            .filter(document_tags::tenant_id.eq(tenant_id))
+            .select(count_star())
+            .first(tx)?;
 
-    if usage > 0 {
-        return Err(AppError::bad_request(
-            "cannot delete tag that is still assigned to documents",
-        ));
-    }
+        if usage > 0 {
+            return Err(AppError::bad_request(
+                "cannot delete tag that is still assigned to documents",
+            ));
+        }
 
-    diesel::delete(
-        tags::table
-            .find(tag_id)
-            .filter(tags::tenant_id.eq(tenant_id)),
-    )
-    .execute(&mut *conn)
-    .into_app_result()?
-    .or_not_found()?;
+        diesel::delete(
+            tags::table
+                .find(tag_id)
+                .filter(tags::tenant_id.eq(tenant_id)),
+        )
+        .execute(tx)
+        .into_app_result()?
+        .or_not_found()?;
 
-    no_content()
+        no_content()
+    })
 }
 
 #[derive(utoipa::OpenApi)]

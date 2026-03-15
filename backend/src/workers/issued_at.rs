@@ -133,15 +133,17 @@ async fn persist_issued_at(
         let mut conn = state
             .db_for_tenant(tenant_id)
             .map_err(|err| format!("failed to scope connection: {err:?}"))?;
-        diesel::update(
-            documents_dsl::documents
-                .filter(documents_dsl::tenant_id.eq(tenant_id))
-                .filter(documents_dsl::id.eq(document_id)),
-        )
-        .set(documents_dsl::issued_at.eq(issued_at))
-        .execute(&mut *conn)
-        .map_err(|err| format!("failed to update issued_at: {err}"))?;
-        Ok(())
+        conn.scoped(|tx| -> Result<(), diesel::result::Error> {
+            diesel::update(
+                documents_dsl::documents
+                    .filter(documents_dsl::tenant_id.eq(tenant_id))
+                    .filter(documents_dsl::id.eq(document_id)),
+            )
+            .set(documents_dsl::issued_at.eq(issued_at))
+            .execute(tx)?;
+            Ok(())
+        })
+        .map_err(|err| format!("failed to update issued_at: {err}"))
     })
     .await
     .map_err(|err| {

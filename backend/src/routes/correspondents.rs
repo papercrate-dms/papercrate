@@ -67,29 +67,31 @@ pub async fn list_correspondents(
         ..
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<CorrespondentSummary>>> {
-    let correspondents_list: Vec<Correspondent> = correspondents::table
-        .filter(correspondents::tenant_id.eq(tenant_id))
-        .order(correspondents::name.asc())
-        .load(&mut *conn)?;
+    conn.scoped(|tx| {
+        let correspondents_list: Vec<Correspondent> = correspondents::table
+            .filter(correspondents::tenant_id.eq(tenant_id))
+            .order(correspondents::name.asc())
+            .load(tx)?;
 
-    let usage_rows: Vec<(Uuid, i64)> = document_correspondents::table
-        .filter(document_correspondents::tenant_id.eq(tenant_id))
-        .group_by(document_correspondents::correspondent_id)
-        .select((document_correspondents::correspondent_id, count_star()))
-        .load(&mut *conn)?;
+        let usage_rows: Vec<(Uuid, i64)> = document_correspondents::table
+            .filter(document_correspondents::tenant_id.eq(tenant_id))
+            .group_by(document_correspondents::correspondent_id)
+            .select((document_correspondents::correspondent_id, count_star()))
+            .load(tx)?;
 
-    let mut usage_map: HashMap<Uuid, i64> = HashMap::new();
-    for (correspondent_id, count) in usage_rows {
-        usage_map.insert(correspondent_id, count);
-    }
+        let mut usage_map: HashMap<Uuid, i64> = HashMap::new();
+        for (correspondent_id, count) in usage_rows {
+            usage_map.insert(correspondent_id, count);
+        }
 
-    let mut response = Vec::with_capacity(correspondents_list.len());
-    for correspondent in correspondents_list {
-        let total = usage_map.remove(&correspondent.id).unwrap_or(0);
-        response.push(build_summary(correspondent, total));
-    }
+        let mut response = Vec::with_capacity(correspondents_list.len());
+        for correspondent in correspondents_list {
+            let total = usage_map.remove(&correspondent.id).unwrap_or(0);
+            response.push(build_summary(correspondent, total));
+        }
 
-    ok_json(response)
+        ok_json(response)
+    })
 }
 
 #[utoipa::path(
@@ -120,24 +122,26 @@ pub async fn create_correspondent(
         tenant_id,
     };
 
-    match diesel::insert_into(correspondents::table)
-        .values(&new_correspondent)
-        .execute(&mut *conn)
-    {
-        Ok(_) => {}
-        Err(diesel::result::Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
-            return Err(AppError::bad_request("correspondent name already exists"));
+    conn.scoped(|tx| {
+        match diesel::insert_into(correspondents::table)
+            .values(&new_correspondent)
+            .execute(tx)
+        {
+            Ok(_) => {}
+            Err(diesel::result::Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
+                return Err(AppError::bad_request("correspondent name already exists"));
+            }
+            Err(err) => return Err(AppError::from(err)),
         }
-        Err(err) => return Err(AppError::from(err)),
-    }
 
-    let correspondent: Correspondent = correspondents::table
-        .find(new_id)
-        .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
+        let correspondent: Correspondent = correspondents::table
+            .find(new_id)
+            .filter(correspondents::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
 
-    ok_json(build_summary(correspondent, 0))
+        ok_json(build_summary(correspondent, 0))
+    })
 }
 
 #[utoipa::path(
@@ -157,72 +161,74 @@ pub async fn update_correspondent(
     }: TenantScopedConn,
     Json(payload): Json<UpdateCorrespondentRequest>,
 ) -> AppResult<JsonResponse<CorrespondentSummary>> {
-    let existing: Correspondent = correspondents::table
-        .find(correspondent_id)
-        .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
-
-    let mut new_name: Option<String> = None;
-    if let Some(ref candidate) = payload.name {
-        let normalized = normalize_name(candidate, || {
-            AppError::bad_request("name must not be empty")
-        })?;
-        if normalized != existing.name {
-            ensure_name_available(
-                || {
-                    correspondents::table
-                        .filter(correspondents::name.eq(&normalized))
-                        .filter(correspondents::id.ne(correspondent_id))
-                        .filter(correspondents::tenant_id.eq(tenant_id))
-                        .first::<Correspondent>(&mut *conn)
-                        .optional()
-                },
-                || AppError::bad_request("correspondent name already exists"),
-            )?;
-            new_name = Some(normalized);
-        }
-    }
-
-    let mut new_metadata: Option<Value> = None;
-    if let Some(metadata) = payload.metadata.clone() {
-        let candidate = normalize_metadata(Some(metadata));
-        if candidate != existing.metadata {
-            new_metadata = Some(candidate);
-        }
-    }
-
-    if new_name.is_none() && new_metadata.is_none() {
-        let usage = load_usage_for_correspondent(&mut conn, tenant_id, correspondent_id)?;
-        return ok_json(build_summary(existing.clone(), usage));
-    }
-
-    let mut changeset = CorrespondentChangeset::default();
-    if let Some(ref name) = new_name {
-        changeset.name = Some(name.as_str());
-    }
-    if let Some(ref metadata) = new_metadata {
-        changeset.metadata = Some(metadata);
-    }
-
-    let now = Utc::now().naive_utc();
-    diesel::update(
-        correspondents::table
+    conn.scoped(|tx| {
+        let existing: Correspondent = correspondents::table
             .find(correspondent_id)
-            .filter(correspondents::tenant_id.eq(tenant_id)),
-    )
-    .set((&changeset, correspondents::updated_at.eq(now)))
-    .execute(&mut *conn)
-    .into_app_result()?
-    .or_not_found()?;
+            .filter(correspondents::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
 
-    let updated: Correspondent = correspondents::table
-        .find(correspondent_id)
-        .filter(correspondents::tenant_id.eq(tenant_id))
-        .first(&mut *conn)
-        .into_app_result()?;
-    let usage = load_usage_for_correspondent(&mut conn, tenant_id, correspondent_id)?;
-    ok_json(build_summary(updated, usage))
+        let mut new_name: Option<String> = None;
+        if let Some(ref candidate) = payload.name {
+            let normalized = normalize_name(candidate, || {
+                AppError::bad_request("name must not be empty")
+            })?;
+            if normalized != existing.name {
+                ensure_name_available(
+                    || {
+                        correspondents::table
+                            .filter(correspondents::name.eq(&normalized))
+                            .filter(correspondents::id.ne(correspondent_id))
+                            .filter(correspondents::tenant_id.eq(tenant_id))
+                            .first::<Correspondent>(tx)
+                            .optional()
+                    },
+                    || AppError::bad_request("correspondent name already exists"),
+                )?;
+                new_name = Some(normalized);
+            }
+        }
+
+        let mut new_metadata: Option<Value> = None;
+        if let Some(metadata) = payload.metadata.clone() {
+            let candidate = normalize_metadata(Some(metadata));
+            if candidate != existing.metadata {
+                new_metadata = Some(candidate);
+            }
+        }
+
+        if new_name.is_none() && new_metadata.is_none() {
+            let usage = load_usage_for_correspondent(tx, tenant_id, correspondent_id)?;
+            return ok_json(build_summary(existing.clone(), usage));
+        }
+
+        let mut changeset = CorrespondentChangeset::default();
+        if let Some(ref name) = new_name {
+            changeset.name = Some(name.as_str());
+        }
+        if let Some(ref metadata) = new_metadata {
+            changeset.metadata = Some(metadata);
+        }
+
+        let now = Utc::now().naive_utc();
+        diesel::update(
+            correspondents::table
+                .find(correspondent_id)
+                .filter(correspondents::tenant_id.eq(tenant_id)),
+        )
+        .set((&changeset, correspondents::updated_at.eq(now)))
+        .execute(tx)
+        .into_app_result()?
+        .or_not_found()?;
+
+        let updated: Correspondent = correspondents::table
+            .find(correspondent_id)
+            .filter(correspondents::tenant_id.eq(tenant_id))
+            .first(tx)
+            .into_app_result()?;
+        let usage = load_usage_for_correspondent(tx, tenant_id, correspondent_id)?;
+        ok_json(build_summary(updated, usage))
+    })
 }
 
 #[utoipa::path(
@@ -240,27 +246,29 @@ pub async fn delete_correspondent(
         ..
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
-    let usage: i64 = document_correspondents::table
-        .filter(document_correspondents::tenant_id.eq(tenant_id))
-        .filter(document_correspondents::correspondent_id.eq(correspondent_id))
-        .select(count_star())
-        .first(&mut *conn)?;
+    conn.scoped(|tx| {
+        let usage: i64 = document_correspondents::table
+            .filter(document_correspondents::tenant_id.eq(tenant_id))
+            .filter(document_correspondents::correspondent_id.eq(correspondent_id))
+            .select(count_star())
+            .first(tx)?;
 
-    if usage > 0 {
-        return Err(AppError::bad_request(
-            "cannot delete correspondent that is still assigned to documents",
-        ));
-    }
+        if usage > 0 {
+            return Err(AppError::bad_request(
+                "cannot delete correspondent that is still assigned to documents",
+            ));
+        }
 
-    diesel::delete(
-        correspondents::table
-            .filter(correspondents::id.eq(correspondent_id))
-            .filter(correspondents::tenant_id.eq(tenant_id)),
-    )
-    .execute(&mut *conn)
-    .into_app_result()?
-    .or_not_found()?;
-    no_content()
+        diesel::delete(
+            correspondents::table
+                .filter(correspondents::id.eq(correspondent_id))
+                .filter(correspondents::tenant_id.eq(tenant_id)),
+        )
+        .execute(tx)
+        .into_app_result()?
+        .or_not_found()?;
+        no_content()
+    })
 }
 
 fn build_summary(correspondent: Correspondent, usage_count: i64) -> CorrespondentSummary {

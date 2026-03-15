@@ -18,6 +18,7 @@ use crate::auth::capability_sets::{
     ensure_capability_set, owner_capabilities, readonly_capabilities, user_capabilities,
     webdav_capabilities,
 };
+use crate::error::AppError;
 use crate::documents::search::{delete_quickwit_index, ensure_quickwit_index};
 use crate::jobs::{JOB_DELETE_TENANT, JOB_PROVISION_TENANT};
 use crate::models::{NewUserMembership, Tenant, TenantStatus};
@@ -145,7 +146,7 @@ impl Task<ProvisionContext> for ProvisionTask {
             .db_unscoped()
             .map_err(|err| TaskError::retry(Duration::from_secs(30), format!("{err:?}")))?;
 
-        let tenant = TenantRepository::get_by_id(&mut *conn, ctx.tenant_id).map_err(|err| {
+        let tenant = TenantRepository::get_by_id(&mut conn, ctx.tenant_id).map_err(|err| {
             TaskError::fail(format!("tenant not found for provisioning: {err:?}"))
         })?;
         drop(conn);
@@ -192,63 +193,58 @@ impl Task<ProvisionContext> for ProvisionTask {
             .await
             .map_err(|err| TaskError::retry(Duration::from_secs(30), err.to_string()))?;
 
-        let owner_capability_set_id =
-            ensure_capability_set(&mut *conn, tenant.id, owner_capabilities())
-                .map_err(|_| {
-                    TaskError::retry(Duration::from_secs(30), "owner capability set unavailable")
-                })?
-                .id;
+        let members = ctx.members.clone();
+        let job_id = ctx.job_id();
+        let tenant_id = tenant.id;
 
-        ensure_capability_set(&mut *conn, tenant.id, user_capabilities()).map_err(|_| {
-            TaskError::retry(Duration::from_secs(30), "user capability set unavailable")
-        })?;
-        ensure_capability_set(&mut *conn, tenant.id, readonly_capabilities()).map_err(|_| {
+        conn.scoped(|tx| -> Result<(), AppError> {
+            let owner_capability_set_id =
+                ensure_capability_set(tx, tenant_id, owner_capabilities())?.id;
+
+            ensure_capability_set(tx, tenant_id, user_capabilities())?;
+            ensure_capability_set(tx, tenant_id, readonly_capabilities())?;
+            ensure_capability_set(tx, tenant_id, webdav_capabilities())?;
+
+            for member in &members {
+                let new_membership = NewUserMembership {
+                    id: Uuid::new_v4(),
+                    user_id: *member,
+                    tenant_id,
+                    capability_set_id: Some(owner_capability_set_id),
+                };
+
+                if let Err(err) = diesel::insert_into(user_memberships::table)
+                    .values(&new_membership)
+                    .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
+                    .do_nothing()
+                    .execute(tx)
+                {
+                    warn!(
+                        job_id = %job_id,
+                        tenant_id = %tenant_id,
+                        user_id = %member,
+                        error = %err,
+                        "failed to assign initial membership"
+                    );
+                }
+            }
+
+            diesel::update(tenants::table.find(tenant_id))
+                .set((
+                    tenants::status.eq(TenantStatus::Active),
+                    tenants::quickwit_index.eq(Some(&index_id)),
+                    tenants::updated_at.eq(Utc::now().naive_utc()),
+                ))
+                .execute(tx)?;
+
+            Ok(())
+        })
+        .map_err(|err| {
             TaskError::retry(
                 Duration::from_secs(30),
-                "readonly capability set unavailable",
+                format!("provisioning failed: {err}"),
             )
         })?;
-        ensure_capability_set(&mut *conn, tenant.id, webdav_capabilities()).map_err(|_| {
-            TaskError::retry(Duration::from_secs(30), "webdav capability set unavailable")
-        })?;
-
-        for member in &ctx.members {
-            let new_membership = NewUserMembership {
-                id: Uuid::new_v4(),
-                user_id: *member,
-                tenant_id: tenant.id,
-                capability_set_id: Some(owner_capability_set_id),
-            };
-
-            if let Err(err) = diesel::insert_into(user_memberships::table)
-                .values(&new_membership)
-                .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
-                .do_nothing()
-                .execute(&mut *conn)
-            {
-                warn!(
-                    job_id = %ctx.job_id(),
-                    tenant_id = %tenant.id,
-                    user_id = %member,
-                    error = %err,
-                    "failed to assign initial membership"
-                );
-            }
-        }
-
-        diesel::update(tenants::table.find(tenant.id))
-            .set((
-                tenants::status.eq(TenantStatus::Active),
-                tenants::quickwit_index.eq(Some(index_id)),
-                tenants::updated_at.eq(Utc::now().naive_utc()),
-            ))
-            .execute(&mut *conn)
-            .map_err(|err| {
-                TaskError::retry(
-                    Duration::from_secs(30),
-                    format!("failed to update tenant status: {err}"),
-                )
-            })?;
 
         Ok(())
     }
@@ -321,7 +317,7 @@ async fn delete_tenant(
         let mut conn = state
             .db_for_tenant(tenant_id)
             .map_err(|err| format!("failed to scope tenant connection: {err:?}"))?;
-        collect_object_keys(&mut conn)
+        conn.scoped(|tx| collect_object_keys(tx))
             .map_err(|err| format!("failed to collect storage keys: {err}"))?
     };
 
@@ -337,7 +333,7 @@ async fn delete_tenant(
         let mut conn = state
             .db_for_tenant(tenant_id)
             .map_err(|err| format!("failed to scope tenant connection: {err:?}"))?;
-        delete_tenant_rows(&mut conn, tenant_id, remove_tenant)
+        conn.scoped(|tx| delete_tenant_rows(tx, tenant_id, remove_tenant))
             .map_err(|err| format!("tenant data cleanup failed: {err}"))?;
     }
 

@@ -25,7 +25,7 @@ pub async fn list_capability_sets(
         ..
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<CapabilitySetResponse>>> {
-    CapabilitySetService::new().list(&mut conn, tenant_id)
+    conn.scoped(|tx| CapabilitySetService::new().list(tx, tenant_id))
 }
 
 #[utoipa::path(
@@ -55,7 +55,7 @@ pub async fn get_capability_set(
     }: TenantScopedConn,
     Path(id): Path<Uuid>,
 ) -> AppResult<JsonResponse<CapabilitySetResponse>> {
-    CapabilitySetService::new().get(&mut conn, tenant_id, id)
+    conn.scoped(|tx| CapabilitySetService::new().get(tx, tenant_id, id))
 }
 
 #[utoipa::path(
@@ -73,7 +73,7 @@ pub async fn create_capability_set(
     }: TenantScopedConn,
     Json(payload): Json<CreateCapabilitySetRequest>,
 ) -> AppResult<JsonResponse<CapabilitySetResponse>> {
-    CapabilitySetService::new().create(&mut conn, tenant_id, payload)
+    conn.scoped(|tx| CapabilitySetService::new().create(tx, tenant_id, payload))
 }
 
 #[utoipa::path(
@@ -93,7 +93,7 @@ pub async fn update_capability_set(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCapabilitySetRequest>,
 ) -> AppResult<JsonResponse<CapabilitySetResponse>> {
-    CapabilitySetService::new().update(&mut conn, tenant_id, id, payload)
+    conn.scoped(|tx| CapabilitySetService::new().update(tx, tenant_id, id, payload))
 }
 
 #[utoipa::path(
@@ -111,7 +111,7 @@ pub async fn delete_capability_set(
     }: TenantScopedConn,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    CapabilitySetService::new().delete(&mut conn, tenant_id, id)
+    conn.scoped(|tx| CapabilitySetService::new().delete(tx, tenant_id, id))
 }
 
 #[derive(OpenApi)]

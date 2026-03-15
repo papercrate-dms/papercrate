@@ -13,10 +13,7 @@ use crate::{
     error::{AppError, AppResult},
     issued_at::IssuedAtSettings,
     storage::{ObjectStorage, TenantStorage},
-    tenants::{
-        clear_tenant_context, TenantScopedConnection,
-        TenantService,
-    },
+    tenants::{TenantScopedConnection, TenantService},
 };
 
 pub type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -77,19 +74,16 @@ impl AppState {
     pub fn db_for_tenant(&self, tenant_id: Uuid) -> AppResult<TenantScopedConnection> {
         debug_assert!(!tenant_id.is_nil(), "nil tenant_id passed to db_for_tenant");
         let conn = self.db_unscoped()?;
-        let conn_ptr = &*conn as *const _;
-        tracing::trace!(target = "db_pool", ?conn_ptr, tenant_id = %tenant_id, "apply tenant context");
-        TenantScopedConnection::new(conn, tenant_id)
+        Ok(TenantScopedConnection::new(conn, tenant_id))
     }
 
     pub(crate) fn db_unscoped(&self) -> AppResult<PgPooledConnection> {
-        let mut conn = self.pool.get().map_err(|err| {
+        let conn = self.pool.get().map_err(|err| {
             tracing::error!(error = ?err, "database pool error");
             AppError::internal("database pool error")
         })?;
         let conn_ptr = &*conn as *const _;
         tracing::trace!(target = "db_pool", ?conn_ptr, "acquired connection");
-        clear_tenant_context(&mut conn)?;
         Ok(conn)
     }
 

@@ -27,7 +27,7 @@ use crate::schema::{
     folders::dsl as folders_dsl, user_memberships::dsl as memberships_dsl, users::dsl as users_dsl,
 };
 use crate::state::AppState;
-use crate::tenants::{TenantScopedConnection, UserGucGuard};
+use crate::tenants::{ScopedTransaction, TenantScopedConnection, UserId};
 use crate::utils::{error::StorageResultExt, http::inline_content_disposition, time::to_http_date};
 
 const REALM: &str = "Papercrate WebDAV";
@@ -91,27 +91,34 @@ async fn handle_propfind(
 
     let tenant_id = context.tenant_id;
 
-    let resources = if segments.is_empty() {
-        let contents = fetch_folder_contents(&mut context.conn, tenant_id, None)?;
-        build_resources_for_folder(None, &[], &contents, depth)
-    } else {
-        let resolution = match resolve_path(&mut context.conn, tenant_id, &segments)? {
-            Some(resolved) => resolved,
-            None => return Ok(not_found_response()),
-        };
+    let resources: Option<Vec<DavResource>> = context.conn.scoped(|tx| -> AppResult<_> {
+        if segments.is_empty() {
+            let contents = fetch_folder_contents(tx, tenant_id, None)?;
+            Ok(Some(build_resources_for_folder(None, &[], &contents, depth)))
+        } else {
+            let resolution = match resolve_path(tx, tenant_id, &segments)? {
+                Some(resolved) => resolved,
+                None => return Ok(None),
+            };
 
-        match resolution {
-            ResolvedPath::Folder { folder, chain } => {
-                let contents =
-                    fetch_folder_contents(&mut context.conn, tenant_id, Some(folder.id))?;
-                build_resources_for_folder(Some(&folder), &chain, &contents, depth)
+            match resolution {
+                ResolvedPath::Folder { folder, chain } => {
+                    let contents =
+                        fetch_folder_contents(tx, tenant_id, Some(folder.id))?;
+                    Ok(Some(build_resources_for_folder(Some(&folder), &chain, &contents, depth)))
+                }
+                ResolvedPath::Document {
+                    document,
+                    version,
+                    chain,
+                } => Ok(Some(build_resources_for_document(&chain, &document, &version))),
             }
-            ResolvedPath::Document {
-                document,
-                version,
-                chain,
-            } => build_resources_for_document(&chain, &document, &version),
         }
+    })?;
+
+    let resources = match resources {
+        Some(r) => r,
+        None => return Ok(not_found_response()),
     };
 
     let body = render_multistatus(&resources).map_err(|err| {
@@ -145,7 +152,11 @@ async fn handle_get_or_head(
         return Ok(method_not_allowed());
     }
 
-    let resolution = match resolve_path(&mut context.conn, tenant_id, &segments)? {
+    let resolution = context.conn.scoped(|tx| {
+        resolve_path(tx, tenant_id, &segments)
+    })?;
+
+    let resolution = match resolution {
         Some(resolved) => resolved,
         None => return Ok(not_found_response()),
     };
@@ -482,14 +493,15 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
     };
 
     let tenant_id = {
-        let guard = UserGucGuard::new(&mut conn, user.id)?;
-
-        let membership_exists = memberships_dsl::user_memberships
-            .filter(memberships_dsl::user_id.eq(user.id))
-            .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
-            .select(memberships_dsl::tenant_id)
-            .first::<Uuid>(guard.conn)
-            .optional()?;
+        let membership_exists = conn.scoped(UserId(user.id), |tx| {
+            memberships_dsl::user_memberships
+                .filter(memberships_dsl::user_id.eq(user.id))
+                .filter(memberships_dsl::tenant_id.eq(token.tenant_id))
+                .select(memberships_dsl::tenant_id)
+                .first::<Uuid>(tx)
+                .optional()
+                .map_err(AppError::from)
+        })?;
 
         match membership_exists {
             Some(id) => id,
@@ -514,10 +526,12 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
         tenant_id,
         _user_id: user.id,
         _username: user.username.clone(),
-        conn: TenantScopedConnection::new(conn, tenant_id)?,
+        conn: TenantScopedConnection::new(conn, tenant_id),
     };
 
-    touch_api_token(&mut *context.conn, token.id)?;
+    context.conn.scoped(|tx| {
+        touch_api_token(tx, token.id)
+    })?;
 
     tracing::debug!(
         presented_username = %presented_username,

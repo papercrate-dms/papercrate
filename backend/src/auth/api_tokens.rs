@@ -3,7 +3,7 @@ use argon2::{
     Argon2,
 };
 use chrono::{NaiveDateTime, Utc};
-use diesel::prelude::*;
+use diesel::{pg::PgConnection, prelude::*};
 use rand::{rngs::OsRng, TryRngCore};
 use uuid::Uuid;
 
@@ -13,7 +13,7 @@ use crate::{
     models::{ApiCapability, ApiToken, CapabilitySet, NewApiToken},
     schema::api_tokens,
     state::PgPooledConnection,
-    tenants::{apply_api_token_prefix, clear_api_token_prefix},
+    tenants::{ApiTokenPrefix, ScopedTransaction},
 };
 
 use crate::schema::api_tokens::dsl as api_tokens_dsl;
@@ -240,17 +240,9 @@ fn with_api_token_prefix<T, F>(
     operation: F,
 ) -> Result<T, AppError>
 where
-    F: FnOnce(&mut PgPooledConnection) -> Result<T, AppError>,
+    F: FnOnce(&mut PgConnection) -> Result<T, AppError>,
 {
-    apply_api_token_prefix(conn, prefix)?;
-    let operation_result = operation(conn);
-    let clear_result = clear_api_token_prefix(conn);
-
-    if let Err(err) = clear_result {
-        return Err(err);
-    }
-
-    operation_result
+    conn.scoped(ApiTokenPrefix(prefix), operation)
 }
 
 fn generate_secret() -> Result<String, AppError> {

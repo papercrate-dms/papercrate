@@ -168,7 +168,7 @@ async fn remove_existing_ocr_asset(ctx: &DocumentVersionTaskContext, context: &O
         let state = ctx.state().clone();
         match task::spawn_blocking(move || -> AppResult<()> {
             let mut conn = state.db_for_tenant(tenant_id)?;
-            delete_asset(&mut *conn, tenant_id, asset_id)
+            conn.scoped(|tx| delete_asset(tx, tenant_id, asset_id))
         })
         .await
         {
@@ -208,48 +208,49 @@ fn persist_ocr_metadata(
     let document_version_id = context.version.id;
     let existing_asset = context.existing_asset.as_ref().map(|asset| asset.id);
 
-    if let Some(existing_asset) = existing_asset {
-        diesel::delete(
-            document_assets::table
-                .filter(document_assets::id.eq(existing_asset))
-                .filter(document_assets::tenant_id.eq(tenant_id)),
-        )
-        .execute(&mut *conn)
-        .map_err(|err| format!("{err:?}"))?;
-    }
+    conn.scoped(|tx| -> Result<(), diesel::result::Error> {
+        if let Some(existing_asset) = existing_asset {
+            diesel::delete(
+                document_assets::table
+                    .filter(document_assets::id.eq(existing_asset))
+                    .filter(document_assets::tenant_id.eq(tenant_id)),
+            )
+            .execute(tx)?;
+        }
 
-    let metadata = json!({
-        "source": source.to_string(),
-        "generated_at": Utc::now().to_rfc3339(),
-    });
+        let metadata = json!({
+            "source": source.to_string(),
+            "generated_at": Utc::now().to_rfc3339(),
+        });
 
-    let new_asset = NewDocumentAsset {
-        id: asset_id,
-        document_version_id,
-        asset_type: TEXT_CONTENT_ASSET_TYPE.to_string(),
-        mime_type: "text/plain".to_string(),
-        metadata,
-        s3_key: s3_key.to_string(),
-        tenant_id,
-    };
+        let new_asset = NewDocumentAsset {
+            id: asset_id,
+            document_version_id,
+            asset_type: TEXT_CONTENT_ASSET_TYPE.to_string(),
+            mime_type: "text/plain".to_string(),
+            metadata,
+            s3_key: s3_key.to_string(),
+            tenant_id,
+        };
 
-    diesel::insert_into(document_assets::table)
-        .values(&new_asset)
-        .on_conflict((
-            document_assets::document_version_id,
-            document_assets::asset_type,
-        ))
-        .do_update()
-        .set((
-            document_assets::mime_type.eq(excluded(document_assets::mime_type)),
-            document_assets::metadata.eq(excluded(document_assets::metadata)),
-            document_assets::s3_key.eq(excluded(document_assets::s3_key)),
-            document_assets::id.eq(excluded(document_assets::id)),
-        ))
-        .execute(&mut *conn)
-        .map_err(|err| format!("{err:?}"))?;
+        diesel::insert_into(document_assets::table)
+            .values(&new_asset)
+            .on_conflict((
+                document_assets::document_version_id,
+                document_assets::asset_type,
+            ))
+            .do_update()
+            .set((
+                document_assets::mime_type.eq(excluded(document_assets::mime_type)),
+                document_assets::metadata.eq(excluded(document_assets::metadata)),
+                document_assets::s3_key.eq(excluded(document_assets::s3_key)),
+                document_assets::id.eq(excluded(document_assets::id)),
+            ))
+            .execute(tx)?;
 
-    Ok(())
+        Ok(())
+    })
+    .map_err(|err| format!("{err:?}"))
 }
 
 fn generate_ocr_text(meta: &PdfDocumentMeta, bytes: &[u8]) -> Option<OcrGeneration> {

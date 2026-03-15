@@ -329,17 +329,19 @@ async fn asset_detail_uses_proxy_urls_when_configured() -> Result<()> {
     let asset_id = Uuid::new_v4();
     let s3_key = "objects/preview.png".to_string();
 
-    diesel::insert_into(document_assets::table)
-        .values(&NewDocumentAsset {
-            id: asset_id,
-            document_version_id: version.id,
-            asset_type: "preview".to_string(),
-            mime_type: "image/png".to_string(),
-            metadata: json!({}),
-            s3_key: s3_key.clone(),
-            tenant_id,
-        })
-        .execute(&mut *conn)?;
+    conn.scoped(|tx| {
+        diesel::insert_into(document_assets::table)
+            .values(&NewDocumentAsset {
+                id: asset_id,
+                document_version_id: version.id,
+                asset_type: "preview".to_string(),
+                mime_type: "image/png".to_string(),
+                metadata: json!({}),
+                s3_key: s3_key.clone(),
+                tenant_id,
+            })
+            .execute(tx)
+    })?;
 
     drop(conn);
 

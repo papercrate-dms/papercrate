@@ -33,7 +33,7 @@ use crate::documents::{
     tags::assign_tags as assign_tags_to_document,
 };
 use crate::error::{AppError, AppResult};
-use crate::jobs::{enqueue_job, JobQueueError, JOB_ANALYZE_DOCUMENT, JOB_PURGE_DOCUMENT};
+use crate::jobs::{enqueue_job, enqueue_job_if_not_exists, JOB_ANALYZE_DOCUMENT, JOB_PURGE_DOCUMENT};
 use crate::models::{
     Document, DocumentAsset, DocumentVersion, NewDocument, NewDocumentVersion, Tag,
 };
@@ -1150,14 +1150,11 @@ impl<'a> DocumentsService<'a> {
             }
 
             let payload = json!({ "document_id": document_id });
-            match enqueue_job(conn, tenant_id, JOB_PURGE_DOCUMENT, payload, None) {
-                Ok(_) => Ok(()),
-                Err(JobQueueError::Database(diesel::result::Error::DatabaseError(
-                    DatabaseErrorKind::UniqueViolation,
-                    _,
-                ))) => Ok(()),
-                Err(JobQueueError::Database(err)) => Err(AppError::from(err)),
-            }
+            enqueue_job_if_not_exists(conn, tenant_id, JOB_PURGE_DOCUMENT, payload, None)
+                .map_err(|e| match e {
+                    crate::jobs::JobQueueError::Database(db_err) => AppError::from(db_err),
+                })?;
+            Ok(())
         })
     }
 

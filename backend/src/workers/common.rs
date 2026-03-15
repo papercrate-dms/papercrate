@@ -22,19 +22,19 @@ pub(crate) fn load_document_version(
         .db_for_tenant(tenant_id)
         .map_err(|err| format!("{err:?}"))?;
 
-    let version: DocumentVersion = document_versions::table
-        .find(version_id)
-        .first(&mut *conn)
+    let (version, document) = conn
+        .scoped(|tx| -> Result<_, diesel::result::Error> {
+            let version: DocumentVersion = document_versions::table.find(version_id).first(tx)?;
+
+            let document: Document = documents::table.find(document_id).first(tx)?;
+
+            Ok((version, document))
+        })
         .map_err(|err| format!("{err:?}"))?;
 
     if version.document_id != document_id {
         return Err("document/version mismatch".into());
     }
-
-    let document: Document = documents::table
-        .find(document_id)
-        .first(&mut *conn)
-        .map_err(|err| format!("{err:?}"))?;
 
     Ok(LoadedDocumentVersion { document, version })
 }

@@ -1,4 +1,3 @@
-use diesel::pg::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -9,10 +8,10 @@ use crate::{
 impl AppState {
     pub fn with_tenant_conn<F, T>(&self, tenant_id: Uuid, f: F) -> AppResult<T>
     where
-        F: FnOnce(&mut PgConnection) -> AppResult<T>,
+        F: FnOnce(&mut diesel::pg::PgConnection) -> AppResult<T>,
     {
         let mut conn = self.db_for_tenant(tenant_id)?;
-        f(&mut conn)
+        conn.scoped(f)
     }
 }
 

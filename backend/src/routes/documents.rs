@@ -109,7 +109,7 @@ pub async fn list_documents(
 ) -> AppResult<JsonResponse<Vec<DocumentResponse>>> {
     let service = DocumentsService::new(&state);
     let documents = service
-        .list_documents(&mut *conn, tenant_id, user_id, params)
+        .list_documents(conn.unscoped(), tenant_id, user_id, params)
         .await?;
     ok_json(documents)
 }
@@ -143,7 +143,7 @@ pub async fn check_document(
     }
 
     let service = DocumentsService::new(&state);
-    let response = service.check_document(&mut *conn, tenant_id, &checksum)?;
+    let response = conn.scoped(|tx| service.check_document(tx, tenant_id, &checksum))?;
     ok_json(response)
 }
 
@@ -166,7 +166,7 @@ pub async fn get_document(
 ) -> AppResult<JsonResponse<DocumentDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .get_document_detail(&mut *conn, tenant_id, user_id, document_id)
+        .get_document_detail(conn.unscoped(), tenant_id, user_id, document_id)
         .await?;
     ok_json(detail)
 }
@@ -360,7 +360,7 @@ pub async fn upload_document(
 
     let service = DocumentsService::new(&state);
     let outcome = match service
-        .upload_document(&mut *conn, tenant_id, user_id, request)
+        .upload_document(conn.unscoped(), tenant_id, user_id, request)
         .await
     {
         Ok(outcome) => outcome,
@@ -414,7 +414,7 @@ pub async fn request_document_assets(
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
     let service = DocumentsService::new(&state);
-    service.request_document_assets(&mut *conn, tenant_id, document_id, query.force)?;
+    conn.scoped(|tx| service.request_document_assets(tx, tenant_id, document_id, query.force))?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -440,7 +440,8 @@ pub async fn reanalyze_selected_documents(
     } = payload;
 
     let service = DocumentsService::new(&state);
-    let queued = service.reanalyze_documents(&mut *conn, tenant_id, &mut document_ids, force)?;
+    let queued =
+        conn.scoped(|tx| service.reanalyze_documents(tx, tenant_id, &mut document_ids, force))?;
     accepted_json(BulkReanalyzeResponse { queued })
 }
 
@@ -463,7 +464,7 @@ pub async fn list_document_assets(
 ) -> AppResult<JsonResponse<Vec<DocumentAssetResponse>>> {
     let service = DocumentsService::new(&state);
     let assets = service
-        .list_document_assets(&mut *conn, tenant_id, user_id, document_id)
+        .list_document_assets(conn.unscoped(), tenant_id, user_id, document_id)
         .await?;
     ok_json(assets)
 }
@@ -487,7 +488,7 @@ pub async fn get_document_asset(
 ) -> AppResult<JsonResponse<DocumentAssetDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .get_document_asset(&mut *conn, tenant_id, user_id, asset_id)
+        .get_document_asset(conn.unscoped(), tenant_id, user_id, asset_id)
         .await?;
     ok_json(detail)
 }
@@ -511,7 +512,7 @@ pub async fn refresh_document_download(
 ) -> AppResult<JsonResponse<DownloadLink>> {
     let service = DocumentsService::new(&state);
     let link = service
-        .get_document_download_link(&mut conn, tenant_id, user_id, document_id)
+        .get_document_download_link(conn.unscoped(), tenant_id, user_id, document_id)
         .await?;
     ok_json(link)
 }
@@ -538,7 +539,7 @@ pub async fn refresh_document_version_download(
 ) -> AppResult<JsonResponse<DownloadLink>> {
     let service = DocumentsService::new(&state);
     let link = service
-        .get_document_version_download_link(&mut *conn, tenant_id, user_id, document_id, version_id)
+        .get_document_version_download_link(conn.unscoped(), tenant_id, user_id, document_id, version_id)
         .await?;
     ok_json(link)
 }
@@ -562,7 +563,7 @@ pub async fn refresh_asset_download(
 ) -> AppResult<JsonResponse<DownloadLink>> {
     let service = DocumentsService::new(&state);
     let link = service
-        .get_asset_download_link(&mut *conn, tenant_id, user_id, asset_id)
+        .get_asset_download_link(conn.unscoped(), tenant_id, user_id, asset_id)
         .await?;
     ok_json(link)
 }
@@ -584,7 +585,7 @@ pub async fn list_document_versions(
     }: TenantScopedConn,
 ) -> AppResult<JsonResponse<Vec<DocumentVersionResponse>>> {
     let service = DocumentsService::new(&state);
-    let versions = service.list_document_versions(&mut *conn, tenant_id, document_id)?;
+    let versions = conn.scoped(|tx| service.list_document_versions(tx, tenant_id, document_id))?;
     ok_json(versions)
 }
 
@@ -610,7 +611,7 @@ pub async fn get_document_version(
 ) -> AppResult<JsonResponse<DocumentVersionDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .get_document_version(&mut *conn, tenant_id, user_id, document_id, version_id)
+        .get_document_version(conn.unscoped(), tenant_id, user_id, document_id, version_id)
         .await?;
     ok_json(detail)
 }
@@ -633,17 +634,20 @@ pub async fn download_with_token(
         .map_err(|_| AppError::unauthorized())?;
 
     let mut conn = state.db_for_tenant(claims.tenant_id)?;
-    ensure_active_tenant_with_conn(&mut conn, claims.tenant_id)?;
+    ensure_active_tenant_with_conn(conn.unscoped(), claims.tenant_id)?;
 
     let now = Utc::now().naive_utc();
-    let has_active_refresh: bool = select(exists(
-        session_dsl::user_sessions
-            .filter(session_dsl::user_id.eq(claims.user_id))
-            .filter(session_dsl::tenant_id.eq(claims.tenant_id))
-            .filter(session_dsl::revoked_at.is_null())
-            .filter(session_dsl::expires_at.gt(now)),
-    ))
-    .get_result(&mut *conn)?;
+    let has_active_refresh: bool = conn.scoped(|tx| {
+        select(exists(
+            session_dsl::user_sessions
+                .filter(session_dsl::user_id.eq(claims.user_id))
+                .filter(session_dsl::tenant_id.eq(claims.tenant_id))
+                .filter(session_dsl::revoked_at.is_null())
+                .filter(session_dsl::expires_at.gt(now)),
+        ))
+        .get_result(tx)
+        .map_err(AppError::from)
+    })?;
 
     if !has_active_refresh {
         return Err(AppError::unauthorized());
@@ -653,18 +657,22 @@ pub async fn download_with_token(
         DownloadSubject::Document { doc_id, version_id } => {
             let doc_id = *doc_id;
             let version_id = *version_id;
-            let doc: Document = documents::table
-                .find(doc_id)
-                .filter(documents::tenant_id.eq(claims.tenant_id))
-                .first(&mut *conn)?;
-            if doc.deleted_at.is_some() {
-                return Err(AppError::not_found());
-            }
+            let (doc, version) = conn.scoped(|tx| {
+                let doc: Document = documents::table
+                    .find(doc_id)
+                    .filter(documents::tenant_id.eq(claims.tenant_id))
+                    .first(tx)?;
+                if doc.deleted_at.is_some() {
+                    return Err(AppError::not_found());
+                }
 
-            let version: DocumentVersion = document_versions::table
-                .find(version_id)
-                .filter(document_versions::document_id.eq(doc_id))
-                .first(&mut *conn)?;
+                let version: DocumentVersion = document_versions::table
+                    .find(version_id)
+                    .filter(document_versions::document_id.eq(doc_id))
+                    .first(tx)?;
+
+                Ok((doc, version))
+            })?;
 
             drop(conn);
 
@@ -695,10 +703,13 @@ pub async fn download_with_token(
             .await
         }
         DownloadSubject::Asset { asset_id } => {
-            let asset: DocumentAsset = document_assets::table
-                .find(*asset_id)
-                .filter(document_assets::tenant_id.eq(claims.tenant_id))
-                .first(&mut *conn)?;
+            let asset: DocumentAsset = conn.scoped(|tx| {
+                document_assets::table
+                    .find(*asset_id)
+                    .filter(document_assets::tenant_id.eq(claims.tenant_id))
+                    .first(tx)
+                    .map_err(AppError::from)
+            })?;
 
             drop(conn);
 
@@ -748,7 +759,7 @@ pub async fn trash_document(
     }: TenantScopedConn,
 ) -> AppResult<impl IntoResponse> {
     let service = DocumentsService::new(&state);
-    service.trash_document(&mut *conn, tenant_id, document_id)?;
+    conn.scoped(|tx| service.trash_document(tx, tenant_id, document_id))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -841,7 +852,7 @@ pub async fn delete_document(
     }: TenantScopedConn,
 ) -> AppResult<impl IntoResponse> {
     let service = DocumentsService::new(&state);
-    service.delete_document(&mut *conn, tenant_id, document_id)?;
+    conn.scoped(|tx| service.delete_document(tx, tenant_id, document_id))?;
 
     Ok(StatusCode::ACCEPTED)
 }
@@ -867,7 +878,7 @@ pub async fn update_document(
 ) -> AppResult<JsonResponse<DocumentDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .update_document(&mut conn, tenant_id, user_id, document_id, payload)
+        .update_document(conn.unscoped(), tenant_id, user_id, document_id, payload)
         .await?;
     ok_json(detail)
 }
@@ -891,7 +902,7 @@ pub async fn restore_document(
     Json(payload): Json<RestoreDocumentRequest>,
 ) -> AppResult<StatusCode> {
     let service = DocumentsService::new(&state);
-    service.restore_document(&mut *conn, tenant_id, document_id, payload.folder_id)?;
+    conn.scoped(|tx| service.restore_document(tx, tenant_id, document_id, payload.folder_id))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -914,7 +925,7 @@ pub async fn move_document(
     Json(payload): Json<MoveDocumentRequest>,
 ) -> AppResult<impl IntoResponse> {
     let service = DocumentsService::new(&state);
-    service.move_document(&mut *conn, tenant_id, document_id, payload.folder_id)?;
+    conn.scoped(|tx| service.move_document(tx, tenant_id, document_id, payload.folder_id))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -941,7 +952,8 @@ pub async fn bulk_move_documents(
     } = payload;
 
     let service = DocumentsService::new(&state);
-    let updated = service.bulk_move_documents(&mut *conn, tenant_id, document_ids, folder_id)?;
+    let updated =
+        conn.scoped(|tx| service.bulk_move_documents(tx, tenant_id, document_ids, folder_id))?;
     ok_json(BulkMoveResponse { updated })
 }
 
@@ -965,7 +977,7 @@ pub async fn assign_correspondents(
     Json(payload): Json<AssignCorrespondentsRequest>,
 ) -> AppResult<StatusCode> {
     let service = CorrespondentsService::new(&state);
-    service.assign_to_document(&mut *conn, tenant_id, user_id, document_id, &payload)?;
+    conn.scoped(|tx| service.assign_to_document(tx, tenant_id, user_id, document_id, &payload))?;
     no_content()
 }
 
@@ -987,7 +999,7 @@ pub async fn bulk_assign_correspondents(
     Json(payload): Json<BulkCorrespondentsRequest>,
 ) -> AppResult<JsonResponse<BulkCorrespondentResponse>> {
     let service = CorrespondentsService::new(&state);
-    let response = service.bulk_update(&mut *conn, tenant_id, user_id, payload)?;
+    let response = conn.scoped(|tx| service.bulk_update(tx, tenant_id, user_id, payload))?;
     ok_json(response)
 }
 
@@ -1011,7 +1023,7 @@ pub async fn remove_correspondent(
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
     let service = CorrespondentsService::new(&state);
-    service.remove_from_document(&mut *conn, tenant_id, document_id, correspondent_id)?;
+    conn.scoped(|tx| service.remove_from_document(tx, tenant_id, document_id, correspondent_id))?;
     no_content()
 }
 
@@ -1035,7 +1047,7 @@ pub async fn assign_tags(
     Json(payload): Json<AssignTagsRequest>,
 ) -> AppResult<impl IntoResponse> {
     let service = TagsService::new(&state);
-    service.assign_to_document(&mut *conn, tenant_id, user_id, document_id, &payload.tag_ids)?;
+    conn.scoped(|tx| service.assign_to_document(tx, tenant_id, user_id, document_id, &payload.tag_ids))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -1057,7 +1069,7 @@ pub async fn bulk_update_tags(
     Json(payload): Json<BulkTagRequest>,
 ) -> AppResult<JsonResponse<BulkTagResponse>> {
     let service = TagsService::new(&state);
-    let response = service.bulk_update(&mut *conn, tenant_id, user_id, payload)?;
+    let response = conn.scoped(|tx| service.bulk_update(tx, tenant_id, user_id, payload))?;
     ok_json(response)
 }
 
@@ -1081,7 +1093,7 @@ pub async fn remove_tag(
     }: TenantScopedConn,
 ) -> AppResult<StatusCode> {
     let service = TagsService::new(&state);
-    service.remove_from_document(&mut *conn, tenant_id, document_id, tag_id)?;
+    conn.scoped(|tx| service.remove_from_document(tx, tenant_id, document_id, tag_id))?;
     no_content()
 }
 

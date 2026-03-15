@@ -91,35 +91,39 @@ impl<'a> TenantApiService<'a> {
     ) -> AppResult<JsonResponse<TenantUserListResponse>> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
-        let rows: Vec<(Uuid, String, Option<Uuid>, Option<String>)> =
-            memberships_dsl::user_memberships
-                .inner_join(users_dsl::users.on(users_dsl::id.eq(memberships_dsl::user_id)))
-                .left_join(
-                    cs_dsl::capability_sets
-                        .on(cs_dsl::id.nullable().eq(memberships_dsl::capability_set_id)),
+        conn.scoped(|tx| {
+            let rows: Vec<(Uuid, String, Option<Uuid>, Option<String>)> =
+                memberships_dsl::user_memberships
+                    .inner_join(users_dsl::users.on(users_dsl::id.eq(memberships_dsl::user_id)))
+                    .left_join(
+                        cs_dsl::capability_sets
+                            .on(cs_dsl::id.nullable().eq(memberships_dsl::capability_set_id)),
+                    )
+                    .select((
+                        users_dsl::id,
+                        users_dsl::username,
+                        memberships_dsl::capability_set_id,
+                        cs_dsl::slug.nullable(),
+                    ))
+                    .order(users_dsl::username.asc())
+                    .load(tx)?;
+
+            let users = rows
+                .into_iter()
+                .map(
+                    |(user_id, username, capability_set_id, capability_set_slug)| {
+                        TenantUserSummary {
+                            user_id,
+                            username,
+                            capability_set_id,
+                            capability_set_slug,
+                        }
+                    },
                 )
-                .select((
-                    users_dsl::id,
-                    users_dsl::username,
-                    memberships_dsl::capability_set_id,
-                    cs_dsl::slug.nullable(),
-                ))
-                .order(users_dsl::username.asc())
-                .load(&mut *conn)?;
+                .collect();
 
-        let users = rows
-            .into_iter()
-            .map(
-                |(user_id, username, capability_set_id, capability_set_slug)| TenantUserSummary {
-                    user_id,
-                    username,
-                    capability_set_id,
-                    capability_set_slug,
-                },
-            )
-            .collect();
-
-        ok_json(TenantUserListResponse { users })
+            ok_json(TenantUserListResponse { users })
+        })
     }
 
     pub fn get_user(
@@ -130,8 +134,10 @@ impl<'a> TenantApiService<'a> {
     ) -> AppResult<JsonResponse<TenantUserSummary>> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
-        let summary = self.load_membership_summary(&mut *conn, tenant_id, target_user_id)?;
-        ok_json(summary)
+        conn.scoped(|tx| {
+            let summary = self.load_membership_summary(tx, tenant_id, target_user_id)?;
+            ok_json(summary)
+        })
     }
 
     pub fn update_user(
@@ -143,26 +149,27 @@ impl<'a> TenantApiService<'a> {
     ) -> AppResult<JsonResponse<TenantUserSummary>> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
+        conn.scoped(|tx| {
+            let capability_set_id = self.resolve_capability_set_id(tx, tenant_id, &payload)?;
 
-        let capability_set_id = self.resolve_capability_set_id(&mut *conn, tenant_id, &payload)?;
+            let updated = diesel::update(
+                memberships_dsl::user_memberships
+                    .filter(memberships_dsl::tenant_id.eq(tenant_id))
+                    .filter(memberships_dsl::user_id.eq(target_user_id)),
+            )
+            .set((
+                memberships_dsl::capability_set_id.eq(Some(capability_set_id)),
+                memberships_dsl::updated_at.eq(Utc::now().naive_utc()),
+            ))
+            .execute(tx)?;
 
-        let updated = diesel::update(
-            memberships_dsl::user_memberships
-                .filter(memberships_dsl::tenant_id.eq(tenant_id))
-                .filter(memberships_dsl::user_id.eq(target_user_id)),
-        )
-        .set((
-            memberships_dsl::capability_set_id.eq(Some(capability_set_id)),
-            memberships_dsl::updated_at.eq(Utc::now().naive_utc()),
-        ))
-        .execute(&mut *conn)?;
+            if updated == 0 {
+                return Err(AppError::not_found());
+            }
 
-        if updated == 0 {
-            return Err(AppError::not_found());
-        }
-
-        let summary = self.load_membership_summary(&mut *conn, tenant_id, target_user_id)?;
-        ok_json(summary)
+            let summary = self.load_membership_summary(tx, tenant_id, target_user_id)?;
+            ok_json(summary)
+        })
     }
 
     pub fn remove_user(
@@ -173,26 +180,27 @@ impl<'a> TenantApiService<'a> {
     ) -> AppResult<()> {
         self.ensure_can_manage(user, tenant_id)?;
         let mut conn = self.state.db_for_tenant(tenant_id)?;
+        conn.scoped(|tx| {
+            let removed = diesel::delete(
+                memberships_dsl::user_memberships
+                    .filter(memberships_dsl::tenant_id.eq(tenant_id))
+                    .filter(memberships_dsl::user_id.eq(target_user_id)),
+            )
+            .execute(tx)?;
 
-        let removed = diesel::delete(
-            memberships_dsl::user_memberships
-                .filter(memberships_dsl::tenant_id.eq(tenant_id))
-                .filter(memberships_dsl::user_id.eq(target_user_id)),
-        )
-        .execute(&mut *conn)?;
+            if removed == 0 {
+                return Err(AppError::not_found());
+            }
 
-        if removed == 0 {
-            return Err(AppError::not_found());
-        }
+            diesel::delete(
+                session_dsl::user_sessions
+                    .filter(session_dsl::tenant_id.eq(tenant_id))
+                    .filter(session_dsl::user_id.eq(target_user_id)),
+            )
+            .execute(tx)?;
 
-        diesel::delete(
-            session_dsl::user_sessions
-                .filter(session_dsl::tenant_id.eq(tenant_id))
-                .filter(session_dsl::user_id.eq(target_user_id)),
-        )
-        .execute(&mut *conn)?;
-
-        Ok(())
+            Ok(())
+        })
     }
 
     fn ensure_can_manage(&self, user: &AuthenticatedUser, tenant_id: Uuid) -> AppResult<()> {

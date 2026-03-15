@@ -207,13 +207,16 @@ async fn update_document_mime(
             .db_for_tenant(tenant_id)
             .map_err(|err| format!("{err:?}"))?;
 
-        diesel::update(
-            crate::schema::documents::table.filter(crate::schema::documents::id.eq(document_id)),
-        )
-        .set(crate::schema::documents::mime_type.eq(Some(mime_type_clone)))
-        .execute(&mut *conn)
+        conn.scoped(|tx| -> Result<(), diesel::result::Error> {
+            diesel::update(
+                crate::schema::documents::table
+                    .filter(crate::schema::documents::id.eq(document_id)),
+            )
+            .set(crate::schema::documents::mime_type.eq(Some(mime_type_clone)))
+            .execute(tx)
+            .map(|_| ())
+        })
         .map_err(|err| format!("{err:?}"))
-        .map(|_| ())
     })
     .await
     .map_err(|err| {

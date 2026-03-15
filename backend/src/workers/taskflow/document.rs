@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use diesel;
 use tokio::task;
 use uuid::Uuid;
 
@@ -119,7 +120,12 @@ impl DocumentVersionTaskContext {
                 let mut conn = state
                     .db_for_tenant(tenant_id)
                     .map_err(|err| format!("failed to scope tenant connection: {err:?}"))?;
-                load_version_assets(&mut conn, tenant_id, version_id, &[])
+                conn.scoped(|tx| -> Result<_, diesel::result::Error> {
+                    load_version_assets(tx, tenant_id, version_id, &[]).map_err(|err| {
+                        diesel::result::Error::QueryBuilderError(err.into())
+                    })
+                })
+                .map_err(|err| format!("{err:?}"))
             })
             .await
             .map_err(|err| {

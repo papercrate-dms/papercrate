@@ -177,7 +177,7 @@ async fn delete_asset_object(ctx: &DocumentVersionTaskContext, asset: &DocumentA
     let state = ctx.state().clone();
     match task::spawn_blocking(move || -> AppResult<()> {
         let mut conn = state.db_for_tenant(tenant_id)?;
-        delete_asset(&mut *conn, tenant_id, asset_id)
+        conn.scoped(|tx| delete_asset(tx, tenant_id, asset_id))
     })
     .await
     {
@@ -524,46 +524,48 @@ fn persist_assets_metadata(
         .db_for_tenant(tenant_id)
         .map_err(|err| format!("{err:?}"))?;
 
-    for asset in assets {
-        let mut metadata_map = Map::new();
-        if let Some(width) = asset.width {
-            metadata_map.insert("width".to_string(), Value::from(width));
+    conn.scoped(|tx| -> Result<(), diesel::result::Error> {
+        for asset in assets {
+            let mut metadata_map = Map::new();
+            if let Some(width) = asset.width {
+                metadata_map.insert("width".to_string(), Value::from(width));
+            }
+            if let Some(height) = asset.height {
+                metadata_map.insert("height".to_string(), Value::from(height));
+            }
+            metadata_map.insert(
+                "generated_at".to_string(),
+                Value::from(Utc::now().to_rfc3339()),
+            );
+
+            let new_asset = NewDocumentAsset {
+                id: asset.asset_id,
+                document_version_id: version_id,
+                asset_type: asset.asset_type.clone(),
+                mime_type: "image/webp".to_string(),
+                metadata: Value::Object(metadata_map),
+                s3_key: asset.s3_key.clone(),
+                tenant_id,
+            };
+
+            diesel::insert_into(document_assets::table)
+                .values(&new_asset)
+                .on_conflict((
+                    document_assets::document_version_id,
+                    document_assets::asset_type,
+                ))
+                .do_update()
+                .set((
+                    document_assets::mime_type.eq(excluded(document_assets::mime_type)),
+                    document_assets::metadata.eq(excluded(document_assets::metadata)),
+                    document_assets::s3_key.eq(excluded(document_assets::s3_key)),
+                ))
+                .execute(tx)?;
         }
-        if let Some(height) = asset.height {
-            metadata_map.insert("height".to_string(), Value::from(height));
-        }
-        metadata_map.insert(
-            "generated_at".to_string(),
-            Value::from(Utc::now().to_rfc3339()),
-        );
 
-        let new_asset = NewDocumentAsset {
-            id: asset.asset_id,
-            document_version_id: version_id,
-            asset_type: asset.asset_type.clone(),
-            mime_type: "image/webp".to_string(),
-            metadata: Value::Object(metadata_map),
-            s3_key: asset.s3_key.clone(),
-            tenant_id,
-        };
-
-        diesel::insert_into(document_assets::table)
-            .values(&new_asset)
-            .on_conflict((
-                document_assets::document_version_id,
-                document_assets::asset_type,
-            ))
-            .do_update()
-            .set((
-                document_assets::mime_type.eq(excluded(document_assets::mime_type)),
-                document_assets::metadata.eq(excluded(document_assets::metadata)),
-                document_assets::s3_key.eq(excluded(document_assets::s3_key)),
-            ))
-            .execute(&mut *conn)
-            .map_err(|err| format!("{err:?}"))?;
-    }
-
-    Ok(())
+        Ok(())
+    })
+    .map_err(|err| format!("{err:?}"))
 }
 
 fn persist_document_page_count(
@@ -577,37 +579,38 @@ fn persist_document_page_count(
         .db_for_tenant(tenant_id)
         .map_err(|err| format!("{err:?}"))?;
 
-    let existing_metadata: Value = document_versions::table
-        .filter(document_versions::id.eq(document_version_id))
-        .filter(document_versions::document_id.eq(document_id))
-        .filter(document_versions::tenant_id.eq(tenant_id))
-        .select(document_versions::metadata)
-        .first(&mut *conn)
-        .map_err(|err| format!("{err:?}"))?;
-
-    let updated = match existing_metadata {
-        Value::Object(mut map) => {
-            map.insert("page_count".to_string(), Value::from(page_count));
-            Value::Object(map)
-        }
-        _ => {
-            let mut map = Map::new();
-            map.insert("page_count".to_string(), Value::from(page_count));
-            Value::Object(map)
-        }
-    };
-
-    diesel::update(
-        document_versions::table
+    conn.scoped(|tx| -> Result<(), diesel::result::Error> {
+        let existing_metadata: Value = document_versions::table
             .filter(document_versions::id.eq(document_version_id))
             .filter(document_versions::document_id.eq(document_id))
-            .filter(document_versions::tenant_id.eq(tenant_id)),
-    )
-    .set(document_versions::metadata.eq(updated))
-    .execute(&mut *conn)
-    .map_err(|err| format!("{err:?}"))?;
+            .filter(document_versions::tenant_id.eq(tenant_id))
+            .select(document_versions::metadata)
+            .first(tx)?;
 
-    Ok(())
+        let updated = match existing_metadata {
+            Value::Object(mut map) => {
+                map.insert("page_count".to_string(), Value::from(page_count));
+                Value::Object(map)
+            }
+            _ => {
+                let mut map = Map::new();
+                map.insert("page_count".to_string(), Value::from(page_count));
+                Value::Object(map)
+            }
+        };
+
+        diesel::update(
+            document_versions::table
+                .filter(document_versions::id.eq(document_version_id))
+                .filter(document_versions::document_id.eq(document_id))
+                .filter(document_versions::tenant_id.eq(tenant_id)),
+        )
+        .set(document_versions::metadata.eq(updated))
+        .execute(tx)?;
+
+        Ok(())
+    })
+    .map_err(|err| format!("{err:?}"))
 }
 
 fn document_is_video(document: &Document) -> bool {

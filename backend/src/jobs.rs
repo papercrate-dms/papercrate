@@ -54,6 +54,34 @@ pub fn enqueue_job(
     Ok(job)
 }
 
+/// Enqueue a job, silently ignoring duplicates that violate a unique
+/// constraint. Unlike catching `UniqueViolation` after the fact, this
+/// uses `ON CONFLICT DO NOTHING` so Postgres never aborts the
+/// transaction / savepoint.
+pub fn enqueue_job_if_not_exists(
+    conn: &mut PgConnection,
+    tenant_id: Uuid,
+    job_type: &str,
+    payload: Value,
+    run_after: Option<NaiveDateTime>,
+) -> JobQueueResult<()> {
+    let new_job = NewJob {
+        id: Uuid::new_v4(),
+        job_type: job_type.to_string(),
+        payload,
+        status: STATUS_QUEUED.to_string(),
+        run_after: run_after.unwrap_or_else(|| Utc::now().naive_utc()),
+        tenant_id,
+    };
+
+    diesel::insert_into(jobs::table)
+        .values(&new_job)
+        .on_conflict_do_nothing()
+        .execute(conn)?;
+
+    Ok(())
+}
+
 pub fn reserve_job(conn: &mut PgConnection, job_types: &[&str]) -> JobQueueResult<Option<Job>> {
     let now = Utc::now().naive_utc();
 

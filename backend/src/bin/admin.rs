@@ -24,7 +24,7 @@ use papercrate::{
     },
     schema::{document_assets, documents, magic_tokens, tenants, user_memberships, users},
     storage::TenantStorage,
-    tenants::{TenantGucGuard, TenantService},
+    tenants::{ScopedTransaction, TenantId, TenantService},
     utils::{text::normalize_identifier, tracing::init_tracing},
     workers::tenants::{build_delete_proof_message, sign_delete_proof, DeleteAction},
 };
@@ -581,21 +581,18 @@ fn enqueue_delete_tenant_job_internal(
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    {
-        let guard = TenantGucGuard::new(&mut conn, tenant.id)
-            .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
+    if tenant.name != expected_name {
+        bail!(
+            "tenant name mismatch: expected '{}', database has '{}'",
+            expected_name,
+            tenant.name
+        );
+    }
 
-        if tenant.name != expected_name {
-            bail!(
-                "tenant name mismatch: expected '{}', database has '{}'",
-                expected_name,
-                tenant.name
-            );
-        }
-
+    conn.scoped(TenantId(tenant.id), |tx| -> Result<()> {
         diesel::update(tenants::table.find(tenant.id))
             .set(tenants::status.eq(TenantStatus::Deleting))
-            .execute(guard.conn)?;
+            .execute(tx)?;
 
         let nonce = generate_random_token();
         let issued_at = Utc::now();
@@ -638,7 +635,7 @@ fn enqueue_delete_tenant_job_internal(
             payload["final_status"] = serde_json::json!(status);
         }
 
-        enqueue_job(guard.conn, tenant.id, JOB_DELETE_TENANT, payload, None)?;
+        enqueue_job(tx, tenant.id, JOB_DELETE_TENANT, payload, None)?;
         let status_label = if remove_tenant {
             "deleted"
         } else {
@@ -648,7 +645,8 @@ fn enqueue_delete_tenant_job_internal(
             "delete-tenant job enqueued for '{}' (remove_tenant={}, final_status={})",
             tenant.name, remove_tenant, status_label
         );
-    }
+        Ok(())
+    })?;
 
     Ok(())
 }
@@ -669,27 +667,27 @@ fn add_user_to_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Result<
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    let guard = TenantGucGuard::new(&mut conn, tenant.id)
-        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
+    conn.scoped(TenantId(tenant.id), |tx| -> Result<()> {
+        let owner_capability_set_id = ensure_capability_set(tx, tenant.id, owner_capabilities())
+            .map_err(|err| anyhow!("failed to ensure owner capability set: {:?}", err))?
+            .id;
 
-    let owner_capability_set_id = ensure_capability_set(guard.conn, tenant.id, owner_capabilities())
-        .map_err(|err| anyhow!("failed to ensure owner capability set: {:?}", err))?
-        .id;
+        let membership = NewUserMembership {
+            id: Uuid::new_v4(),
+            user_id: user.id,
+            tenant_id: tenant.id,
+            capability_set_id: Some(owner_capability_set_id),
+        };
 
-    let membership = NewUserMembership {
-        id: Uuid::new_v4(),
-        user_id: user.id,
-        tenant_id: tenant.id,
-        capability_set_id: Some(owner_capability_set_id),
-    };
+        diesel::insert_into(user_memberships::table)
+            .values(&membership)
+            .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
+            .do_nothing()
+            .execute(tx)?;
 
-    diesel::insert_into(user_memberships::table)
-        .values(&membership)
-        .on_conflict((user_memberships::user_id, user_memberships::tenant_id))
-        .do_nothing()
-        .execute(guard.conn)?;
-
-    println!("added user '{}' to tenant '{}'", username, tenant.name);
+        println!("added user '{}' to tenant '{}'", username, tenant.name);
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -708,24 +706,24 @@ fn remove_user_from_tenant(pool: &PgPool, username: &str, tenant_id: Uuid) -> Re
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    let guard = TenantGucGuard::new(&mut conn, tenant.id)
-        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
+    conn.scoped(TenantId(tenant.id), |tx| -> Result<()> {
+        let removed = diesel::delete(
+            user_memberships::table
+                .filter(user_memberships::user_id.eq(user.id))
+                .filter(user_memberships::tenant_id.eq(tenant.id)),
+        )
+        .execute(tx)?;
 
-    let removed = diesel::delete(
-        user_memberships::table
-            .filter(user_memberships::user_id.eq(user.id))
-            .filter(user_memberships::tenant_id.eq(tenant.id)),
-    )
-    .execute(guard.conn)?;
-
-    if removed == 0 {
-        println!(
-            "user '{}' was not a member of tenant '{}'",
-            username, tenant.name
-        );
-    } else {
-        println!("removed user '{}' from tenant '{}'", username, tenant.name);
-    }
+        if removed == 0 {
+            println!(
+                "user '{}' was not a member of tenant '{}'",
+                username, tenant.name
+            );
+        } else {
+            println!("removed user '{}' from tenant '{}'", username, tenant.name);
+        }
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -807,24 +805,23 @@ async fn delete_assets_for_tenant(
         .optional()?
         .ok_or_else(|| anyhow!("tenant '{}' not found", tenant_id))?;
 
-    let guard = TenantGucGuard::new(&mut conn, tenant.id)
-        .map_err(|err| anyhow!("failed to set tenant context for {}: {err:?}", tenant.name))?;
-
     let result = async {
         let tenant_storage = TenantStorage::new(Arc::clone(&storage), &tenant)
             .with_context(|| format!("missing storage root for tenant {}", tenant.name))?;
 
-        let mut asset_query = document_assets::table
-            .filter(document_assets::tenant_id.eq(tenant.id))
-            .into_boxed();
+        let assets: Vec<DocumentAsset> = conn.scoped(TenantId(tenant.id), |tx| -> Result<Vec<DocumentAsset>> {
+            let mut asset_query = document_assets::table
+                .filter(document_assets::tenant_id.eq(tenant.id))
+                .into_boxed();
 
-        if let Some(asset_type) = asset_type {
-            asset_query = asset_query.filter(document_assets::asset_type.eq(asset_type));
-        }
+            if let Some(asset_type) = asset_type {
+                asset_query = asset_query.filter(document_assets::asset_type.eq(asset_type));
+            }
 
-        let assets: Vec<DocumentAsset> = asset_query
-            .load(guard.conn)
-            .with_context(|| format!("failed to load assets for tenant {}", tenant.name))?;
+            asset_query
+                .load(tx)
+                .with_context(|| format!("failed to load assets for tenant {}", tenant.name))
+        })?;
 
         if assets.is_empty() {
             match asset_type {
@@ -863,13 +860,16 @@ async fn delete_assets_for_tenant(
             }
         }
 
-        diesel::delete(
-            document_assets::table
-                .filter(document_assets::tenant_id.eq(tenant.id))
-                .filter(document_assets::id.eq_any(&asset_ids)),
-        )
-        .execute(guard.conn)
-        .with_context(|| format!("failed to remove asset records for tenant {}", tenant.name))?;
+        conn.scoped(TenantId(tenant.id), |tx| -> Result<()> {
+            diesel::delete(
+                document_assets::table
+                    .filter(document_assets::tenant_id.eq(tenant.id))
+                    .filter(document_assets::id.eq_any(&asset_ids)),
+            )
+            .execute(tx)
+            .with_context(|| format!("failed to remove asset records for tenant {}", tenant.name))?;
+            Ok(())
+        })?;
 
         println!("Tenant {}: asset records deleted.", tenant.name);
         Ok(())

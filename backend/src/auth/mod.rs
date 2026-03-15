@@ -13,7 +13,7 @@ use axum::{
 };
 use axum_extra::headers::{authorization::Bearer, Authorization};
 use axum_extra::TypedHeader;
-use diesel::{pg::PgConnection, prelude::*};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -121,15 +121,17 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
                 .map_err(|_| AppError::unauthorized())?;
 
             let mut tenant_conn = state.db_for_tenant(claims.tenant_id)?;
-            let capability_set = load_capability_set(&mut *tenant_conn, claims.capability_set_id)
+            let (capability_set, capabilities) = tenant_conn
+                .scoped(|tx| {
+                    let cs = load_capability_set(tx, claims.capability_set_id)?;
+                    let caps = load_capabilities_for_set(tx, cs.id)?;
+                    Ok::<_, AppError>((cs, caps))
+                })
                 .map_err(|_| AppError::unauthorized())?;
 
             if capability_set.cap_version != claims.cap_version {
                 return Err(AppError::unauthorized());
             }
-
-            let capabilities = load_capabilities_for_set(&mut *tenant_conn, capability_set.id)
-                .map_err(|_| AppError::unauthorized())?;
 
             let user = AuthenticatedUser {
                 user_id: claims.sub,
@@ -159,12 +161,6 @@ pub struct TenantScopedConn {
     pub user: AuthenticatedUser,
 }
 
-impl TenantScopedConn {
-    pub fn conn(&mut self) -> &mut PgConnection {
-        &mut self.conn
-    }
-}
-
 impl FromRequestParts<AppState> for TenantScopedConn {
     type Rejection = AppError;
 
@@ -186,7 +182,7 @@ impl FromRequestParts<AppState> for TenantScopedConn {
                 state.db_for_tenant(tenant_id)?
             };
 
-            ensure_active_tenant_with_conn(&mut *conn, tenant_id)?;
+            ensure_active_tenant_with_conn(conn.unscoped(), tenant_id)?;
 
             Ok(Self {
                 conn,

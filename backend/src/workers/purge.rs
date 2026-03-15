@@ -203,14 +203,14 @@ fn prepare_purge_context(
         .db_for_tenant(tenant_id)
         .map_err(|err| format!("failed to scope tenant connection: {err:?}"))?;
 
-    conn.transaction(|conn| {
+    conn.scoped(|tx| {
         use crate::schema::documents::dsl as doc_dsl;
 
         let doc_opt = doc_dsl::documents
             .filter(doc_dsl::tenant_id.eq(tenant_id))
             .find(document_id)
             .for_update()
-            .first::<Document>(conn)
+            .first::<Document>(tx)
             .optional()?;
 
         let Some(document) = doc_opt else {
@@ -224,7 +224,7 @@ fn prepare_purge_context(
         let versions: Vec<DocumentVersion> = document_versions::table
             .filter(document_versions::document_id.eq(document_id))
             .filter(document_versions::tenant_id.eq(tenant_id))
-            .load(conn)?;
+            .load(tx)?;
 
         let version_keys: Vec<String> = versions
             .iter()
@@ -239,7 +239,7 @@ fn prepare_purge_context(
                 .filter(document_assets::document_version_id.eq_any(&version_ids))
                 .filter(document_assets::tenant_id.eq(tenant_id))
                 .select(document_assets::s3_key)
-                .load(conn)?
+                .load(tx)?
         };
 
         Ok(Some(PurgeContext {
@@ -273,14 +273,14 @@ fn finalize_purge(state: Arc<AppState>, tenant_id: Uuid, document_id: Uuid) -> R
         .db_for_tenant(tenant_id)
         .map_err(|err| format!("failed to scope tenant connection: {err:?}"))?;
 
-    conn.transaction(|conn| {
+    conn.scoped(|tx| {
         use crate::schema::documents::dsl as doc_dsl;
 
         let doc_opt = doc_dsl::documents
             .filter(doc_dsl::tenant_id.eq(tenant_id))
             .find(document_id)
             .for_update()
-            .first::<Document>(conn)
+            .first::<Document>(tx)
             .optional()?;
 
         let Some(document) = doc_opt else {
@@ -291,7 +291,7 @@ fn finalize_purge(state: Arc<AppState>, tenant_id: Uuid, document_id: Uuid) -> R
             return Ok(());
         }
 
-        diesel::delete(doc_dsl::documents.filter(doc_dsl::id.eq(document_id))).execute(conn)?;
+        diesel::delete(doc_dsl::documents.filter(doc_dsl::id.eq(document_id))).execute(tx)?;
         Ok(())
     })
     .map_err(|err: DieselError| format!("failed to finalize purge: {err}"))
