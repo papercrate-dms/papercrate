@@ -13,8 +13,8 @@ Items required for the beta release.
 - [x] **Critical**: Connection leak risk in WebDAV authentication. [Review 1.C]
 - [x] **Security**: Tenant selection/Login must validate `active` status.
 - [x] **Critical**: WebDAV `Content-Length` mismatch check vs S3 actual size. [Review 3.A]
-- [ ] **Critical**: Refactor RLS to use `SET LOCAL` within transactions to prevent dirty connection leaks.
-- [ ] **Refactor**: Fix unbounded string reading in `issued_at.rs`. [Review 4.2]
+- [x] **Critical**: Refactor RLS to use `SET LOCAL` within transactions to prevent dirty connection leaks.
+- [x] **Refactor**: Fix unbounded string reading in `issued_at.rs`. [Review 4.2]
 - [ ] **Deployment**: Verify `RESET_DATABASE_SQL` is not used in production/migrations. [Review 5.1]
 - [ ] **Security**: API tokens should have no access to user profile.
 

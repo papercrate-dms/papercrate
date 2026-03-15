@@ -427,6 +427,11 @@ fn month_name_to_number(value: &str, settings: &IssuedAtSettings) -> Option<u32>
     }
 }
 
+/// Maximum bytes to fetch from S3. We allow 4x the char limit to account for
+/// multi-byte UTF-8 sequences, then truncate to `MAX_TEXT_CHARS` characters
+/// after decoding.
+const MAX_TEXT_FETCH_BYTES: u64 = (MAX_TEXT_CHARS as u64) * 4;
+
 async fn load_document_text(ctx: &mut DocumentVersionTaskContext) -> TaskResult<Option<String>> {
     let object_key = {
         let asset = ctx.asset(TEXT_CONTENT_ASSET_TYPE).await?;
@@ -437,7 +442,11 @@ async fn load_document_text(ctx: &mut DocumentVersionTaskContext) -> TaskResult<
         return Ok(None);
     };
 
-    match ctx.storage().get_object(&key).await {
+    match ctx
+        .storage()
+        .get_object_range(&key, 0, Some(MAX_TEXT_FETCH_BYTES))
+        .await
+    {
         Ok(bytes) => match String::from_utf8(bytes) {
             Ok(mut text) => {
                 if text.len() > MAX_TEXT_CHARS {
