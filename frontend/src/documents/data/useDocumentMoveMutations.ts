@@ -108,18 +108,8 @@ export const useDocumentMoveMutations = ({
                 const suffix = count === 1 ? '' : 's';
                 showToast(`Moved ${count} document${suffix} to ${targetLabel}.`, 'success');
 
-                if (updatedDocsMap.size) {
-                    documentsState.documentsManager.map((doc) => {
-                        if (!doc || !uniqueIdSet.has(doc.id as DocumentId)) {
-                            return undefined;
-                        }
-                        const updated = updatedDocsMap.get(doc.id as DocumentId);
-                        if (updated) {
-                            return updated;
-                        }
-                        return doc;
-                    });
-                }
+                // Remove moved documents from the current folder view
+                documentsState.documentsManager.remove(uniqueIds);
 
                 if (uniqueIdSet.size) {
                     const pruneRow = (rows: string[]) => rows.filter(id => !uniqueIdSet.has(getEntryId(id) as DocumentId));

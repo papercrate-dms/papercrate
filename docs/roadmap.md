@@ -28,14 +28,14 @@ Items required for the beta release.
 - [ ] **Critical**: Fix `CardPhysics` race condition (`requestAnimationFrame`).
 - [ ] clean: Review all `ensure*` calls (ensure no double-fetching)
 - [ ] clean: Rename `useDocumentsWorkspace` to match context (Component `DocumentsWorkspace` does not exist; likely `useDocumentsView`)
-- [ ] clean: Refactor long prop lists (e.g., `UseDocumentsPanelPropsArgs`)
+- [x] clean: Refactor long prop lists (e.g., `UseDocumentsPanelPropsArgs`)
 - [ ] clean: Fix folder issues during tenant switch
-- [ ] clean: Cleanup folder ID and 'root' handling (`null` vs `'root'` opaque IDs).
+- [x] clean: Cleanup folder ID and 'root' handling (`null` vs `'root'` opaque IDs).
 
 ### Regressions
 - [ ] regression: **Verified**: `FoldersManager`: Implement `invalidateTree` (currently missing).
 - [ ] regression: Folder refresh in `documentspanel` not working
-- [ ] regression: Moving documents to folder in sidebar does not remove them from list
+- [x] regression: Moving documents to folder in sidebar does not remove them from list
 - [ ] regression: Check download link expiration on `previewzoomoverlay` and `documentviewer`
 
 ### Features
@@ -73,7 +73,7 @@ Items required for the beta release.
 - [ ] polish: Desktop workspace thumbnail/sizing
 - [ ] polish: Mobile layout (body scroll with sidebar)
 - [ ] polish: Keyboard control hints (spacebar, etc.)
-- [ ] refactor: Split `AppShellContext` ("God Context" issue)
+- [x] refactor: Split `AppShellContext` ("God Context" issue)
 - [ ] refactor: Create `BaseManager<T>` to reduce duplication
 - [ ] refactor: Generic `Entry` component (DRY)
 - [ ] refactor: Generic `ResourceList` / `useResourceEditor` (DRY Panels)
@@ -90,7 +90,7 @@ Items required for the beta release.
 - [ ] regression: DocumentsViewer state retention
 
 ### Architecture (Future)
-- [ ] arch: **State Management**: Split "God Context" (`AppShellContext`) into Session/Data/Selection contexts.
+- [x] arch: **State Management**: Split "God Context" (`AppShellContext`) into Session/Data/Selection contexts.
 - [ ] arch: **Data Layer**: Adopt React Query (or Repository Pattern) to replace ad-hoc Managers.
 - [ ] arch: **Physics**: Move `CardPhysics` to Web Worker (off main-thread).
 - [ ] arch: **API**: Replace Singleton with `ApiClient` Context (Dependency Injection).
