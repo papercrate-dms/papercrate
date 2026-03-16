@@ -1,0 +1,7 @@
+baseURL = 'https://papercrate.org/'
+languageCode = 'en'
+title = 'Papercrate'
+
+[params]
+  description = 'A self-hosted document manager for people who value privacy and simplicity.'
+  repo = 'https://github.com/papercrate-dms/papercrate'

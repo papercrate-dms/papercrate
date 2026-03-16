@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }} — {{ .Site.Title }}</title>
+  <meta name="description" content="{{ .Site.Params.description }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fg: oklch(0.32 0.006 49);
+      --fg-muted: oklch(0.54 0.01 49);
+      --bg: oklch(0.975 0.002 35);
+      --surface: oklch(0.998 0.002 35);
+      --accent: oklch(0.61 0.12 49);
+      --accent-hover: oklch(0.70 0.09 49);
+      --on-accent: #fff;
+      --border: oklch(0.93 0.003 49);
+      --radius: 8px;
+      --max-width: 720px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fg: oklch(0.88 0.005 49);
+        --fg-muted: oklch(0.65 0.008 49);
+        --bg: oklch(0.17 0.004 49);
+        --surface: oklch(0.21 0.005 49);
+        --accent: oklch(0.72 0.10 49);
+        --accent-hover: oklch(0.80 0.08 49);
+        --on-accent: oklch(0.15 0 0);
+        --border: oklch(0.28 0.006 49);
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .container-wide {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .container-hero {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    header {
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--fg);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .logo-icon {
+      display: block;
+    }
+
+    header nav a {
+      color: var(--fg-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-left: 1.5rem;
+    }
+
+    header nav a:hover {
+      color: var(--fg);
+    }
+
+    main {
+      padding: 1.5rem 0 4rem;
+    }
+
+    footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--border);
+      color: var(--fg-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+  {{ block "head" . }}{{ end }}
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/" class="logo">
+        <img src="/logo_small.webp" alt="Papercrate" width="32" height="32" class="logo-icon">
+        Papercrate
+      </a>
+      <nav>
+        <a href="https://matrix.to/#/#papercrate:matrix.org">Chat</a>
+        <a href="{{ .Site.Params.repo }}">Source</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {{ block "main" . }}{{ end }}
+  </main>
+  <footer>
+    <div class="container">
+      Papercrate is open source software.
+    </div>
+  </footer>
+</body>
+</html>

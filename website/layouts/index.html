@@ -1,0 +1,297 @@
+{{ define "main" }}
+<style>
+  .hero {
+    padding: 2rem 0 3rem;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .hero-text h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  .hero-text .lead {
+    font-size: 1.05rem;
+    color: var(--fg-muted);
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 700px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-text h1 {
+      font-size: 1.75rem;
+    }
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .cta-row a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .cta-row a:hover {
+    opacity: 0.85;
+  }
+
+  .cta-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .cta-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .cta-secondary {
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+  }
+
+  .hero-screenshot {
+    margin: 2.5rem 0 1rem;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .hero-screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .showcase {
+    margin: 3rem 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .showcase-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .showcase-item:nth-child(even) .showcase-image {
+    order: 2;
+  }
+
+  .showcase-item:nth-child(even) .showcase-text {
+    order: 1;
+  }
+
+  .showcase-image {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .showcase-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .showcase-text h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .showcase-text p {
+    color: var(--fg-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .showcase-item {
+      grid-template-columns: 1fr;
+    }
+
+    .showcase-item:nth-child(even) .showcase-image,
+    .showcase-item:nth-child(even) .showcase-text {
+      order: unset;
+    }
+  }
+
+  .features {
+    padding: 2rem 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 540px) {
+    .features {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .feature h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .feature p {
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .tech {
+    padding: 2.5rem 0 1rem;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+
+  .tech h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .tech-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+  }
+
+  .tech-list li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+  }
+</style>
+
+<div class="container-hero">
+<section class="hero">
+  <div class="hero-screenshot">
+    <img src="/screenshot.png" alt="Papercrate document list view">
+  </div>
+  <div class="hero-text">
+    <h1>Papercrate</h1>
+    <p class="lead">
+      A self-hosted document archive. Built in Rust with a React frontend,
+      Postgres for storage, S3 for files, and Quickwit for search.
+      Still early — contributions and feedback welcome.
+    </p>
+    <div class="cta-row">
+      <a href="https://app.papercrate.org/#/account/login?magic_token=e14e64bfbc3fc46c550a3482284bb912c1aee82aad9a9638072b7f8645f2af0b" class="cta-primary">Try the demo</a>
+      <a href="{{ .Site.Params.repo }}" class="cta-secondary">View on GitHub</a>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="container-wide"><div class="showcase">
+  <div class="showcase-item">
+    <div class="showcase-image">
+      <img src="/documentview.png" alt="Document metadata panel" loading="lazy">
+    </div>
+    <div class="showcase-text">
+      <h3>Document details</h3>
+      <p>A side panel shows tags, correspondents, dates, and folder path for the selected document.</p>
+    </div>
+  </div>
+  <div class="showcase-item">
+    <div class="showcase-image">
+      <img src="/detailview.png" alt="Grid view with PDF viewer" loading="lazy">
+    </div>
+    <div class="showcase-text">
+      <h3>Read right here</h3>
+      <p>Built-in PDF viewer with multi-page rendering, password support, and zoom.</p>
+    </div>
+  </div>
+  <div class="showcase-item">
+    <div class="showcase-image">
+      <img src="/deskview.png" alt="Desk view" loading="lazy">
+    </div>
+    <div class="showcase-text">
+      <h3>Spread it out</h3>
+      <p>Desk view lets you arrange documents on a freeform canvas. Drag them around and stack them however you like.</p>
+    </div>
+  </div>
+</div></div>
+
+<div class="container">
+<section id="features" class="features">
+  <div class="feature">
+    <h3>Full-text search</h3>
+    <p>Documents are OCR-processed on upload and indexed for full-text search powered by Quickwit.</p>
+  </div>
+  <div class="feature">
+    <h3>Tags and correspondents</h3>
+    <p>Assign tags and correspondents to documents and filter your archive by either or both.</p>
+  </div>
+  <div class="feature">
+    <h3>Folders</h3>
+    <p>Organize documents in a folder tree. Move things around with drag and drop.</p>
+  </div>
+  <div class="feature">
+    <h3>PDF viewer</h3>
+    <p>View PDFs directly in the browser with multi-page rendering, password support, and zoom.</p>
+  </div>
+  <div class="feature">
+    <h3>Multi-tenant</h3>
+    <p>Run a single instance for multiple users with isolated storage and row-level security in Postgres.</p>
+  </div>
+  <div class="feature">
+    <h3>WebDAV</h3>
+    <p>Access your documents as a network drive from any WebDAV-compatible file manager.</p>
+  </div>
+  <div class="feature">
+    <h3>Passkeys</h3>
+    <p>Sign in with WebAuthn passkeys instead of passwords. API tokens are available for automation.</p>
+  </div>
+  <div class="feature">
+    <h3>Self-hosted</h3>
+    <p>Deploy with a single Docker Compose file that includes Postgres, MinIO, and Quickwit.</p>
+  </div>
+</section>
+
+<section class="tech">
+  <h2>Built with</h2>
+  <ul class="tech-list">
+    <li>Rust / Axum</li>
+    <li>React 19</li>
+    <li>TypeScript</li>
+    <li>PostgreSQL + RLS</li>
+    <li>MinIO (S3)</li>
+    <li>Quickwit</li>
+    <li>Diesel ORM</li>
+    <li>pdfjs</li>
+    <li>Docker</li>
+  </ul>
+</section>
+{{ end }}
