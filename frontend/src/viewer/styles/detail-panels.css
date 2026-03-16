@@ -51,6 +51,16 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
+}
+
+.panel-header__leading {
+  overflow: hidden;
+  flex: 1 1 0;
+}
+
+.panel-header__actions {
+  flex-shrink: 0;
 }
 
 .panel-header__title {
