@@ -439,7 +439,7 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
 }) => {
   const folderManager = useFolderManager();
   const { tagLookupById } = useTags();
-  const { correspondents, correspondentLookupById } = useCorrespondents();
+  const { correspondentLookupById } = useCorrespondents();
   const isCompactLayout = layout === 'compact';
   const summaryRows = useMemo(() => describeDocumentSummary(document, { tagLookupById }), [document, tagLookupById]);
   const issuedDateLabel = useMemo(
@@ -455,12 +455,10 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
     [document?.tags, tagLookupById],
   );
 
-  const resolvedCorrespondents = useMemo(() => {
-    if (Array.isArray(correspondents) && correspondents.length) {
-      return correspondents;
-    }
-    return resolveCorrespondentIds(document?.correspondents, correspondentLookupById);
-  }, [correspondents, document?.correspondents, correspondentLookupById]);
+  const resolvedCorrespondents = useMemo(
+    () => resolveCorrespondentIds(document?.correspondents, correspondentLookupById),
+    [document?.correspondents, correspondentLookupById],
+  );
 
   const extraSummaryRows = useMemo(() => {
     const rows: DocumentSummaryRow[] = [];
