@@ -15,6 +15,7 @@ Items required for the beta release.
 - [x] **Critical**: WebDAV `Content-Length` mismatch check vs S3 actual size. [Review 3.A]
 - [x] **Critical**: Refactor RLS to use `SET LOCAL` within transactions to prevent dirty connection leaks.
 - [x] **Refactor**: Fix unbounded string reading in `issued_at.rs`. [Review 4.2]
+- [ ] **Refactor**: Split async write methods (`upload_document`, `update_document`) so DB writes run inside `.scoped()` and S3 work runs outside. Eliminates session-level GUC fallback (`unscoped_with_tenant`).
 - [ ] **Deployment**: Verify `RESET_DATABASE_SQL` is not used in production/migrations. [Review 5.1]
 - [ ] **Security**: API tokens should have no access to user profile.
 
