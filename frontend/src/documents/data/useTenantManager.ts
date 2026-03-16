@@ -5,7 +5,7 @@ import type { TenantId } from '../../types/identifiers';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import { useAppDispatch } from '../../lib/store/appState';
 
-import { api, listTenants, switchTenant } from '../../lib/api/apiClient';
+import { setAuthToken, listTenants, switchTenant } from '../../lib/api/apiClient';
 
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 
@@ -59,7 +59,7 @@ const useTenantManager = ({
         // 5. Update Global State IMMEDIATELY
         // Don't wait for navigation. Data consistency comes first.
         handleDocumentsViewModeChange('list');
-        api.defaults.headers.common.Authorization = `Bearer ${data.access_token}`;
+        setAuthToken(data.access_token);
 
         appDispatch({
           type: 'LOGIN_SUCCESS',

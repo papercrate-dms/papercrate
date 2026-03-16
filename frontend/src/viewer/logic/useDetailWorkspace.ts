@@ -7,7 +7,7 @@ import type { EnsureAssetUrl, GetAsset } from '../../lib/assets/AssetManager';
 import type { Identifier } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import type { Tag, Correspondent } from '../../types/documents';
-import { listFolderContents } from '../../lib/api/apiClient';
+
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 
@@ -21,7 +21,7 @@ interface UseDetailWorkspaceArgs {
   documentLookup: Map<Identifier, Document>;
   folderNodes: Map<Identifier | 'root', FolderNode>;
   detailPanelControlRef: MutableRefObject<{ open?: (documentId: Identifier) => void; close?: () => void } | null>;
-  detailFolderFetchRef: MutableRefObject<Set<Identifier | 'root'>>;
+
   openDocumentViewer?: (args: { documentIds: Identifier[] }) => void;
   handleDocumentTitleUpdate?: (docId: Identifier, title: string) => Promise<boolean> | boolean;
   handleDocumentIssuedUpdate?: (docId: Identifier, issued: number | null) => Promise<boolean> | boolean;
@@ -53,7 +53,6 @@ const useDetailWorkspace = ({
   documentLookup,
   folderNodes,
   detailPanelControlRef,
-  detailFolderFetchRef,
   openDocumentViewer,
   handleDocumentTitleUpdate,
   handleDocumentIssuedUpdate,
@@ -109,16 +108,6 @@ const useDetailWorkspace = ({
 
       const node = folderNodes.get(currentId);
       if (!node) {
-        if (!detailFolderFetchRef.current.has(currentId)) {
-          detailFolderFetchRef.current.add(currentId);
-          listFolderContents(currentId, { include_documents: false })
-            .catch((error) => {
-              console.warn('Failed to preload folder metadata for detail path', currentId, error);
-            })
-            .finally(() => {
-              detailFolderFetchRef.current.delete(currentId);
-            });
-        }
         break;
       }
 
@@ -128,7 +117,7 @@ const useDetailWorkspace = ({
       }
       currentId = parentId;
     }
-  }, [detailPanelDocument, folderNodes, detailFolderFetchRef]);
+  }, [detailPanelDocument, folderNodes]);
 
   const resolveThumbnailUrlForDoc = useCallback(
     (doc) =>

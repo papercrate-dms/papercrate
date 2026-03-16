@@ -448,7 +448,7 @@ const useDocumentsWorkspace = ({
   }, []);
 
   const bootstrapInitializedRef = useRef(false);
-  const detailFolderFetchRef = useRef(new Set());
+
 
   useWorkspaceSelectionSync({
     showingSearchResults,
@@ -563,7 +563,6 @@ const useDocumentsWorkspace = ({
     upload.resetUploadsState();
     upload.clearUploadQueue();
 
-    detailFolderFetchRef.current = new Set();
     bootstrapInitializedRef.current = false;
     selectionInitializedRef.current = false;
     tenantIdRef.current = null;
@@ -859,7 +858,6 @@ const useDocumentsWorkspace = ({
     documentLookup,
     folderNodes,
     detailPanelControlRef,
-    detailFolderFetchRef,
     openDocumentViewer: openDocumentViewerForDetail,
     handleDocumentTitleUpdate,
     handleDocumentIssuedUpdate,

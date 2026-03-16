@@ -6,10 +6,10 @@ import { getEntryId, isDocumentEntry } from '../../app/entryKey';
 import {
     moveDocumentsBulk,
     moveDocumentToFolder,
-    listFolderContents,
+    restoreDocument,
+    trashDocument,
 } from '../../lib/api/apiClient';
 import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
-import { restoreDocument, trashDocument } from '../../lib/api/apiClient';
 import type { Document } from '../../types/documents';
 import type {
     DocumentsState,
@@ -162,10 +162,6 @@ export const useDocumentMoveMutations = ({
                     ) {
                         setFocusedEntryKey(null);
                     }
-                }
-
-                if (targetFolderId && targetFolderId !== folderState.selectedFolder) {
-                    await listFolderContents(targetFolderId as FolderNodeId);
                 }
 
             } catch (error) {

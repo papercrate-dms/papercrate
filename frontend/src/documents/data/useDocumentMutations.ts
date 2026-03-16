@@ -6,7 +6,6 @@ import {
   queueDocumentReanalysis,
   trashDocument,
   updateDocument,
-  createTag,
   bulkTagDocuments,
   bulkReanalyzeDocuments,
   assignCorrespondentsBulk,
@@ -275,13 +274,10 @@ const useDocumentMutations = ({
 
       for (const lbl of labelsToCreate) {
         try {
-          // Use API directly to create tag
-          const created = await createTag({ label: lbl, color: '#c0c0c0' });
+          const payload = tagsState.tagManager.buildPayload({ label: lbl });
+          const created = await tagsState.tagManager.create(payload);
           if (created) {
             tagsToProcess.push(created as Tag);
-            if (tagsState.tagManager && typeof tagsState.tagManager.ingest === 'function') {
-              tagsState.tagManager.ingest([created as Tag]);
-            }
           }
         } catch (e) {
           console.error('Failed to create tag', lbl, e);

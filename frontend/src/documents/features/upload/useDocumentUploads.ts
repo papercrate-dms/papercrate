@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import useFileDrop from './useFileDrop';
 import { useStatusToast } from '../../../lib/context/StatusToastContext';
 import { DEFAULT_FOLDER_NAME, hasFiles } from '../../../app/workspaceUtils';
-import { fetchDocument, uploadDocument, resolveFolderPath, listFolderContents } from '../../../lib/api/apiClient';
+import { fetchDocument, uploadDocument, resolveFolderPath } from '../../../lib/api/apiClient';
 import type { Identifier } from '../../../types/identifiers';
 
 type FolderId = Identifier | 'root' | null;
@@ -418,14 +418,6 @@ const useDocumentUploads = ({
         }
 
         await refreshCurrentFolder();
-
-        if (
-          targetFolderId &&
-          targetFolderId !== 'root' &&
-          targetFolderId !== selectedFolder
-        ) {
-          await listFolderContents(targetFolderId);
-        }
       } catch (error: any) {
         const message = error.message || 'Failed to upload files.';
         queueItems.forEach((item) => {

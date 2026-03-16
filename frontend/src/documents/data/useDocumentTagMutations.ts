@@ -3,7 +3,6 @@ import type { DocumentId } from '../../types/identifiers';
 import type { Document, Tag } from '../../types/documents';
 import {
     addDocumentTags,
-    createTag,
     deleteDocumentTag,
 } from '../../lib/api/apiClient';
 import type { TagsState, DocumentsState } from '../types/workspaceTypes';
@@ -73,11 +72,8 @@ export const useDocumentTagMutations = ({
 
             // Create tag if needed. Errors bubble up.
             if (!tag) {
-                const payload = tagsState.tagManager.buildPayload({ label: normalizedLabel }) as { label: string; color?: string | null };
-                const data = await createTag(payload);
-                tag = data as Tag;
-                // Ingest new tag into manager to ensure it's available
-                tagsState.tagManager.ingest([tag]);
+                const payload = tagsState.tagManager.buildPayload({ label: normalizedLabel });
+                tag = await tagsState.tagManager.create(payload);
                 await tagsState.refreshTags();
             }
             await attachTagToDocument({
