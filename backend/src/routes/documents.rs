@@ -360,7 +360,7 @@ pub async fn upload_document(
 
     let service = DocumentsService::new(&state);
     let outcome = match service
-        .upload_document(conn.unscoped(), tenant_id, user_id, request)
+        .upload_document(conn.unscoped_with_tenant()?, tenant_id, user_id, request)
         .await
     {
         Ok(outcome) => outcome,
@@ -878,7 +878,7 @@ pub async fn update_document(
 ) -> AppResult<JsonResponse<DocumentDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .update_document(conn.unscoped(), tenant_id, user_id, document_id, payload)
+        .update_document(conn.unscoped_with_tenant()?, tenant_id, user_id, document_id, payload)
         .await?;
     ok_json(detail)
 }

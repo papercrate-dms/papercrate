@@ -1,4 +1,4 @@
-use diesel::{pg::PgConnection, prelude::*};
+use diesel::{pg::PgConnection, prelude::*, sql_types::Text};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -389,6 +389,29 @@ impl TenantScopedConnection {
     /// context (e.g. querying the `tenants` table which has no RLS).
     pub fn unscoped(&mut self) -> &mut PgConnection {
         &mut self.conn
+    }
+
+    /// Set the tenant GUC at session level and return a mutable reference to
+    /// the raw connection. Use this for `async` service methods that do writes
+    /// and cannot run inside a synchronous `.scoped()` closure.
+    ///
+    /// The session-level GUC is cleared on `Drop` before the connection returns
+    /// to the pool.
+    pub fn unscoped_with_tenant(&mut self) -> AppResult<&mut PgConnection> {
+        diesel::sql_query("SELECT set_config('papercrate.tenant_id', $1, false)")
+            .bind::<Text, _>(self.tenant_id.to_string())
+            .execute(&mut self.conn)
+            .map_err(AppError::from)?;
+        Ok(&mut self.conn)
+    }
+}
+
+impl Drop for TenantScopedConnection {
+    fn drop(&mut self) {
+        // Clear any session-level GUC that may have been set by
+        // unscoped_with_tenant() before returning to the pool.
+        let _ = diesel::sql_query("SELECT set_config('papercrate.tenant_id', '', false)")
+            .execute(&mut self.conn);
     }
 }
 
