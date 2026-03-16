@@ -55,7 +55,7 @@ const DEFAULT_EMPTY_MESSAGE = 'No documents to show here yet. Drop files to make
 const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) => {
   const { headerLeading, floatingActions: floatingActionsProp, emptyMessage = DEFAULT_EMPTY_MESSAGE } = props;
 
-  const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup, searchLoading: isSearchLoading } = useDocumentsSearch();
+  const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup, searchLoading: isSearchLoading } = useDocumentsSearch();
   const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
 
   const {
@@ -93,27 +93,26 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     ? 'Search results'
     : currentFolderName || 'Documents';
 
+  const showToolbarSort = viewMode === 'grid';
+
+  const toolbarSort = useMemo(() => showToolbarSort ? {
+    field: sortField,
+    direction: sortDirection,
+    onFieldChange: onSortFieldChange,
+    onDirectionToggle: onSortDirectionToggle,
+  } : null, [showToolbarSort, sortField, sortDirection, onSortFieldChange, onSortDirectionToggle]);
+
   const headerActions = useMemo(
     () => createDocumentsTableHeaderActions({
-      viewMode,
-      onViewModeChange,
       onRefresh,
-      sortField,
-      onSortFieldChange,
-      sortDirection,
-      onSortDirectionToggle,
+      sort: toolbarSort,
       isFilterActive,
       includeDescendants,
       onToggleIncludeDescendants: toggleIncludeDescendants,
     }),
     [
-      viewMode,
-      onViewModeChange,
       onRefresh,
-      sortField,
-      onSortFieldChange,
-      sortDirection,
-      onSortDirectionToggle,
+      toolbarSort,
       isFilterActive,
       includeDescendants,
       toggleIncludeDescendants,

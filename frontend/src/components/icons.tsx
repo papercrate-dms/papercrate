@@ -24,6 +24,7 @@ import {
   IconMinusVertical,
   IconLogout,
   IconChevronDown,
+  IconChevronUp,
   IconX as TablerIconX,
   IconSettings,
   IconCheck,
@@ -112,6 +113,7 @@ export const AnalyzeIcon = createIcon(IconAnalyze);
 export const WindowMaximizeIcon = createIcon(IconWindowMaximize);
 export const LogoutIcon = createIcon(IconLogout);
 export const ChevronDownIcon = createIcon(IconChevronDown);
+export const ChevronUpIcon = createIcon(IconChevronUp);
 
 // Icons with different default stroke
 export const LoaderIcon = createIcon(IconLoader, { defaultStroke: 1.8 });

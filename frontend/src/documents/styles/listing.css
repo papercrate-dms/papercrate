@@ -242,6 +242,21 @@
   color: var(--muted);
 }
 
+.documents-panel thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.documents-panel thead th.sortable:hover {
+  color: var(--fg);
+}
+
+.documents-panel thead th .sort-indicator {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.2em;
+}
+
 
 .documents-panel th,
 .documents-panel td {
