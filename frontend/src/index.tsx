@@ -91,6 +91,7 @@ const AppRouter: React.FC = () => (
     <Route element={<TenantAwareLayout />}>
       <Route path="/" element={<Navigate to="/documents" replace />} />
       <Route path="/documents" element={<DocumentsRoute />} />
+      <Route path="/documents/trash" element={<DocumentsRoute />} />
       <Route path="/documents/folder/:folderId" element={<DocumentsRoute />} />
       <Route path="/documents/:documentId" element={<DocumentsRoute />} />
       <Route path="*" element={<Navigate to="/documents" replace />} />

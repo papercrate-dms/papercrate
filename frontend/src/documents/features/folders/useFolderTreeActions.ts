@@ -131,7 +131,14 @@ const useFolderTreeActions = ({
         return;
       }
 
-      const path = targetId === 'root' ? '/documents' : `/documents/folder/${targetId}`;
+      let path: string;
+      if (targetId === 'root') {
+        path = '/documents';
+      } else if (targetId === 'trash') {
+        path = '/documents/trash';
+      } else {
+        path = `/documents/folder/${targetId}`;
+      }
       navigate(path, { replace });
     },
     [

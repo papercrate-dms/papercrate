@@ -116,9 +116,10 @@ const useDocumentsWorkspace = ({
   const location = useLocation();
   const appState = useAppState();
   const appDispatch = useAppDispatch();
+  const trashMatch = matchPath('/documents/trash', location.pathname);
   const folderMatch = matchPath('/documents/folder/:folderId', location.pathname);
-  const docMatch = matchPath('/documents/:documentId', location.pathname);
-  const routeFolderId = folderMatch?.params?.folderId || null;
+  const docMatch = !trashMatch ? matchPath('/documents/:documentId', location.pathname) : null;
+  const routeFolderId = trashMatch ? 'trash' : (folderMatch?.params?.folderId || null);
   const routeDocumentId = docMatch?.params?.documentId || null;
   const viewerDocumentId = routeDocumentId;
 
