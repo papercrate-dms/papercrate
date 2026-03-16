@@ -56,7 +56,6 @@
 
 .panel-header__leading {
   overflow: hidden;
-  flex: 1 1 0;
 }
 
 .panel-header__actions {

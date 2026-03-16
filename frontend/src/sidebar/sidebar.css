@@ -190,6 +190,10 @@
   text-overflow: ellipsis;
 }
 
+.sidebar .panel-header__leading {
+  flex: 1 1 0;
+}
+
 .sidebar__title-button {
   display: inline-flex;
   align-items: center;
