@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from 'react';
@@ -82,14 +83,62 @@ const resolvePdfWasmBaseUrl = (): string => {
   return '/pdfjs/wasm/';
 };
 
+// ---------------------------------------------------------------------------
+// PDF loading state — groups status, error, pages, and password state into
+// a single reducer to reduce the number of useState calls.
+// ---------------------------------------------------------------------------
+
+interface PdfLoadingState {
+  status: RenderStatus;
+  errorMessage: string | null;
+  pages: PageDescriptor[];
+  isEncrypted: boolean;
+  passwordError: boolean;
+  passwordCallback: ((password: string) => void) | null;
+}
+
+type PdfLoadingAction =
+  | { type: 'start' }
+  | { type: 'ready'; pages: PageDescriptor[] }
+  | { type: 'error'; message: string }
+  | { type: 'password'; callback: (password: string) => void; incorrect: boolean };
+
+const initialLoadingState: PdfLoadingState = {
+  status: 'idle',
+  errorMessage: null,
+  pages: [],
+  isEncrypted: false,
+  passwordError: false,
+  passwordCallback: null,
+};
+
+function pdfLoadingReducer(state: PdfLoadingState, action: PdfLoadingAction): PdfLoadingState {
+  switch (action.type) {
+    case 'start':
+      return { ...initialLoadingState, status: 'loading' };
+    case 'ready':
+      return { ...state, status: 'ready', pages: action.pages, errorMessage: null };
+    case 'error':
+      return { ...state, status: 'error', errorMessage: action.message };
+    case 'password':
+      return {
+        ...state,
+        isEncrypted: true,
+        passwordCallback: action.callback,
+        passwordError: action.incorrect,
+      };
+    default:
+      return state;
+  }
+}
+
 const PdfViewer = ({ src, title, className, viewportRef }: PdfViewerProps): JSX.Element => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [renderWidth, setRenderWidth] = useState(0);
-  const [status, setStatus] = useState<RenderStatus>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pages, setPages] = useState<PageDescriptor[]>([]);
+  const [loading, dispatchLoading] = useReducer(pdfLoadingReducer, initialLoadingState);
+  const { status, errorMessage, pages, isEncrypted, passwordError, passwordCallback } = loading;
   const [pixelRatio, setPixelRatio] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>('contain');
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
@@ -107,9 +156,6 @@ const PdfViewer = ({ src, title, className, viewportRef }: PdfViewerProps): JSX.
     velocity: 0,
   });
   const scrollElementRef = useRef<HTMLElement | null>(null);
-  const [isEncrypted, setIsEncrypted] = useState(false);
-  const [passwordError, setPasswordError] = useState(false);
-  const [passwordCallback, setPasswordCallback] = useState<((password: string) => void) | null>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const requestQueueFlush = useCallback(() => {
@@ -311,9 +357,7 @@ const PdfViewer = ({ src, title, className, viewportRef }: PdfViewerProps): JSX.
       pdfRef.current = null;
     }
 
-    setPages([]);
-    setStatus('loading');
-    setErrorMessage(null);
+    dispatchLoading({ type: 'start' });
     const renderDocument = async () => {
       try {
         loadingTask = getDocument({
@@ -321,11 +365,11 @@ const PdfViewer = ({ src, title, className, viewportRef }: PdfViewerProps): JSX.
           wasmUrl,
         });
         loadingTask.onPassword = (callback, reason) => {
-          setIsEncrypted(true);
-          setPasswordCallback(() => callback);
-          if (reason === PasswordResponses.INCORRECT_PASSWORD) {
-            setPasswordError(true);
-          }
+          dispatchLoading({
+            type: 'password',
+            callback,
+            incorrect: reason === PasswordResponses.INCORRECT_PASSWORD,
+          });
         };
 
         const pdf = await loadingTask.promise;
@@ -363,21 +407,18 @@ const PdfViewer = ({ src, title, className, viewportRef }: PdfViewerProps): JSX.
         activePdf = pdf;
         pdfRef.current = pdf;
         setPixelRatio(ratio);
-        setPages(descriptors);
-        setStatus('ready');
+        dispatchLoading({ type: 'ready', pages: descriptors });
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to prepare PDF preview', error);
-          setStatus('error');
-          setErrorMessage('Unable to render PDF preview.');
+          dispatchLoading({ type: 'error', message: 'Unable to render PDF preview.' });
         }
       }
     };
 
     renderDocument().catch((error) => {
       console.error('Unhandled PDF render error', error);
-      setStatus('error');
-      setErrorMessage('Unable to render PDF preview.');
+      dispatchLoading({ type: 'error', message: 'Unable to render PDF preview.' });
     });
 
     return () => {
