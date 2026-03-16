@@ -526,7 +526,7 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
         tenant_id,
         _user_id: user.id,
         _username: user.username.clone(),
-        conn: TenantScopedConnection::new(conn, tenant_id),
+        conn: TenantScopedConnection::new(conn, tenant_id)?,
     };
 
     context.conn.scoped(|tx| {

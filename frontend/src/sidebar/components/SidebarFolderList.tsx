@@ -1,7 +1,8 @@
-import React, { useCallback, useSyncExternalStore } from 'react';
+import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import type { FolderNodeId } from '../../types/identifiers';
 import { FolderPlusIcon } from '../../components/icons';
+import TrashBinIcon from '../../components/icons/TrashBinIcon';
 import FolderNode from './SidebarFolderNode';
 import type { FolderTreeNode } from '../../lib/api/apiTypes';
 import { useFolderTree } from '../../lib/context/FolderTreeContext';
@@ -132,6 +133,18 @@ const SidebarFolderList: React.FC = () => {
         ],
     );
 
+    const trashNode: FolderTreeNode = useMemo(() => ({
+        id: 'trash',
+        name: 'Trash',
+        children: [],
+    }), []);
+
+    const trashIcon = useMemo(() => <TrashBinIcon className="folder-icon-image" size={16} />, []);
+
+    const noopToggle = useCallback(() => {}, []);
+    const noopDelete = useCallback(() => {}, []);
+    const noopRenderChildren = useCallback(() => null, []);
+
     return (
         <div className="sidebar-section sidebar-section--folders">
             <div className="sidebar-section__header">
@@ -152,6 +165,21 @@ const SidebarFolderList: React.FC = () => {
             </div>
             <ul className="folder-tree">
                 {renderNodes(roots as FolderTreeNode[], 0)}
+                <FolderNode
+                    node={trashNode}
+                    depth={0}
+                    isSelected={selectedFolder === 'trash'}
+                    onToggle={noopToggle}
+                    onSelect={onSelect}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onDragLeave={onDragLeave}
+                    onDelete={noopDelete}
+                    renderChildren={noopRenderChildren}
+                    expanded={false}
+                    icon={trashIcon}
+                    showActions={false}
+                />
             </ul>
         </div>
     );

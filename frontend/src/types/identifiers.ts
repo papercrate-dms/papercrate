@@ -3,7 +3,7 @@ export type Identifier = string;
 
 export type DocumentId = Identifier;
 export type FolderId = Identifier;
-export type FolderNodeId = FolderId | 'root';
+export type FolderNodeId = FolderId | 'root' | 'trash';
 export type CapabilitySetId = Identifier;
 export type CapabilityValue = Identifier;
 export type TenantId = Identifier;

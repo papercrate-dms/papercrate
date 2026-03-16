@@ -40,7 +40,7 @@ Items required for the beta release.
 - [ ] regression: Check download link expiration on `previewzoomoverlay` and `documentviewer`
 
 ### Features
-- [ ] feat: Trash view and restore
+- [x] feat: Trash view and restore
 - [ ] arch: **Routing**: "URL as Single Source of Truth" (Fixes refresh/sync regressions).
 - [x] feat: Login via Magic Token (UI Support)
 

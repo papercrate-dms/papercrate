@@ -353,8 +353,14 @@ pub struct TenantScopedConnection {
 }
 
 impl TenantScopedConnection {
-    pub(crate) fn new(conn: PgPooledConnection, tenant_id: Uuid) -> Self {
-        Self { conn, tenant_id }
+    pub(crate) fn new(mut conn: PgPooledConnection, tenant_id: Uuid) -> AppResult<Self> {
+        // Set session-level GUC so that RLS policies work for both .scoped()
+        // and .unscoped() access. Cleared on Drop before returning to pool.
+        diesel::sql_query("SELECT set_config('papercrate.tenant_id', $1, false)")
+            .bind::<Text, _>(tenant_id.to_string())
+            .execute(&mut *conn)
+            .map_err(AppError::from)?;
+        Ok(Self { conn, tenant_id })
     }
 
     /// The tenant this connection is scoped to.
@@ -389,20 +395,6 @@ impl TenantScopedConnection {
     /// context (e.g. querying the `tenants` table which has no RLS).
     pub fn unscoped(&mut self) -> &mut PgConnection {
         &mut self.conn
-    }
-
-    /// Set the tenant GUC at session level and return a mutable reference to
-    /// the raw connection. Use this for `async` service methods that do writes
-    /// and cannot run inside a synchronous `.scoped()` closure.
-    ///
-    /// The session-level GUC is cleared on `Drop` before the connection returns
-    /// to the pool.
-    pub fn unscoped_with_tenant(&mut self) -> AppResult<&mut PgConnection> {
-        diesel::sql_query("SELECT set_config('papercrate.tenant_id', $1, false)")
-            .bind::<Text, _>(self.tenant_id.to_string())
-            .execute(&mut self.conn)
-            .map_err(AppError::from)?;
-        Ok(&mut self.conn)
     }
 }
 

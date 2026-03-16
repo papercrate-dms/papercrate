@@ -8,7 +8,8 @@ import {
     moveDocumentToFolder,
     listFolderContents,
 } from '../../lib/api/apiClient';
-import type { DocumentId, FolderNodeId } from '../../types/identifiers';
+import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
+import { restoreDocument, trashDocument } from '../../lib/api/apiClient';
 import type { Document } from '../../types/documents';
 import type {
     DocumentsState,
@@ -98,10 +99,30 @@ export const useDocumentMoveMutations = ({
 
 
             try {
-                if (uniqueIds.length === 1) {
-                    await moveDocumentToFolder(uniqueIds[0], target);
+                if (targetFolderId === 'trash') {
+                    // Moving to trash = trashing
+                    const activeIds = movedDocs
+                        .filter(({ document }) => !document.deleted_at)
+                        .map(({ id }) => id);
+                    if (activeIds.length > 0) {
+                        await Promise.all(activeIds.map((id) => trashDocument(id)));
+                    }
                 } else {
-                    await moveDocumentsBulk(uniqueIds, target);
+                    // Documents that are trashed need restore, not move
+                    const trashedIds = movedDocs
+                        .filter(({ document }) => Boolean(document.deleted_at))
+                        .map(({ id }) => id);
+                    const activeIds = uniqueIds.filter((id) => !trashedIds.includes(id));
+
+                    if (trashedIds.length > 0) {
+                        await Promise.all(trashedIds.map((id) => restoreDocument(id, target as Identifier)));
+                    }
+
+                    if (activeIds.length === 1) {
+                        await moveDocumentToFolder(activeIds[0], target);
+                    } else if (activeIds.length > 1) {
+                        await moveDocumentsBulk(activeIds, target);
+                    }
                 }
 
                 const count = uniqueIds.length;

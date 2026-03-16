@@ -74,7 +74,7 @@ impl AppState {
     pub fn db_for_tenant(&self, tenant_id: Uuid) -> AppResult<TenantScopedConnection> {
         debug_assert!(!tenant_id.is_nil(), "nil tenant_id passed to db_for_tenant");
         let conn = self.db_unscoped()?;
-        Ok(TenantScopedConnection::new(conn, tenant_id))
+        TenantScopedConnection::new(conn, tenant_id)
     }
 
     pub(crate) fn db_unscoped(&self) -> AppResult<PgPooledConnection> {

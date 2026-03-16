@@ -46,10 +46,14 @@ export interface DocumentsViewProps {
 
 interface DocumentsPanelProps {
   headerLeading?: ReactNode;
+  floatingActions?: ReactNode;
+  emptyMessage?: string;
 }
 
+const DEFAULT_EMPTY_MESSAGE = 'No documents to show here yet. Drop files to make this space come alive.';
+
 const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) => {
-  const { headerLeading } = props;
+  const { headerLeading, floatingActions: floatingActionsProp, emptyMessage = DEFAULT_EMPTY_MESSAGE } = props;
 
   const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup, searchLoading: isSearchLoading } = useDocumentsSearch();
   const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
@@ -116,9 +120,9 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     ],
   );
 
-  const floatingActions = useMemo(() => (
+  const floatingActions = floatingActionsProp ?? (
     <SelectionFloatingPanel onClearSelection={clearSelection} />
-  ), [clearSelection]);
+  );
 
   const headerConfig: DocumentsPanelHeaderConfig = useMemo(() => ({
     title: headerTitle,
@@ -213,7 +217,7 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     if (!hasEntries) {
       return (
         <div className="empty-state">
-          No documents to show here yet. Drop files to make this space come alive.
+          {emptyMessage}
         </div>
       );
     }

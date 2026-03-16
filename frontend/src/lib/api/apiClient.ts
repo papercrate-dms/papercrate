@@ -124,6 +124,14 @@ export const trashDocument = async (documentId: Identifier): Promise<void> => {
   await api.post(`/documents/${documentId}/trash`);
 };
 
+export const restoreDocument = async (documentId: Identifier, folderId?: Identifier | null): Promise<void> => {
+  await api.post(`/documents/${documentId}/restore`, { folder_id: folderId ?? null });
+};
+
+export const purgeDocument = async (documentId: Identifier): Promise<void> => {
+  await api.delete(`/documents/${documentId}`);
+};
+
 export const addDocumentTags = async (documentId: Identifier, tagIds: Identifier[]): Promise<void> => {
   await api.post(`/documents/${documentId}/tags`, { tag_ids: tagIds });
 };
@@ -439,6 +447,10 @@ export const listFolderContents = async <T = any>(
   path: string,
   params?: Record<string, unknown>,
 ): Promise<T> => {
+  if (path === 'trash') {
+    const docs = await listDocuments({ status: 'deleted', ...params });
+    return { documents: docs, subfolders: [] } as T;
+  }
   const { data } = await api.get<T>(`/folders/${path}/contents`, { params });
   return data;
 };

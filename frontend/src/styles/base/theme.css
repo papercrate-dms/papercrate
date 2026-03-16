@@ -41,6 +41,13 @@
   --folder-icon-mid: color-mix(in oklch, var(--accent) 60%, white 30%);
   --folder-icon-front: color-mix(in oklch, var(--accent) 42%, white 58%);
 
+  --trash-icon-body-dark: color-mix(in oklch, var(--accent) 72%, black 16%);
+  --trash-icon-body-mid: color-mix(in oklch, var(--accent) 56%, black 4%);
+  --trash-icon-body-light: color-mix(in oklch, var(--accent) 40%, white 30%);
+  --trash-icon-lid: color-mix(in oklch, var(--muted) 20%, white 70%);
+  --trash-icon-lid-handle: var(--muted);
+  --trash-icon-arrows: white;
+
   --success-hue: 140deg;
   --warning-hue: 85deg;
   --danger-hue: 25deg;
@@ -139,6 +146,13 @@
   --folder-icon-back: color-mix(in oklch, var(--accent) 72%, black 12%);
   --folder-icon-mid: color-mix(in oklch, var(--accent) 50%, white 24%);
   --folder-icon-front: color-mix(in oklch, var(--accent) 30%, white 50%);
+
+  --trash-icon-body-dark: color-mix(in oklch, var(--accent) 65%, black 20%);
+  --trash-icon-body-mid: color-mix(in oklch, var(--accent) 48%, black 8%);
+  --trash-icon-body-light: color-mix(in oklch, var(--accent) 32%, white 20%);
+  --trash-icon-lid: color-mix(in oklch, var(--muted) 15%, white 40%);
+  --trash-icon-lid-handle: var(--muted);
+  --trash-icon-arrows: oklch(0.92 0 0);
 
   --accent-soft: color-mix(in oklch, var(--accent) 22%, transparent);
   --accent-elevated: color-mix(in oklch, var(--accent) 28%, transparent);

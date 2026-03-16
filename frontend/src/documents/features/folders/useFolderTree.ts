@@ -128,6 +128,7 @@ const useFolderTree = ({
 
   const currentFolderName = useMemo(() => {
     if (selectedFolder === 'root') return DEFAULT_FOLDER_NAME;
+    if (selectedFolder === 'trash') return 'Trash';
     const node = folderNodes.get(selectedFolder);
     return node?.name || DEFAULT_FOLDER_NAME;
   }, [selectedFolder, folderNodes]);

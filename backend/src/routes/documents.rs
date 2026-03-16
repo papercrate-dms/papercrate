@@ -360,7 +360,7 @@ pub async fn upload_document(
 
     let service = DocumentsService::new(&state);
     let outcome = match service
-        .upload_document(conn.unscoped_with_tenant()?, tenant_id, user_id, request)
+        .upload_document(conn.unscoped(), tenant_id, user_id, request)
         .await
     {
         Ok(outcome) => outcome,
@@ -657,14 +657,11 @@ pub async fn download_with_token(
         DownloadSubject::Document { doc_id, version_id } => {
             let doc_id = *doc_id;
             let version_id = *version_id;
-            let (doc, version) = conn.scoped(|tx| {
+            let (doc, version) = conn.scoped(|tx| -> AppResult<_> {
                 let doc: Document = documents::table
                     .find(doc_id)
                     .filter(documents::tenant_id.eq(claims.tenant_id))
                     .first(tx)?;
-                if doc.deleted_at.is_some() {
-                    return Err(AppError::not_found());
-                }
 
                 let version: DocumentVersion = document_versions::table
                     .find(version_id)
@@ -878,7 +875,7 @@ pub async fn update_document(
 ) -> AppResult<JsonResponse<DocumentDetailResponse>> {
     let service = DocumentsService::new(&state);
     let detail = service
-        .update_document(conn.unscoped_with_tenant()?, tenant_id, user_id, document_id, payload)
+        .update_document(conn.unscoped(), tenant_id, user_id, document_id, payload)
         .await?;
     ok_json(detail)
 }

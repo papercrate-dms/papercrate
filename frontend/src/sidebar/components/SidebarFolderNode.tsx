@@ -28,6 +28,8 @@ interface FolderNodeProps {
     onFolderDragEnd?: (event: React.DragEvent<HTMLDivElement>) => void;
     draggingFolderId?: FolderNodeId | null;
     onCreateFolder?: (parentId?: Identifier | null) => void;
+    icon?: ReactNode;
+    showActions?: boolean;
 }
 
 const FolderNode: React.FC<FolderNodeProps> = ({
@@ -41,6 +43,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({
     onDragLeave,
     onDelete,
     onRename,
+    icon: customIcon,
+    showActions = true,
     renderChildren,
     expanded,
     onFolderDragStart,
@@ -98,12 +102,12 @@ const FolderNode: React.FC<FolderNodeProps> = ({
                     {icon}
                 </span>
                 <span className="name-wrap">
-                    <FolderIcon className="folder-icon-image" size={16} />
+                    {customIcon ?? <FolderIcon className="folder-icon-image" size={16} />}
                     <span className="name__label" title={node.name}>
                         {node.name}
                     </span>
                 </span>
-                <div className="folder-row__actions">
+                {showActions ? <div className="folder-row__actions">
                     <button
                         type="button"
                         className="icon-button ghost"
@@ -153,7 +157,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
                             </button>
                         </>
                     )}
-                </div>
+                </div> : null}
             </div>
             {isExpanded && childNodes.length > 0 && (
                 <ul className={`folder-children${depth === 0 ? ' folder-children--level1' : ''}`}>

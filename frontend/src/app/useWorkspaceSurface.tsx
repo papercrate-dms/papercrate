@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 import { SidebarExpandIcon } from '../components/icons';
 import DocumentsPanel from '../documents/panel/DocumentsPanel';
 import DocumentViewerPanel from '../viewer/DocumentViewerPanel';
+import TrashFloatingActions from '../documents/features/selection/TrashFloatingActions';
 import { usePanelManager } from './PanelManagerContext';
 import { FolderManagerProvider } from '../folders/FolderManagerContext';
+import { useFolderTree } from '../lib/context/FolderTreeContext';
 import type { Identifier } from '../types/identifiers';
 
 type EnsureAssetUrl = (
@@ -62,6 +64,7 @@ export const useWorkspaceSurface = ({
   closeDocumentViewer,
 }: UseWorkspaceSurfaceArgs): UseWorkspaceSurfaceResult => {
   const { registerDetailCloseHandler, setDetailActive } = usePanelManager();
+  const { selectedFolder } = useFolderTree();
 
   useEffect(() => {
     const handler = detailPanelProps?.onClose || null;
@@ -141,10 +144,16 @@ export const useWorkspaceSurface = ({
       })()
       : null;
 
+    const trashProps = selectedFolder === 'trash' ? {
+      floatingActions: <TrashFloatingActions />,
+      emptyMessage: 'Trash is empty.',
+    } : {};
+
     return {
       content: (
         <DocumentsPanel
           headerLeading={sidebarToggle}
+          {...trashProps}
         />
       ),
       detail,
