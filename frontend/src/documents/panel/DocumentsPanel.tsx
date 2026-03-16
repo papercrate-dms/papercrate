@@ -223,12 +223,12 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
 
     switch (viewMode) {
       case 'desk':
-        return <DesktopWorkspace {...viewProps} defaultCardSize={iconSizes.desk} />;
+        return <DesktopWorkspace key={currentFolderId} {...viewProps} defaultCardSize={iconSizes.desk} />;
       case 'grid':
-        return <DocumentsGrid {...viewProps} iconSize={iconSizes.grid} />;
+        return <DocumentsGrid key={currentFolderId} {...viewProps} iconSize={iconSizes.grid} />;
       case 'list':
       default:
-        return <DocumentsList {...viewProps} iconSize={iconSizes.list} />;
+        return <DocumentsList key={currentFolderId} {...viewProps} iconSize={iconSizes.list} />;
     }
   };
 
