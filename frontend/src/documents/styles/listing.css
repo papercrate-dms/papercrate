@@ -242,6 +242,15 @@
   color: var(--muted);
 }
 
+.new-indicator {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
 .documents-panel thead th.sortable {
   cursor: pointer;
   user-select: none;

@@ -2,9 +2,10 @@ import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import useFileDrop from './useFileDrop';
 import { useStatusToast } from '../../../lib/context/StatusToastContext';
+import { markNew } from '../../../lib/context/NewDocumentsContext';
 import { DEFAULT_FOLDER_NAME, hasFiles } from '../../../app/workspaceUtils';
 import { fetchDocument, uploadDocument, resolveFolderPath } from '../../../lib/api/apiClient';
-import type { Identifier } from '../../../types/identifiers';
+import type { DocumentId, Identifier } from '../../../types/identifiers';
 
 type FolderId = Identifier | 'root' | null;
 
@@ -415,6 +416,13 @@ const useDocumentUploads = ({
             }
             continue;
           }
+        }
+
+        const newIds = queueItems
+          .filter((item) => item.status === 'success' && item.document?.id)
+          .map((item) => item.document.id as DocumentId);
+        if (newIds.length) {
+          markNew(newIds);
         }
 
         await refreshCurrentFolder();

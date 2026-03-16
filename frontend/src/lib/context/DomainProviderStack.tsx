@@ -6,6 +6,7 @@ import { CorrespondentsProvider, type CorrespondentsContextValue } from './Corre
 import { FolderTreeProvider, type FolderTreeContextValue } from './FolderTreeContext';
 import { DocumentsSearchProvider, type DocumentsSearchContextValue } from './DocumentsSearchContext';
 import { DocumentsWorkspaceProvider, type DocumentsWorkspaceContextValue } from './DocumentsWorkspaceContext';
+import { NewDocumentsProvider } from './NewDocumentsContext';
 
 export interface DomainValues {
   session: SessionContextValue;
@@ -30,7 +31,9 @@ const DomainProviderStack: React.FC<DomainProviderStackProps> = ({ domains, chil
           <FolderTreeProvider value={domains.folderTree}>
             <DocumentsSearchProvider value={domains.search}>
               <DocumentsWorkspaceProvider value={domains.workspace}>
-                {children}
+                <NewDocumentsProvider>
+                  {children}
+                </NewDocumentsProvider>
               </DocumentsWorkspaceProvider>
             </DocumentsSearchProvider>
           </FolderTreeProvider>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FolderIcon } from '../../components/icons';
 import DocumentThumbnailImage from '../DocumentThumbnailImage';
 import { resolveCorrespondents } from '../correspondents';
@@ -6,6 +6,8 @@ import type { DocumentsListEntry } from '../../types/documents';
 import { useDocumentsAssetContext } from '../context/DocumentsAssetContext';
 import { useDocumentsViewStateContext } from '../context/DocumentsViewStateContext';
 import { useDocumentsCommandContext } from '../context/DocumentsCommandContext';
+import { useNewDocuments } from '../../lib/context/NewDocumentsContext';
+import { useWorkspaceSelectionContext } from '../../app/WorkspaceSelectionContext';
 import type { DocumentViewLogic } from '../logic/useDocumentViewLogic';
 import EditableEntryTitle from './EditableEntryTitle';
 import EntryCorrespondents from './EntryCorrespondents';
@@ -28,6 +30,8 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
     const {
         correspondents: { onClick: onCorrespondentClick },
     } = useDocumentsCommandContext();
+    const { isNew, clearNew } = useNewDocuments();
+    const { selectedEntries } = useWorkspaceSelectionContext();
 
     if (entry.type === 'folder') {
         const folder = entry.folder;
@@ -66,6 +70,14 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
     if (!doc) return null;
 
     const correspondents = resolveCorrespondents(doc, correspondentLookupById);
+    const docIsNew = isNew(doc.id);
+    const docIsSelected = (selectedEntries || []).includes(`document:${doc.id}`);
+
+    useEffect(() => {
+        if (docIsSelected && docIsNew) {
+            clearNew(doc.id);
+        }
+    }, [docIsSelected, docIsNew, doc, clearNew]);
 
     return (
         <DocumentEntry
@@ -76,7 +88,8 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
             className="document-card document"
             role="listitem"
         >
-            {(logic) => (
+            {(logic) => {
+                return (
                 <>
                     <DocumentThumbnailImage
                         document={doc}
@@ -94,6 +107,7 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
                                 onCorrespondentClick={onCorrespondentClick}
                             />
                             <div className="document-card__title-row">
+                                {docIsNew && <span className="new-indicator" aria-label="Recently uploaded" />}
                                 <EditableEntryTitle
                                     rename={logic.documentRenameProps}
                                     className="document-card__title-badge"
@@ -112,7 +126,8 @@ const DocumentsGridCard: React.FC<DocumentsGridCardProps> = (props) => {
                         </div>
                     </div>
                 </>
-            )}
+                );
+            }}
         </DocumentEntry>
     );
 };

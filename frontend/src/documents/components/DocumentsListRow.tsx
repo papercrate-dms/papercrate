@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FolderIcon } from '../../components/icons';
 import { formatDate } from '../../utils/date';
 import DocumentThumbnailImage from '../DocumentThumbnailImage';
@@ -7,6 +7,8 @@ import type { DocumentsListEntry } from '../../types/documents';
 import { useDocumentsAssetContext } from '../context/DocumentsAssetContext';
 import { useDocumentsViewStateContext } from '../context/DocumentsViewStateContext';
 import { useDocumentsCommandContext } from '../context/DocumentsCommandContext';
+import { useNewDocuments } from '../../lib/context/NewDocumentsContext';
+import { useWorkspaceSelectionContext } from '../../app/WorkspaceSelectionContext';
 import type { DocumentViewLogic } from '../logic/useDocumentViewLogic';
 import EditableEntryTitle from './EditableEntryTitle';
 import EntryCorrespondents from './EntryCorrespondents';
@@ -30,6 +32,8 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
     const {
         correspondents: { onClick: onCorrespondentClick },
     } = useDocumentsCommandContext();
+    const { isNew, clearNew } = useNewDocuments();
+    const { selectedEntries } = useWorkspaceSelectionContext();
 
     if (entry.type === 'folder') {
         const folder = entry.folder;
@@ -78,6 +82,15 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
     const issuedLabel = formatDate(doc.issued_at);
     const addedLabel = formatDate(doc.created_at || doc.uploaded_at);
 
+    const docIsNew = doc ? isNew(doc.id) : false;
+    const docIsSelected = doc ? (selectedEntries || []).includes(`document:${doc.id}`) : false;
+
+    useEffect(() => {
+        if (docIsSelected && docIsNew && doc) {
+            clearNew(doc.id);
+        }
+    }, [docIsSelected, docIsNew, doc, clearNew]);
+
     return (
         <DocumentEntry
             doc={doc}
@@ -86,7 +99,8 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
             component="tr"
             className="document"
         >
-            {(logic) => (
+            {(logic) => {
+                return (
                 <>
                     <td className="thumb-cell">
                         <DocumentThumbnailImage
@@ -108,6 +122,7 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
                                         onCorrespondentClick={onCorrespondentClick}
                                     />
                                     <span className="doc-name__primary">
+                                        {docIsNew && <span className="new-indicator" aria-label="Recently uploaded" />}
                                         <EditableEntryTitle
                                             rename={logic.documentRenameProps}
                                             className="doc-name__primary-text"
@@ -130,7 +145,8 @@ const DocumentsListRow: React.FC<DocumentsListRowProps> = (props) => {
                     <td>{issuedLabel}</td>
                     <td>{addedLabel}</td>
                 </>
-            )}
+                );
+            }}
         </DocumentEntry>
     );
 };
