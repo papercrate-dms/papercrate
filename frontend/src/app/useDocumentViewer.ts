@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import type {
   Dispatch,
   MutableRefObject,
@@ -129,12 +129,21 @@ const useDocumentViewer = ({
     };
   }, [routeDocumentId, ensureViewerData, notifyApiError, closeDocumentViewer]);
 
-  const viewerWorkspaceDocument = useMemo(() => {
-    if (!routeDocumentId) {
-      return null;
-    }
-    return documentsManager.getById(routeDocumentId);
-  }, [routeDocumentId, documentsManager]);
+  const getViewerDocument = useCallback(
+    () => routeDocumentId ? documentsManager.getById(routeDocumentId) : null,
+    [routeDocumentId, documentsManager],
+  );
+
+  const subscribeToManager = useCallback(
+    (cb: () => void) => documentsManager.subscribe(cb),
+    [documentsManager],
+  );
+
+  const viewerWorkspaceDocument = useSyncExternalStore(
+    subscribeToManager,
+    getViewerDocument,
+    getViewerDocument,
+  );
 
   const viewerActive = Boolean(routeDocumentId && viewerWorkspaceDocument);
 
