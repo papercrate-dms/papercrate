@@ -11,13 +11,8 @@ import {
   IconZoomInArea,
   WindowMaximizeIcon,
 } from '../components/icons';
-import {
-  buildCorrespondentOptions,
-  sortCorrespondents,
-} from './components/DocumentSummarySection';
 import DocumentDownloadLink from '../documents/components/DocumentDownloadLink';
 import { useFullscreenPreviewContext } from './FullscreenPreviewContext';
-import type { DocumentSummarySectionProps } from './components/DocumentSummarySection';
 import { extractDocumentMetadataPayload } from './logic/documentSummary';
 import { resolveDocumentAssetUrl } from '../lib/assets/AssetManager';
 import PanelHeader from '../components/PanelHeader';
@@ -31,8 +26,18 @@ import type { Asset } from '../types/assets';
 
 type SidebarMode = 'overlay' | 'inline';
 
-interface DocumentViewerPanelProps extends DocumentSummarySectionProps {
+interface DocumentViewerPanelProps {
   document: Document | null;
+
+  // Summary section action callbacks (document-specific)
+  tagOptions?: any[];
+  onTagAdd?: (...args: unknown[]) => void;
+  onTagRemove?: (...args: unknown[]) => void;
+  correspondentOptions?: any[];
+  onCorrespondentAdd?: (...args: unknown[]) => void;
+  onCorrespondentRemove?: (...args: unknown[]) => void;
+  onUpdateTitle?: (...args: unknown[]) => unknown;
+  onUpdateIssued?: (...args: unknown[]) => unknown;
 
   ensureAssetUrl?: (documentId: DocumentId, asset: Asset, options?: { force?: boolean }) => Promise<unknown>;
   getDocumentAsset?: (doc: Document | null, type: string) => Asset | null;
@@ -62,12 +67,10 @@ const createDocumentViewerHeaderActions = ({
 
 const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   document,
-  tagLookupById,
   tagOptions,
   onTagAdd,
   onTagRemove,
-  correspondents,
-  correspondentLookupById,
+  correspondentOptions,
   onCorrespondentAdd,
   onCorrespondentRemove,
   onUpdateTitle,
@@ -84,16 +87,6 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
 }) => {
   const navigate = useNavigate();
   const isSidebarVariant = variant === 'sidebar';
-  const sortedCorrespondents = useMemo(
-    () => sortCorrespondents(document?.correspondents || []),
-    [document],
-  );
-
-  const correspondentOptions = useMemo(
-    () => buildCorrespondentOptions(Array.isArray(correspondents) ? correspondents : []),
-    [correspondents],
-  );
-
   const metadataPayload = useMemo(
     () => extractDocumentMetadataPayload(document),
     [document],
@@ -130,12 +123,9 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
 
   const summaryProps = useMemo(
     () => ({
-      tagLookupById,
       tagOptions,
       onTagAdd,
       onTagRemove,
-      correspondents: sortedCorrespondents,
-      correspondentLookupById,
       correspondentOptions,
       onCorrespondentAdd,
       onCorrespondentRemove,
@@ -144,12 +134,9 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
       onFolderNavigate: navigateToFolder,
     }),
     [
-      tagLookupById,
       tagOptions,
       onTagAdd,
       onTagRemove,
-      sortedCorrespondents,
-      correspondentLookupById,
       correspondentOptions,
       onCorrespondentAdd,
       onCorrespondentRemove,
@@ -159,10 +146,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
     ],
   );
 
-  const infoPanelProps = useMemo(() => ({
-    tagLookupById,
-    correspondentLookupById,
-  }), [tagLookupById, correspondentLookupById]);
+  const infoPanelProps = useMemo(() => ({}), []);
 
   const loadOcrContent = useCallback(async ({ signal }: { signal?: AbortSignal } = {}) => {
     if (!document || !hasOcr || !getDocumentAsset) {

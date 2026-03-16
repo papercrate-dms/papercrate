@@ -167,12 +167,9 @@ export const useWorkspaceSurface = ({
     const sidebarToggle = renderSidebarToggle ? renderSidebarToggle() : null;
     const detailExtras = detailPanelProps || {};
     const {
-      tagLookupById,
       tags: tagOptions,
       onTagAdd,
       onTagRemove,
-      correspondents,
-      correspondentLookupById,
       onCorrespondentAdd,
       onCorrespondentRemove,
       onUpdateTitle,
@@ -180,18 +177,16 @@ export const useWorkspaceSurface = ({
       resolveFolderPath,
       folderNodes,
       ensureFolderData,
+      correspondentOptions,
     } = detailExtras;
 
     const viewer = (
       <DocumentViewerPanel
         document={viewerWorkspaceDocument || null}
-        hydrateDocument={ensureViewerData}
-        tagLookupById={tagLookupById}
         tagOptions={tagOptions}
         onTagAdd={onTagAdd}
         onTagRemove={onTagRemove}
-        correspondents={correspondents}
-        correspondentLookupById={correspondentLookupById}
+        correspondentOptions={correspondentOptions}
         onCorrespondentAdd={onCorrespondentAdd}
         onCorrespondentRemove={onCorrespondentRemove}
         onUpdateTitle={onUpdateTitle}

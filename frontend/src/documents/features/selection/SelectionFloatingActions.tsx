@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_FOLDER_NAME } from '../../../app/workspaceUtils';
 import { useFolderTree } from '../../../lib/context/FolderTreeContext';
+import { useTags } from '../../../lib/context/TagsContext';
+import { useCorrespondents } from '../../../lib/context/CorrespondentsContext';
+import { useDocumentsSearch } from '../../../lib/context/DocumentsSearchContext';
+import { useDocumentsWorkspaceContext } from '../../../lib/context/DocumentsWorkspaceContext';
 
 import {
   TrashIcon,
@@ -58,19 +62,7 @@ interface SelectionFloatingActionsProps {
   selectionCount?: number;
   selectedDocumentIds?: SelectedIdList;
   selectedFolderIds?: SelectedIdList;
-  documentLookup?: Map<DocumentId, Document> | null;
-  tags?: TagOption[] | null;
-  tagLookupById?: Map<DocumentId, TagOption> | null;
-  correspondents?: CorrespondentOption[] | null;
-  correspondentLookupById?: Map<DocumentId, CorrespondentOption> | null;
-  onBulkTagAdd?: (args: BulkTagMutationArgs) => Promise<void> | void;
-  onBulkTagRemove?: (args: BulkTagMutationArgs) => Promise<void> | void;
-  onBulkCorrespondentAdd?: (args: BulkCorrespondentAddArgs) => Promise<void> | void;
-  onBulkCorrespondentRemove?: (args: BulkCorrespondentRemoveArgs) => Promise<void> | void;
-  onBulkReanalyze?: (documentIds: DocumentId[]) => Promise<void> | void;
-  onDeleteSelection?: () => void;
   onClearSelection?: () => void;
-  onMoveDocumentsToFolder?: (documentIds: DocumentId[], folderId: DocumentId | null) => Promise<void> | void;
 }
 
 const normalizeDocumentList = (selectedIds?: SelectedIdList): DocumentId[] =>
@@ -213,28 +205,18 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
   selectionCount = 0,
   selectedDocumentIds = [],
   selectedFolderIds = [],
-  documentLookup,
-  tags = [],
-  tagLookupById,
-  correspondents = [],
-  correspondentLookupById,
-  onBulkTagAdd,
-  onBulkTagRemove,
-  onBulkCorrespondentAdd,
-  onBulkCorrespondentRemove,
-  onBulkReanalyze,
-  onDeleteSelection,
   onClearSelection = null,
-  onMoveDocumentsToFolder,
 }) => {
-
+  const { tags, tagLookupById, handleBulkTagAddFromDetail: onBulkTagAdd, handleBulkTagRemoveFromDetail: onBulkTagRemove } = useTags();
+  const { correspondents, correspondentLookupById, handleBulkCorrespondentAdd: onBulkCorrespondentAdd, handleBulkCorrespondentRemove: onBulkCorrespondentRemove } = useCorrespondents();
+  const { documentLookup } = useDocumentsSearch();
+  const { handleDeleteSelection: onDeleteSelection, handleBulkSelectionReanalyze: onBulkReanalyze } = useDocumentsWorkspaceContext();
+  const { foldersManager, moveDocumentsToFolder: onMoveDocumentsToFolder } = useFolderTree();
 
   const documentLookupMap = useMemo(() => (
     documentLookup instanceof Map ? documentLookup : new Map<DocumentId, Document>()
   ), [documentLookup]);
   const tagLookupMap = tagLookupById instanceof Map ? tagLookupById : null;
-
-  const { foldersManager } = useFolderTree();
 
   const [remoteFolderTree, setRemoteFolderTree] = useState<FolderTreeNode[]>([]);
 
@@ -320,9 +302,9 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
         return;
       }
       if (item.state === 'all') {
-        await onBulkTagRemove?.({ label: item.label || '', input: null, documentIds: documentIdList });
+        await (onBulkTagRemove as any)?.({ label: item.label || '', input: null, documentIds: documentIdList });
       } else {
-        await onBulkTagAdd?.({ label: item.label || '', input: null, documentIds: documentIdList });
+        await (onBulkTagAdd as any)?.({ label: item.label || '', input: null, documentIds: documentIdList });
       }
     },
     [selectedDocCount, onBulkTagAdd, onBulkTagRemove, documentIdList],
@@ -333,7 +315,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
       if (!selectedDocCount || !label) {
         return;
       }
-      await onBulkTagAdd?.({ label, input: null, documentIds: documentIdList });
+      await (onBulkTagAdd as any)?.({ label, input: null, documentIds: documentIdList });
     },
     [selectedDocCount, onBulkTagAdd, documentIdList],
   );
@@ -347,12 +329,12 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
         if (!item.id) {
           return;
         }
-        await onBulkCorrespondentRemove?.({
+        await (onBulkCorrespondentRemove as any)?.({
           assignments: [{ correspondent_id: item.id }],
           documentIds: documentIdList,
         });
       } else {
-        await onBulkCorrespondentAdd?.({ name: item.label || '', input: null, documentIds: documentIdList });
+        await (onBulkCorrespondentAdd as any)?.({ name: item.label || '', input: null, documentIds: documentIdList });
       }
     },
     [selectedDocCount, onBulkCorrespondentAdd, onBulkCorrespondentRemove, documentIdList],
@@ -363,7 +345,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
       if (!selectedDocCount || !name) {
         return;
       }
-      await onBulkCorrespondentAdd?.({ name, input: null, documentIds: documentIdList });
+      await (onBulkCorrespondentAdd as any)?.({ name, input: null, documentIds: documentIdList });
     },
     [selectedDocCount, onBulkCorrespondentAdd, documentIdList],
   );
@@ -418,7 +400,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
         <button
           type="button"
           className="icon-button panel-floating-actions__button"
-          onClick={() => onBulkReanalyze(documentIdList)}
+          onClick={() => (onBulkReanalyze as any)(documentIdList)}
           aria-label="Re-run analysis for selection"
           title="Re-run analysis for selection"
           disabled={documentIdList.length === 0}
@@ -430,7 +412,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
         <button
           type="button"
           className="icon-button danger panel-floating-actions__button"
-          onClick={onDeleteSelection}
+          onClick={() => (onDeleteSelection as any)()}
           aria-label="Delete selected items"
           disabled={totalCount === 0}
         >
@@ -497,9 +479,7 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
   );
 };
 
-type SelectionFloatingPanelProps = Omit<SelectionFloatingActionsProps, 'selectedDocumentIds' | 'selectedFolderIds' | 'selectionCount'>;
-
-export const SelectionFloatingPanel: React.FC<SelectionFloatingPanelProps> = ({ onClearSelection, ...rest }) => {
+export const SelectionFloatingPanel: React.FC<{ onClearSelection?: () => void }> = ({ onClearSelection }) => {
   const { selectedDocumentIds, selectedFolderIds, clearSelection } = useWorkspaceSelectionContext();
   const documentIds = Array.isArray(selectedDocumentIds) ? selectedDocumentIds : [];
   const folderIds = Array.isArray(selectedFolderIds) ? selectedFolderIds : [];
@@ -516,7 +496,6 @@ export const SelectionFloatingPanel: React.FC<SelectionFloatingPanelProps> = ({ 
           selectedDocumentIds={documentIds}
           selectedFolderIds={folderIds}
           onClearSelection={handleClear}
-          {...rest}
         />
       </div>
     </div>

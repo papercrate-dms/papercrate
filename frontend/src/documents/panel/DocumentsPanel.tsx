@@ -33,8 +33,6 @@ import { DocumentsAssetContext } from '../context/DocumentsAssetContext';
 import { DocumentsViewStateContext } from '../context/DocumentsViewStateContext';
 import { DocumentsCommandContext } from '../context/DocumentsCommandContext';
 import { useDocumentsContextValues } from './useDocumentsContextValues';
-import { useTags } from '../../lib/context/TagsContext';
-import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
 import { useFolderTree } from '../../lib/context/FolderTreeContext';
 import { useDocumentsSearch } from '../../lib/context/DocumentsSearchContext';
 import { useDocumentsWorkspaceContext } from '../../lib/context/DocumentsWorkspaceContext';
@@ -53,12 +51,8 @@ interface DocumentsPanelProps {
 const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) => {
   const { headerLeading } = props;
 
-  const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup } = useDocumentsSearch();
-  const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, folderOptions, moveDocumentsToFolder: onMoveDocumentsToFolder, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
-  const { handleDeleteSelection: onDeleteSelection, handleBulkSelectionReanalyze: onBulkReanalyze } = useDocumentsWorkspaceContext();
-  const { tags, tagLookupById, handleBulkTagAddFromDetail: onBulkTagAdd, handleBulkTagRemoveFromDetail: onBulkTagRemove } = useTags();
-  const { correspondents, correspondentLookupById, handleBulkCorrespondentAdd: onBulkCorrespondentAdd, handleBulkCorrespondentRemove: onBulkCorrespondentRemove } = useCorrespondents();
-  const { searchLoading: isSearchLoading } = useDocumentsSearch();
+  const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsViewModeChange: onViewModeChange, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup, searchLoading: isSearchLoading } = useDocumentsSearch();
+  const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
 
   const {
     assetContextValue,
@@ -123,38 +117,8 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
   );
 
   const floatingActions = useMemo(() => (
-    <SelectionFloatingPanel
-      documentLookup={documentLookup}
-      tags={tags}
-      tagLookupById={tagLookupById}
-      correspondents={correspondents}
-      correspondentLookupById={correspondentLookupById}
-      onBulkTagAdd={onBulkTagAdd}
-      onBulkTagRemove={onBulkTagRemove}
-      onBulkCorrespondentAdd={onBulkCorrespondentAdd}
-      onBulkCorrespondentRemove={onBulkCorrespondentRemove}
-      onBulkReanalyze={onBulkReanalyze}
-      onDeleteSelection={onDeleteSelection}
-      folderOptions={folderOptions}
-      onMoveDocumentsToFolder={onMoveDocumentsToFolder}
-      onClearSelection={clearSelection}
-    />
-  ), [
-    documentLookup,
-    tags,
-    tagLookupById,
-    correspondents,
-    correspondentLookupById,
-    onBulkTagAdd,
-    onBulkTagRemove,
-    onBulkCorrespondentAdd,
-    onBulkCorrespondentRemove,
-    onBulkReanalyze,
-    onDeleteSelection,
-    folderOptions,
-    onMoveDocumentsToFolder,
-    clearSelection,
-  ]);
+    <SelectionFloatingPanel onClearSelection={clearSelection} />
+  ), [clearSelection]);
 
   const headerConfig: DocumentsPanelHeaderConfig = useMemo(() => ({
     title: headerTitle,

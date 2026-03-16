@@ -16,6 +16,8 @@ import { describeDocumentSummary, type DocumentSummaryRow } from '../logic/docum
 
 import { useFolderManager } from '../../folders/FolderManagerContext';
 import { resolveTags, resolveCorrespondentIds } from '../../utils/resolveAssets';
+import { useTags } from '../../lib/context/TagsContext';
+import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
 import type { Document, Tag, Correspondent } from '../../types/documents';
 import type { FolderId, Identifier, TagId } from '../../types/identifiers';
 
@@ -43,12 +45,9 @@ interface CorrespondentSectionProps {
 
 export interface DocumentSummarySectionProps {
   document?: Document | null;
-  tagLookupById?: Map<TagId, Tag>;
   tagOptions?: SelectionAssignmentMenuItem[];
   onTagAdd?: (doc: Document, value: string, context?: { option?: unknown }) => void;
   onTagRemove?: (docId: Identifier | undefined, tagId: TagId | undefined) => void;
-  correspondents?: Correspondent[];
-  correspondentLookupById?: Map<Identifier, Correspondent>;
   correspondentOptions?: SelectionAssignmentMenuItem[];
   onCorrespondentAdd?: (payload: { document: Document; name: string; option?: unknown }) => void;
   onCorrespondentRemove?: (payload: { documentId: Identifier | undefined; correspondentId: Identifier | undefined }) => void;
@@ -427,12 +426,9 @@ const CorrespondentSection: React.FC<CorrespondentSectionProps> = ({
 
 const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
   document,
-  tagLookupById = new Map(),
   tagOptions = [],
   onTagAdd,
   onTagRemove,
-  correspondents,
-  correspondentLookupById,
   correspondentOptions = [],
   onCorrespondentAdd,
   onCorrespondentRemove,
@@ -442,6 +438,8 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
   layout = 'default',
 }) => {
   const folderManager = useFolderManager();
+  const { tagLookupById } = useTags();
+  const { correspondents, correspondentLookupById } = useCorrespondents();
   const isCompactLayout = layout === 'compact';
   const summaryRows = useMemo(() => describeDocumentSummary(document, { tagLookupById }), [document, tagLookupById]);
   const issuedDateLabel = useMemo(
