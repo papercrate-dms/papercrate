@@ -431,7 +431,16 @@
   cursor: pointer;
   padding: 0.4rem 0.5rem;
   border-radius: 0.35rem;
+  text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+a.menu__button,
+a.menu__button:visited,
+a.menu__button:hover,
+a.menu__button:focus-visible {
+  color: inherit;
+  text-decoration: none;
 }
 
 .menu__footer {

@@ -5,6 +5,7 @@ import {
     GithubIcon,
     MatrixIcon,
     WorldIcon,
+    ApiIcon,
     CheckIcon,
     SettingsIcon,
     LogoutIcon,
@@ -13,6 +14,7 @@ import {
     MoonIcon,
     DesktopIcon,
 } from '../../components/icons';
+import api from '../../lib/api/api';
 import { useSidebarContext } from '../SidebarContext';
 import { THEME_MODE_LABELS, THEME_MODES } from '../../constants/sidebar';
 import type { Identifier } from '../../types/identifiers';
@@ -28,6 +30,8 @@ interface CommunityLink {
     title: string;
     Icon: typeof GithubIcon;
 }
+
+const apiDocsUrl = `${api.defaults.baseURL || '/api'}/docs`;
 
 const COMMUNITY_LINKS: CommunityLink[] = [
     {
@@ -296,6 +300,16 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
                         <SettingsIcon size={16} />
                         Settings
                     </button>
+                    <a
+                        href={apiDocsUrl}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="menu__button"
+                        role="menuitem"
+                    >
+                        <ApiIcon size={16} />
+                        API Docs
+                    </a>
                     <button
                         type="button"
                         className="menu__button menu__button--danger"

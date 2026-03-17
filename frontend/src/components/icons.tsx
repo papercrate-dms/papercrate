@@ -47,6 +47,7 @@ import {
   IconBrandGithub,
   IconBrandMatrix,
   IconWorld,
+  IconApi,
 } from '@tabler/icons-react';
 import FolderSvg from '../assets/folder.svg';
 const logoWebp = new URL('../assets/logo.webp', import.meta.url).toString();
@@ -80,6 +81,7 @@ export const IconZoomInArea = createIcon(TablerZoomInArea);
 export const GithubIcon = createIcon(IconBrandGithub);
 export const MatrixIcon = createIcon(IconBrandMatrix);
 export const WorldIcon = createIcon(IconWorld);
+export const ApiIcon = createIcon(IconApi);
 export const ViewListIcon = createIcon(IconLayoutList);
 export const ViewGridIcon = createIcon(IconLayoutGrid);
 export const UploadIcon = createIcon(IconUpload);
