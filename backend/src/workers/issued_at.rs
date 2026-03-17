@@ -683,6 +683,7 @@ mod tests {
             webauthn_rp_id: Some("localhost".to_string()),
             webauthn_origin: Some("http://localhost".to_string()),
             webauthn_rp_name: "Papercrate".to_string(),
+            webdav_path_prefix: None,
         }
     }
 

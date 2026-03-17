@@ -36,8 +36,6 @@ spec:
               containerPort: {{ .Values.frontend.service.port }}
               protocol: TCP
           env:
-            - name: API_PROXY_PASS
-              value: {{ printf "http://%s-backend:%d" (include "papercrate.fullname" . ) (int (.Values.backend.service.port)) | quote }}
             {{- range .Values.frontend.env.extra }}
             - name: {{ .name }}
               value: {{ .value | quote }}

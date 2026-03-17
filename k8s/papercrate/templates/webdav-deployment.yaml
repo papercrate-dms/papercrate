@@ -46,6 +46,10 @@ spec:
               value: 0.0.0.0
             - name: WEBDAV_PORT
               value: {{ .Values.webdav.service.port | quote }}
+            {{- with .Values.webdav.pathPrefix }}
+            - name: WEBDAV_PATH_PREFIX
+              value: {{ . | quote }}
+            {{- end }}
             {{- with .Values.global.s3.endpoint }}
             - name: AWS_ENDPOINT_URL
               value: {{ . | quote }}

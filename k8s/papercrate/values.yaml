@@ -31,6 +31,7 @@ backend:
 webdav:
   enabled: true
   replicaCount: 1
+  pathPrefix: /webdav
   image:
     repository: ghcr.io/papercrate-dms/papercrate-backend
     tag: ""
@@ -98,19 +99,27 @@ ingress:
   className: ""
   annotations: {}
   hosts:
-    - host: app.papercrate.local
+    - host: papercrate.local
       paths:
+        - path: /webdav
+          pathType: Prefix
+          service:
+            name: webdav
+            port: http
+        - path: /api
+          pathType: Prefix
+          service:
+            name: backend
+            port: http
+        - path: /download
+          pathType: Prefix
+          service:
+            name: backend
+            port: http
         - path: /
           pathType: Prefix
           service:
             name: frontend
-            port: http
-    - host: api.papercrate.local
-      paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: backend
             port: http
   tls: []
 

@@ -52,19 +52,35 @@ async fn webdav_entrypoint(
 ) -> Result<Response, AppError> {
     let method = req.method().clone();
     let headers = req.headers().clone();
-    let path = req.uri().path().trim_start_matches('/').to_string();
+    let prefix = state.config.webdav_prefix();
+    let raw_path = req.uri().path();
+
+    // Strip the configured path prefix (e.g. "/webdav") so that internal
+    // routing always sees a root-relative path.
+    let path_after_prefix = if !prefix.is_empty() {
+        match raw_path.strip_prefix(prefix) {
+            // Exact prefix match ("/webdav") or path continues ("/webdav/…")
+            Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
+            // Request doesn't match the prefix at all → 404
+            _ => return Ok(not_found_response()),
+        }
+    } else {
+        raw_path
+    };
+
+    let path = path_after_prefix.trim_start_matches('/').to_string();
 
     tracing::debug!(method = %method, %path, "webdav entrypoint" );
 
     match method {
         ref m if m == Method::OPTIONS => Ok(handle_options()),
-        ref m if m == Method::GET => handle_get_or_head(&state, &path, headers, Method::GET).await,
+        ref m if m == Method::GET => handle_get_or_head(&state, &path, &headers, Method::GET).await,
         ref m if m == Method::HEAD => {
-            handle_get_or_head(&state, &path, headers, Method::HEAD).await
+            handle_get_or_head(&state, &path, &headers, Method::HEAD).await
         }
         _ => {
             if method.as_str() == "PROPFIND" {
-                handle_propfind(&state, &path, headers).await
+                handle_propfind(&state, &path, &headers).await
             } else {
                 Ok(method_not_allowed())
             }
@@ -75,26 +91,27 @@ async fn webdav_entrypoint(
 async fn handle_propfind(
     state: &AppState,
     path: &str,
-    headers: HeaderMap,
+    headers: &HeaderMap,
 ) -> Result<Response, AppError> {
-    let mut context = match authenticate(state, &headers)? {
+    let mut context = match authenticate(state, headers)? {
         Some(user) => user,
         None => return Ok(unauthorized_response()),
     };
 
-    let depth = match parse_depth(&headers) {
+    let depth = match parse_depth(headers) {
         Ok(value) => value,
         Err(response) => return Ok(response),
     };
 
     let segments = parse_segments(path)?;
+    let prefix = state.config.webdav_prefix();
 
     let tenant_id = context.tenant_id;
 
     let resources: Option<Vec<DavResource>> = context.conn.scoped(|tx| -> AppResult<_> {
         if segments.is_empty() {
             let contents = fetch_folder_contents(tx, tenant_id, None)?;
-            Ok(Some(build_resources_for_folder(None, &[], &contents, depth)))
+            Ok(Some(build_resources_for_folder(prefix, None, &[], &contents, depth)))
         } else {
             let resolution = match resolve_path(tx, tenant_id, &segments)? {
                 Some(resolved) => resolved,
@@ -105,13 +122,13 @@ async fn handle_propfind(
                 ResolvedPath::Folder { folder, chain } => {
                     let contents =
                         fetch_folder_contents(tx, tenant_id, Some(folder.id))?;
-                    Ok(Some(build_resources_for_folder(Some(&folder), &chain, &contents, depth)))
+                    Ok(Some(build_resources_for_folder(prefix, Some(&folder), &chain, &contents, depth)))
                 }
                 ResolvedPath::Document {
                     document,
                     version,
                     chain,
-                } => Ok(Some(build_resources_for_document(&chain, &document, &version))),
+                } => Ok(Some(build_resources_for_document(prefix, &chain, &document, &version))),
             }
         }
     })?;
@@ -138,10 +155,10 @@ async fn handle_propfind(
 async fn handle_get_or_head(
     state: &AppState,
     path: &str,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     method: Method,
 ) -> Result<Response, AppError> {
-    let mut context = match authenticate(state, &headers)? {
+    let mut context = match authenticate(state, headers)? {
         Some(user) => user,
         None => return Ok(unauthorized_response()),
     };
@@ -170,7 +187,7 @@ async fn handle_get_or_head(
         _ => return Ok(method_not_allowed()),
     };
 
-    stream_document(state, &document, &version, &chain, headers, method).await
+    stream_document(state, &document, &version, &chain, headers.clone(), method).await
 }
 
 fn handle_options() -> Response {
@@ -544,6 +561,7 @@ fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Option<WebDavCo
 }
 
 fn build_resources_for_folder(
+    prefix: &str,
     folder: Option<&Folder>,
     chain: &[String],
     contents: &WebDavFolderContents,
@@ -555,7 +573,7 @@ fn build_resources_for_folder(
         .map(|folder| folder.name.clone())
         .unwrap_or_else(|| chain.last().cloned().unwrap_or_else(|| "/".to_string()));
 
-    let href = build_href(chain, true);
+    let href = build_href(prefix, chain, true);
     let last_modified = folder.map(|folder| to_http_date(folder.updated_at));
 
     resources.push(DavResource {
@@ -575,7 +593,7 @@ fn build_resources_for_folder(
         let mut child_chain = chain.to_vec();
         child_chain.push(subfolder.name.clone());
         resources.push(DavResource {
-            href: build_href(&child_chain, true),
+            href: build_href(prefix, &child_chain, true),
             display_name: subfolder.name.clone(),
             is_collection: true,
             content_length: None,
@@ -588,6 +606,7 @@ fn build_resources_for_folder(
         let mut child_chain = chain.to_vec();
         child_chain.push(entry.document.filename.clone());
         resources.push(document_to_resource(
+            prefix,
             &child_chain,
             &entry.document,
             &entry.version,
@@ -598,19 +617,21 @@ fn build_resources_for_folder(
 }
 
 fn build_resources_for_document(
+    prefix: &str,
     chain: &[String],
     document: &Document,
     version: &DocumentVersion,
 ) -> Vec<DavResource> {
-    vec![document_to_resource(chain, document, version)]
+    vec![document_to_resource(prefix, chain, document, version)]
 }
 
 fn document_to_resource(
+    prefix: &str,
     chain: &[String],
     document: &Document,
     version: &DocumentVersion,
 ) -> DavResource {
-    let href = build_href(chain, false);
+    let href = build_href(prefix, chain, false);
 
     DavResource {
         href,
@@ -622,9 +643,9 @@ fn document_to_resource(
     }
 }
 
-fn build_href(names: &[String], is_collection: bool) -> String {
+fn build_href(prefix: &str, names: &[String], is_collection: bool) -> String {
     if names.is_empty() {
-        return "/".to_string();
+        return format!("{}/", prefix);
     }
 
     let encoded = names
@@ -632,7 +653,7 @@ fn build_href(names: &[String], is_collection: bool) -> String {
         .map(|name| utf8_percent_encode(name, NON_ALPHANUMERIC).to_string())
         .collect::<Vec<_>>();
 
-    let mut path = format!("/{}", encoded.join("/"));
+    let mut path = format!("{}/{}", prefix, encoded.join("/"));
     if is_collection && !path.ends_with('/') {
         path.push('/');
     }

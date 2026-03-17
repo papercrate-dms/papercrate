@@ -10,10 +10,12 @@ async fn main() -> anyhow::Result<()> {
     let state = init_component("webdav", None).await?;
     let webdav_host = state.config.webdav_host.clone();
     let webdav_port = state.config.webdav_port;
+    let webdav_prefix = state.config.webdav_prefix();
     tracing::info!(
         component = "webdav",
         webdav_host = %webdav_host,
         webdav_port,
+        webdav_path_prefix = %webdav_prefix,
         "starting webdav server"
     );
 

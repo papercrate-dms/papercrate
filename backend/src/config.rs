@@ -22,6 +22,8 @@ pub struct AppConfig {
     pub webdav_host: String,
     #[serde(default = "default_webdav_port")]
     pub webdav_port: u16,
+    #[serde(default)]
+    pub webdav_path_prefix: Option<String>,
     pub jwt_secret: String,
     #[serde(default = "default_jwt_issuer")]
     pub jwt_issuer: String,
@@ -125,9 +127,27 @@ impl AppConfig {
 }
 
 impl AppConfig {
+    /// Returns the normalized WebDAV path prefix (e.g. "/webdav") or an empty
+    /// string when no prefix is configured.
+    pub fn webdav_prefix(&self) -> &str {
+        self.webdav_path_prefix.as_deref().unwrap_or("")
+    }
+
     fn normalize(mut self) -> Self {
         if self.webdav_host.is_empty() {
             self.webdav_host = self.server_host.clone();
+        }
+
+        // Normalise the WebDAV path prefix: ensure it starts with '/' and has
+        // no trailing slash.  An empty / whitespace-only value disables the
+        // prefix entirely.
+        if let Some(ref mut prefix) = self.webdav_path_prefix {
+            let trimmed = prefix.trim().trim_matches('/').to_string();
+            if trimmed.is_empty() {
+                self.webdav_path_prefix = None;
+            } else {
+                *prefix = format!("/{trimmed}");
+            }
         }
 
         if self.webauthn_rp_id.is_none() {

@@ -33,8 +33,6 @@ WORKDIR /usr/share/nginx/html
 
 COPY --from=build /app/dist ./
 
-ENV API_PROXY_PASS=""
-
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
