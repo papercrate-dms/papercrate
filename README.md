@@ -42,7 +42,7 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
     > docker compose exec backend /usr/local/bin/papercrate-admin magic-token myuser
     > ```
 
-4.  Visit `http://localhost:8080` (or your configured host) and log in with the token.
+4.  Visit `https://localhost` (or your configured domain) and log in with the token.
 
 
 ## Authentication
@@ -58,10 +58,9 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
 ## Configuration
 
 *   **Secrets**: The stack expects `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD` in `.env`.
-*   **WebAuthn**: `WEBAUTHN_RP_ID` (e.g. `papercrate.local` or `localhost`) and `WEBAUTHN_ORIGIN` (scheme + host + port) must be set.
-    *   Papercrate does not terminate TLS itself. For non-localhost access, front it with a reverse proxy (Caddy, Traefik, Nginx) handling HTTPS.
-    *   Set `PROXY_DOWNLOADS=true` to keep MinIO private.
-*   **WebDAV**: Exposed on port `3001`. Create a token with `webdav` capability in the UI and use it as the password.
+*   **Domain**: Set `DOMAIN=localhost` for local use, or `DOMAIN=papercrate.example.com` for production. Caddy handles TLS automatically via Let's Encrypt when a real domain is configured.
+*   **WebAuthn**: `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` must match your domain. For production, set these in `.env` (see `.env.prod.example`).
+*   **WebDAV**: Available at `/webdav/` on the same domain. Create a token with `webdav` capability in the UI and use it as the password.
 
 ## Admin CLI
 

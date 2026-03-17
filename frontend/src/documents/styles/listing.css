@@ -240,6 +240,7 @@
   z-index: 1;
   padding: 0.45rem 0.6rem;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .new-indicator {
