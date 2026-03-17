@@ -18,7 +18,7 @@ const useCapabilities = ({ notifyApiError, token }: UseCapabilitiesOptions) => {
     setCapabilitiesLoading(true);
     try {
       const data = await listCapabilities();
-      setCapabilities(Array.isArray(data) ? data.map((item) => item.name) : []);
+      setCapabilities(Array.isArray(data) ? data : []);
     } catch (error) {
       notifyApiError?.(error, 'Failed to load capabilities.');
       setCapabilities([]);

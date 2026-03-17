@@ -3,7 +3,6 @@ export { api };
 import type {
   ApiTokenRecord,
   AssetResponse,
-  CapabilityResponse,
   CapabilitySetResponse,
   DownloadLink,
   DocumentResponse,
@@ -90,8 +89,8 @@ export const listCapabilitySets = async (): Promise<CapabilitySetResponse[]> => 
   return Array.isArray(data) ? data : [];
 };
 
-export const listCapabilities = async (): Promise<CapabilityResponse[]> => {
-  const { data } = await api.get<CapabilityResponse[]>('/capabilities');
+export const listCapabilities = async (): Promise<string[]> => {
+  const { data } = await api.get<string[]>('/capabilities');
   return Array.isArray(data) ? data : [];
 };
 
