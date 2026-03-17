@@ -17,7 +17,16 @@ Papercrate is a modern, open-source document management system (DMS) designed fo
 
 The default `docker-compose.yml` uses pre-built images and runs with **Row-Level Security (RLS) disabled** (superuser access). Multi-tenancy is fully functional but enforced only at the application level.
 
-1.  Review or create `.env` (the compose file expects `POSTGRES_PASSWORD`, `JWT_SECRET`, etc.).
+1.  Create a `.env` file:
+
+    ```env
+    DOMAIN=localhost
+    CADDY_ADDRESS=http://localhost
+    POSTGRES_PASSWORD=secret
+    JWT_SECRET=secret
+    PAPERCRATE_INITIAL_USER=myuser
+    ```
+
 2.  Start the stack:
 
     ```bash
@@ -42,7 +51,7 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
     > docker compose exec backend /usr/local/bin/papercrate-admin magic-token myuser
     > ```
 
-4.  Visit `https://localhost` (or your configured domain) and log in with the token.
+4.  Visit `http://localhost` (or your configured domain) and log in with the token.
 
 
 ## Authentication
@@ -86,7 +95,7 @@ To deploy on a server:
 ## Configuration
 
 *   **Secrets**: The stack expects `POSTGRES_PASSWORD` and `JWT_SECRET` in `.env`.
-*   **Domain**: Set `DOMAIN=localhost` for local use (self-signed TLS), or a real hostname for automatic Let's Encrypt.
+*   **Domain**: Set `DOMAIN=localhost` for local use. For production, set `DOMAIN` to a real hostname — Caddy provisions Let's Encrypt automatically. Set `CADDY_ADDRESS=http://localhost` to serve plain HTTP locally (avoids self-signed certificate warnings).
 *   **WebAuthn**: For production, set `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`, `REFRESH_COOKIE_SECURE=true`, `REFRESH_COOKIE_DOMAIN`, and `CORS_ALLOWED_ORIGIN` in `.env` (see `.env.prod.example`).
 *   **WebDAV**: Available at `/webdav/` on the same domain. Create a token with `webdav` capability in the UI and use it as the password.
 *   **Object Storage**: The built-in Garage instance works out of the box. To use an external S3 provider, set `AWS_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_BUCKET`.

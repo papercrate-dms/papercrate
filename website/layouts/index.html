@@ -165,6 +165,38 @@
     line-height: 1.5;
   }
 
+  .quickstart {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+
+  .quickstart h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .quickstart pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .quickstart code {
+    color: var(--fg);
+  }
+
+  .quickstart p {
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+  }
+
   .tech {
     padding: 2.5rem 0 1rem;
     border-top: 1px solid var(--border);
@@ -278,6 +310,15 @@
     <h3>Self-hosted</h3>
     <p>Deploy with a single Docker Compose file that includes Postgres, Garage, and Quickwit.</p>
   </div>
+</section>
+
+<section class="quickstart">
+  <h2>Run it locally</h2>
+  <pre><code>mkdir papercrate && cd papercrate
+curl -O https://raw.githubusercontent.com/papercrate-dms/papercrate/main/docker-compose.yml
+printf "DOMAIN=localhost\nCADDY_ADDRESS=http://localhost\nPOSTGRES_PASSWORD=secret\nJWT_SECRET=secret\nPAPERCRATE_INITIAL_USER=myuser\n" > .env
+docker compose up -d && sleep 10 && docker compose logs bootstrap</code></pre>
+  <p>Set <code>DOMAIN</code> to a real hostname for automatic Let's Encrypt TLS.</p>
 </section>
 
 <section class="tech">

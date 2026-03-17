@@ -59,7 +59,7 @@ services:
       - "${HTTPS_PORT:-443}:443"
       - "${HTTPS_PORT:-443}:443/udp"
     environment:
-      DOMAIN: ${DOMAIN:-localhost}
+      CADDY_ADDRESS: ${CADDY_ADDRESS:-${DOMAIN:-localhost}}
       UPLOAD_BODY_LIMIT: ${UPLOAD_BODY_LIMIT:-128m}
     volumes:
       - caddy_data:/data
@@ -68,7 +68,7 @@ services:
     command:
       - |
         printf '%s\n' \
-          "$${DOMAIN} {" \
+          "$${CADDY_ADDRESS} {" \
           "  handle /webdav* {" \
           "    reverse_proxy webdav:3001" \
           "  }" \
