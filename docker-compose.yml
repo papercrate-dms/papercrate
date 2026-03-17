@@ -1,12 +1,12 @@
 ## Papercrate — single-file Docker Compose
 ##
 ## Caddy sits in front of everything and handles TLS automatically:
-##   - Set DOMAIN=localhost            → plain HTTP on port 80
+##   - Set DOMAIN=localhost            → local CA TLS (self-signed)
 ##   - Set DOMAIN=papercrate.example   → automatic Let's Encrypt on 443
 ##
 ## Routes:
 ##   /            → frontend SPA
-##   /api/, /download/ → backend API  (proxied by frontend nginx)
+##   /api/, /download/ → backend API
 ##   /webdav/     → WebDAV server
 ##
 ## Quick start:
@@ -31,10 +31,10 @@ x-app-env: &app-env
   REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
   REFRESH_COOKIE_DOMAIN: ${REFRESH_COOKIE_DOMAIN:-}
   CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-}
-  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://minio:9000}
-  AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-papercrate}
-  AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
-  AWS_REGION: ${AWS_REGION:-us-east-1}
+  AWS_ENDPOINT_URL: http://garage:3900
+  AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-GK00a0a0a0a0a0a0a0a0a0a0a0}
+  AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-00a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0}
+  AWS_REGION: ${AWS_REGION:-garage}
   S3_BUCKET: ${S3_BUCKET:-documents}
   QUICKWIT_ENDPOINT: http://quickwit:7280
   QUICKWIT_INDEX: ${QUICKWIT_INDEX:-documents}
@@ -109,39 +109,87 @@ services:
       retries: 5
 
   # --------------------------------------------------------------------------
-  # MinIO — S3-compatible object storage
+  # Garage — lightweight S3-compatible object storage
   # --------------------------------------------------------------------------
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  garage:
+    image: dxflrs/garage:v2.2.0
     restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-papercrate}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  createbuckets:
-    image: minio/mc:latest
+      - garage_conf:/etc/garage
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
     depends_on:
-      minio:
+      garage-conf:
+        condition: service_completed_successfully
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:-0000000000000000000000000000000000000000000000000000000000000000}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:-papercrate-admin}
+      GARAGE_ALLOW_WORLD_READABLE_SECRETS: "true"
+    entrypoint: ["/garage", "-c", "/etc/garage/garage.toml", "server"]
+    healthcheck:
+      test: ["CMD", "/garage", "-c", "/etc/garage/garage.toml", "stats", "-a"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  garage-conf:
+    image: alpine:3
+    volumes:
+      - garage_conf:/etc/garage
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/garage/garage.toml <<'EOF'
+        metadata_dir = "/var/lib/garage/meta"
+        data_dir = "/var/lib/garage/data"
+        db_engine = "sqlite"
+        replication_factor = 1
+        rpc_bind_addr = "[::]:3901"
+        rpc_public_addr = "garage:3901"
+        rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
+        [s3_api]
+        api_bind_addr = "[::]:3900"
+        s3_region = "garage"
+        [admin]
+        api_bind_addr = "[::]:3903"
+        admin_token = "papercrate-admin"
+        EOF
+    restart: "no"
+
+  garage-init:
+    image: alpine:3
+    depends_on:
+      garage:
         condition: service_healthy
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-papercrate}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:-papercrate-admin}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-GK00a0a0a0a0a0a0a0a0a0a0a0}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-00a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0}
       S3_BUCKET: ${S3_BUCKET:-documents}
-    entrypoint: >
-      /bin/sh -c "
-        set -e;
-        /usr/bin/mc alias set papercrate http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-        /usr/bin/mc mb papercrate/$${S3_BUCKET} --ignore-existing;
-        exit 0;
-      "
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add -q --no-cache jq
+        A="Authorization: Bearer $${GARAGE_ADMIN_TOKEN}"
+        G=http://garage:3903/v2
+        get()  { wget -qO- --header="$$A" "$$G/$$1"; }
+        post() { wget -qO- --header="$$A" --header="Content-Type: application/json" --post-data="$$2" "$$G/$$1" 2>/dev/null; }
+
+        NODE=$$(get GetClusterStatus | jq -r '[.nodes[]|select(.isUp)][0].id')
+        echo "[init] node $$NODE"
+
+        post UpdateClusterLayout '{"roles":[{"id":"'"$$NODE"'","zone":"dc1","capacity":1073741824,"tags":[]}]}' || true
+        VER=$$(get GetClusterLayout | jq '.version+1')
+        post ApplyClusterLayout '{"version":'"$$VER"'}' || true
+
+        post ImportKey '{"name":"papercrate","accessKeyId":"'"$${S3_ACCESS_KEY_ID}"'","secretAccessKey":"'"$${S3_SECRET_ACCESS_KEY}"'"}' || true
+
+        BID=$$(post CreateBucket '{}' | jq -r .id)
+        post AddBucketAlias '{"bucketId":"'"$$BID"'","globalAlias":"'"$${S3_BUCKET}"'"}' || true
+        post AllowBucketKey '{"bucketId":"'"$$BID"'","accessKeyId":"'"$${S3_ACCESS_KEY_ID}"'","permissions":{"read":true,"write":true,"owner":true}}' || true
+
+        echo "[init] done bucket=$${S3_BUCKET} ($$BID) key=$${S3_ACCESS_KEY_ID}"
     restart: "no"
 
   # --------------------------------------------------------------------------
@@ -170,9 +218,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_healthy
-      createbuckets:
+      garage-init:
         condition: service_completed_successfully
       quickwit:
         condition: service_healthy
@@ -214,7 +260,7 @@ services:
     restart: unless-stopped
 
   # --------------------------------------------------------------------------
-  # Frontend — nginx SPA with /api/ and /download/ reverse proxy
+  # Frontend — static SPA server
   # --------------------------------------------------------------------------
   frontend:
     image: ${FRONTEND_IMAGE:-ghcr.io/papercrate-dms/papercrate-frontend:latest-dev}
@@ -267,5 +313,7 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
-  minio_data:
+  garage_conf:
+  garage_meta:
+  garage_data:
   quickwit_data:

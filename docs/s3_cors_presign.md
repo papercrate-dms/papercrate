@@ -46,11 +46,9 @@ pass their endpoint via `--endpoint-url`.
 s3cmd setcors cors.json s3://<bucket-name>
 ```
 
-### MinIO Client (`mc`)
-```bash
-mc alias set storage <endpoint> <access-key> <secret-key>
-mc anonymous set-json storage/<bucket-name> cors.json
-```
+### Garage
+Garage supports CORS configuration via the S3 `PutBucketCors` API, which works
+with the standard AWS CLI command above.
 
 Most dashboards expose a similar form—paste the JSON rule into the CORS section for the bucket.
 Once the rule is active, browsers will allow the frontend to read presigned assets with fetch().

@@ -1,10 +1,10 @@
 x-backend-env: &backend-env
   DATABASE_URL: postgres://papercrate_app_login:papercrate_app@postgres:5432/papercrate
   DATABASE_MAX_POOL_SIZE: 2
-  AWS_ENDPOINT_URL: http://minio:9000
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
-  AWS_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://garage:3900
+  AWS_ACCESS_KEY_ID: GK00a0a0a0a0a0a0a0a0a0a0a0
+  AWS_SECRET_ACCESS_KEY: 00a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
+  AWS_REGION: garage
   S3_BUCKET: documents
   PROXY_DOWNLOADS: "true"
   JWT_SECRET: change-me-super-secret
@@ -30,35 +30,79 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"  # S3 API
-      - "9001:9001"  # Console
+  garage-conf:
+    image: alpine:3
     volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      - garage_conf:/etc/garage
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/garage/garage.toml <<'EOF'
+        metadata_dir = "/var/lib/garage/meta"
+        data_dir = "/var/lib/garage/data"
+        db_engine = "sqlite"
+        replication_factor = 1
+        rpc_bind_addr = "[::]:3901"
+        rpc_public_addr = "garage:3901"
+        rpc_secret = "0000000000000000000000000000000000000000000000000000000000000000"
+        [s3_api]
+        api_bind_addr = "[::]:3900"
+        s3_region = "garage"
+        [admin]
+        api_bind_addr = "[::]:3903"
+        admin_token = "dev-admin"
+        EOF
+    restart: "no"
 
-  createbuckets:
-    image: minio/mc:latest
+  garage:
+    image: dxflrs/garage:v2.2.0
     depends_on:
-      minio:
+      garage-conf:
+        condition: service_completed_successfully
+    volumes:
+      - garage_conf:/etc/garage
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    environment:
+      GARAGE_ALLOW_WORLD_READABLE_SECRETS: "true"
+    entrypoint: ["/garage", "-c", "/etc/garage/garage.toml", "server"]
+    ports:
+      - "3900:3900"  # S3 API
+      - "3903:3903"  # Admin API
+    healthcheck:
+      test: ["CMD", "/garage", "-c", "/etc/garage/garage.toml", "stats", "-a"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  garage-init:
+    image: alpine:3
+    depends_on:
+      garage:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb myminio/documents --ignore-existing;
-      /usr/bin/mc anonymous set download myminio/documents;
-      exit 0;
-      "
+    environment:
+      GARAGE_ADMIN_TOKEN: dev-admin
+      S3_ACCESS_KEY_ID: GK00a0a0a0a0a0a0a0a0a0a0a0
+      S3_SECRET_ACCESS_KEY: 00a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
+      S3_BUCKET: documents
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add -q --no-cache jq
+        A="Authorization: Bearer $${GARAGE_ADMIN_TOKEN}"
+        G=http://garage:3903/v2
+        get()  { wget -qO- --header="$$A" "$$G/$$1"; }
+        post() { wget -qO- --header="$$A" --header="Content-Type: application/json" --post-data="$$2" "$$G/$$1" 2>/dev/null; }
+        NODE=$$(get GetClusterStatus | jq -r '[.nodes[]|select(.isUp)][0].id')
+        post UpdateClusterLayout '{"roles":[{"id":"'"$$NODE"'","zone":"dc1","capacity":1073741824,"tags":[]}]}' || true
+        VER=$$(get GetClusterLayout | jq '.version+1')
+        post ApplyClusterLayout '{"version":'"$$VER"'}' || true
+        post ImportKey '{"name":"dev","accessKeyId":"'"$${S3_ACCESS_KEY_ID}"'","secretAccessKey":"'"$${S3_SECRET_ACCESS_KEY}"'"}' || true
+        BID=$$(post CreateBucket '{}' | jq -r .id)
+        post AddBucketAlias '{"bucketId":"'"$$BID"'","globalAlias":"'"$${S3_BUCKET}"'"}' || true
+        post AllowBucketKey '{"bucketId":"'"$$BID"'","accessKeyId":"'"$${S3_ACCESS_KEY_ID}"'","permissions":{"read":true,"write":true,"owner":true}}' || true
+    restart: "no"
 
   quickwit:
     image: quickwit/quickwit:0.8.2
@@ -95,12 +139,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
       quickwit:
         condition: service_healthy
-      createbuckets:
-        condition: service_completed_successfully
 
   frontend:
     build:
@@ -122,5 +164,7 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
+  garage_conf:
+  garage_meta:
+  garage_data:
   quickwit_data:

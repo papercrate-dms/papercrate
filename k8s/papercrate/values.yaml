@@ -4,7 +4,7 @@ global:
     - papercrate-regcred
   labels: {}
   s3:
-    endpoint: http://minio:9000
+    endpoint: http://garage:3900
     region: us-east-1
     bucket: documents
     credentialsSecret: ""

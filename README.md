@@ -10,14 +10,14 @@ Papercrate is a modern, open-source document management system (DMS) designed fo
 *   **OCR & Search**: Automatically extracts text from images and PDFs (via `ocrmypdf`) for full-text search (powered by Quickwit).
 *   **Multi-Tenancy**: Built from the ground up to support multiple isolated tenants and users on a single instance, enforced via Postgres **Row-Level Security (RLS)** (Pro/Dev mode only).
 *   **Modern Security**: exclusively uses **Passkeys (WebAuthn)** for secure, passwordless authentication.
-*   **Storage Agnostic**: Stores files in any S3-compatible object store (MinIO, AWS S3, etc.).
+*   **Storage Agnostic**: Stores files in any S3-compatible object store (Garage, AWS S3, Hetzner, etc.).
 *   **WebDAV Support**: Access your documents directly via the filesystem using the WebDAV protocol.
 
 ## Quick Start
 
 The default `docker-compose.yml` uses pre-built images and runs with **Row-Level Security (RLS) disabled** (superuser access). Multi-tenancy is fully functional but enforced only at the application level.
 
-1.  Review or create `.env` (the compose file expects `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD`, etc.).
+1.  Review or create `.env` (the compose file expects `POSTGRES_PASSWORD`, `JWT_SECRET`, etc.).
 2.  Start the stack:
 
     ```bash
@@ -57,7 +57,7 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
 
 ## Configuration
 
-*   **Secrets**: The stack expects `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD` in `.env`.
+*   **Secrets**: The stack expects `POSTGRES_PASSWORD` and `JWT_SECRET` in `.env`.
 *   **Domain**: Set `DOMAIN=localhost` for local use, or `DOMAIN=papercrate.example.com` for production. Caddy handles TLS automatically via Let's Encrypt when a real domain is configured.
 *   **WebAuthn**: `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` must match your domain. For production, set these in `.env` (see `.env.prod.example`).
 *   **WebDAV**: Available at `/webdav/` on the same domain. Create a token with `webdav` capability in the UI and use it as the password.

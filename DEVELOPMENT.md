@@ -5,7 +5,7 @@ integration testing, and infrastructure automation.
 
 ## Local Development
 
-The entire application stack (frontend, backend, worker, database, minio, quickwit) runs fully containerized via Docker Compose.
+The entire application stack (frontend, backend, worker, database, garage, quickwit) runs fully containerized via Docker Compose.
 
 ### Start Development Environment
 
