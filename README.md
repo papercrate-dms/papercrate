@@ -78,6 +78,20 @@ Common commands:
 *   `users list` — List all users
 *   `tenants list` — List all tenants
 
+## Migration & Backup
+
+A migration script is provided in `scripts/migrate.py` for exporting, importing, and migrating accounts between instances. Requires `requests` and `tqdm`.
+
+```bash
+python scripts/migrate.py export --url https://source.example.com -o ./backup
+python scripts/migrate.py import --url https://target.example.com -i ./backup
+python scripts/migrate.py migrate --source-url ... --target-url ...
+```
+
+API tokens are prompted securely at runtime. Pass `--token` (export/import) or `--source-token`/`--target-token` (migrate) to provide them non-interactively.
+
+Run `python scripts/migrate.py --help` for full usage.
+
 ## Kubernetes Deployment (Helm)
 
 For larger deployments, a Helm chart is provided in `k8s/papercrate`.
