@@ -55,12 +55,41 @@ The default `docker-compose.yml` uses pre-built images and runs with **Row-Level
 > [!IMPORTANT]
 > The `WEBAUTHN_ORIGIN` environment variable must exactly match the URL in the browser (including scheme and port), or passkey registration and login will fail.
 
+## Production Deployment
+
+The same `docker-compose.yml` works for both local and production use. Caddy sits in front of all services and handles TLS automatically:
+
+| Path           | Service                 |
+|----------------|-------------------------|
+| `/`            | Frontend (static SPA)   |
+| `/api/*`       | Backend API             |
+| `/download/*`  | Backend (file downloads)|
+| `/webdav/*`    | WebDAV server           |
+
+To deploy on a server:
+
+1.  Copy `.env.prod.example` to `.env` and fill in your values:
+    ```bash
+    cp .env.prod.example .env
+    ```
+
+2.  Set `DOMAIN` to your hostname — Caddy will provision a Let's Encrypt certificate automatically:
+    ```env
+    DOMAIN=papercrate.example.com
+    ```
+
+3.  Point your DNS to the server and start the stack:
+    ```bash
+    docker compose up -d
+    ```
+
 ## Configuration
 
 *   **Secrets**: The stack expects `POSTGRES_PASSWORD` and `JWT_SECRET` in `.env`.
-*   **Domain**: Set `DOMAIN=localhost` for local use, or `DOMAIN=papercrate.example.com` for production. Caddy handles TLS automatically via Let's Encrypt when a real domain is configured.
-*   **WebAuthn**: `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` must match your domain. For production, set these in `.env` (see `.env.prod.example`).
+*   **Domain**: Set `DOMAIN=localhost` for local use (self-signed TLS), or a real hostname for automatic Let's Encrypt.
+*   **WebAuthn**: For production, set `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`, `REFRESH_COOKIE_SECURE=true`, `REFRESH_COOKIE_DOMAIN`, and `CORS_ALLOWED_ORIGIN` in `.env` (see `.env.prod.example`).
 *   **WebDAV**: Available at `/webdav/` on the same domain. Create a token with `webdav` capability in the UI and use it as the password.
+*   **Object Storage**: The built-in Garage instance works out of the box. To use an external S3 provider, set `AWS_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_BUCKET`.
 
 ## Admin CLI
 
