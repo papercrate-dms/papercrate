@@ -295,6 +295,8 @@ services:
         condition: service_completed_successfully
       backend:
         condition: service_healthy
+      quickwit:
+        condition: service_healthy
     environment:
       <<: *app-env
       PAPERCRATE_INITIAL_USER: ${PAPERCRATE_INITIAL_USER:-}

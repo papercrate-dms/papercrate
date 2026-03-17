@@ -323,7 +323,7 @@ fn create_user(
             &username,
             None,
             None,
-            TenantStatus::Active,
+            TenantStatus::Creating,
             &[user_id],
             Some(user_id), // Default capabilities for owner
         ) {
