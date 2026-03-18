@@ -1,0 +1,48 @@
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--bg, #1a1a1a);
+  color: var(--fg, #e0e0e0);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.error-boundary__card {
+  max-width: 28rem;
+  text-align: center;
+}
+
+.error-boundary__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.error-boundary__message {
+  font-size: 0.9rem;
+  color: var(--muted, #999);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.error-boundary__detail {
+  font-size: 0.8rem;
+  color: var(--danger, #e06060);
+  background: var(--surface, #222);
+  border: 1px solid var(--border, #333);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-boundary__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}

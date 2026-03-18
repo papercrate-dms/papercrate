@@ -2,6 +2,7 @@ import '@fontsource/inter/400.css';
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   HashRouter,
   Navigate,
@@ -107,11 +108,13 @@ if (!container) {
 
 const root = createRoot(container);
 root.render(
-  <AppStateProvider>
-    <StatusToastProvider>
-      <HashRouter>
-        <AppRouter />
-      </HashRouter>
-    </StatusToastProvider>
-  </AppStateProvider>,
+  <ErrorBoundary>
+    <AppStateProvider>
+      <StatusToastProvider>
+        <HashRouter>
+          <AppRouter />
+        </HashRouter>
+      </StatusToastProvider>
+    </AppStateProvider>
+  </ErrorBoundary>,
 );

@@ -22,3 +22,4 @@
 @import '../documents/styles/shared-snippets.css';
 @import './uploads/overlay.css';
 @import './base/text-button.css';
+@import './components/error-boundary.css';
