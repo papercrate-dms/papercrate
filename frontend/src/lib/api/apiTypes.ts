@@ -111,3 +111,10 @@ export interface PasskeySummary {
   revokedAt?: string | null;
   revokedReason?: string | null;
 }
+
+export interface TenantUserSummary {
+  user_id: string;
+  username: string;
+  capability_set_id?: string | null;
+  capability_set_slug?: string | null;
+}

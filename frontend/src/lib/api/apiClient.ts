@@ -9,6 +9,7 @@ import type {
   Identifier,
   PasskeySummary,
   TenantSnippet,
+  TenantUserSummary,
   TagResponse,
   CorrespondentResponse,
   FolderTreeNode,
@@ -434,6 +435,24 @@ export const removeDocumentCorrespondent = async (
 };
 
 
+
+export const listTenantUsers = async (tenantId: Identifier): Promise<TenantUserSummary[]> => {
+  const { data } = await api.get<TenantUserSummary[]>(`/tenants/${tenantId}/users`);
+  return Array.isArray(data) ? data : [];
+};
+
+export const updateTenantUser = async (
+  tenantId: Identifier,
+  userId: Identifier,
+  payload: { capability_set_id: Identifier },
+): Promise<TenantUserSummary> => {
+  const { data } = await api.patch<TenantUserSummary>(`/tenants/${tenantId}/users/${userId}`, payload);
+  return data;
+};
+
+export const deleteTenantUser = async (tenantId: Identifier, userId: Identifier): Promise<void> => {
+  await api.delete(`/tenants/${tenantId}/users/${userId}`);
+};
 
 export const switchTenant = async (tenantId: Identifier): Promise<{ access_token: string; tenant: any; tenants?: any[] }> => {
   const { data } = await api.post<{ access_token: string; tenant: any; tenants?: any[] }>('/auth/select-tenant', {

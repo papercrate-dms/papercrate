@@ -5,6 +5,7 @@ import { useUI } from '../lib/context/UIContext';
 import useApiTokens from '../settings/useApiTokens';
 import useCapabilitySets from '../settings/useCapabilitySets';
 import useCapabilities from '../settings/useCapabilities';
+import useTenantUsers from '../settings/useTenantUsers';
 
 interface SettingsRouteProps {
   open?: boolean;
@@ -12,7 +13,7 @@ interface SettingsRouteProps {
 }
 
 const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) => {
-  const { token, passkeys: passkeysState } = useSession();
+  const { token, tenant, passkeys: passkeysState } = useSession();
   const { notifyApiError } = useUI();
   const {
     passkeys,
@@ -58,18 +59,30 @@ const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) =
     refreshCapabilities,
   } = useCapabilities({ notifyApiError, token });
 
+  const {
+    tenantUsers,
+    tenantUsersLoading,
+    savingTenantUserId,
+    deletingTenantUserId,
+    refreshTenantUsers,
+    updateTenantUser,
+    deleteTenantUser,
+  } = useTenantUsers({ notifyApiError, token, tenantId: tenant?.id });
+
   useEffect(() => {
     refreshTokens();
     refreshCapabilitySets();
     refreshCapabilities();
     refreshPasskeys();
-  }, [refreshTokens, refreshCapabilitySets, refreshCapabilities, refreshPasskeys]);
+    refreshTenantUsers();
+  }, [refreshTokens, refreshCapabilitySets, refreshCapabilities, refreshPasskeys, refreshTenantUsers]);
 
   const handleRefresh = useCallback(() => {
     refreshTokens();
     refreshCapabilitySets();
     refreshCapabilities();
-  }, [refreshTokens, refreshCapabilitySets, refreshCapabilities]);
+    refreshTenantUsers();
+  }, [refreshTokens, refreshCapabilitySets, refreshCapabilities, refreshTenantUsers]);
 
   const handleClose = useCallback(() => {
     dismissSecret();
@@ -120,6 +133,13 @@ const SettingsRoute: React.FC<SettingsRouteProps> = ({ open = true, onClose }) =
       onRefreshPasskeys={refreshPasskeys}
       onRegisterPasskey={registerPasskey}
       onRevokePasskey={revokePasskey}
+      tenantUsers={tenantUsers}
+      tenantUsersLoading={tenantUsersLoading}
+      savingTenantUserId={savingTenantUserId}
+      deletingTenantUserId={deletingTenantUserId}
+      onRefreshTenantUsers={refreshTenantUsers}
+      onUpdateTenantUser={updateTenantUser}
+      onDeleteTenantUser={deleteTenantUser}
     />
   );
 };
