@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import type { Document } from '../../types/documents';
 import type { Identifier } from '../../types/identifiers';
 import { createSafeContext } from '../../utils/createSafeContext';
+import { PANEL_LIMITS } from '../../constants/layout';
 
 type DocumentOpenIntent = 'preview' | 'inspect' | 'navigate';
 
@@ -35,7 +36,7 @@ export const DocumentOpenProvider: React.FC<DocumentOpenProviderProps> = ({
                 break;
             case 'inspect':
                 // Responsive behavior: on mobile, "inspect" just navigates to the document
-                if (window.matchMedia('(max-width: 768px)').matches) {
+                if (window.matchMedia(`(max-width: ${PANEL_LIMITS.sidebar.minPx * 2}px)`).matches) {
                     if (onOpenViewer) {
                         onOpenViewer(doc.id);
                     }

@@ -9,6 +9,7 @@ import { DocumentOpenProvider } from '../lib/context/DocumentOpenContext';
 import { useWorkspaceSurface } from './useWorkspaceSurface';
 import { SidebarProvider, useSidebarContext } from '../sidebar/SidebarContext';
 import { PanelManagerProvider, usePanelManager } from './PanelManagerContext';
+import { PANEL_LIMITS } from '../constants/layout';
 import Sidebar from '../sidebar/Sidebar';
 import useDocumentsShell from './useDocumentsShell';
 
@@ -98,7 +99,7 @@ const DocumentsRoute: React.FC = () => {
   const { detailPanelOpen, closeDetailPanel } = surfaceConfig;
 
   return (
-    <SidebarProvider>
+    <SidebarProvider forceCollapsed={window.innerWidth <= PANEL_LIMITS.sidebar.minPx * 2}>
       <PanelManagerProvider
         isOpen={detailPanelOpen}
         onClose={closeDetailPanel}

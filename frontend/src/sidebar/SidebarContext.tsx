@@ -111,7 +111,10 @@ const loadInitialThemeSettings = () => {
   };
 };
 
-const loadInitialCollapsedState = (defaultValue) => {
+const loadInitialCollapsedState = (forceCollapsed, defaultValue) => {
+  if (forceCollapsed) {
+    return true;
+  }
   try {
     const stored = window.sessionStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY);
     if (stored === '1' || stored === 'true') {
@@ -126,8 +129,8 @@ const loadInitialCollapsedState = (defaultValue) => {
   return Boolean(defaultValue);
 };
 
-export const SidebarProvider = ({ initialCollapsed = false, children }) => {
-  const [collapsed, setCollapsedState] = useState(() => loadInitialCollapsedState(initialCollapsed));
+export const SidebarProvider = ({ initialCollapsed = false, forceCollapsed = false, children }) => {
+  const [collapsed, setCollapsedState] = useState(() => loadInitialCollapsedState(forceCollapsed, initialCollapsed));
   const initialTheme = useMemo(() => loadInitialThemeSettings(), []);
   const [neutralHue, setNeutralHueState] = useState(initialTheme.neutralHue);
   const [neutralChroma, setNeutralChromaState] = useState(initialTheme.neutralChroma);
