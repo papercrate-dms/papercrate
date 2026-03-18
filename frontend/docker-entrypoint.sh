@@ -33,8 +33,8 @@ server {
     gzip_vary on;
     gzip_min_length 256;
 
-    # Cache hashed assets aggressively
-    location ~* \.[0-9a-f]{8,20}\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp)$ {
+    # Cache static assets
+    location ~* \.(js|css|woff2|webp|png|jpg|svg|ico)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
