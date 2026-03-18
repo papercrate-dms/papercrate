@@ -9,7 +9,7 @@ ARG NGINX_IMAGE=nginx:alpine
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 # ------------------------------------------------------------------------------
 # Development Stage
