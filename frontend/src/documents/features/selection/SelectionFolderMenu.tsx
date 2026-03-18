@@ -30,7 +30,7 @@ const SelectionFolderMenu: React.FC<SelectionFolderMenuProps> = ({
     disabled = false,
     className,
     triggerContent = null,
-    triggerClassName = 'quick-add__chip quick-add__trigger panel-floating-actions__trigger',
+    triggerClassName = 'quick-add__chip quick-add__trigger',
     placeholder = 'Search folders…',
     emptyMessage = 'No folders',
     onOpenMenu,

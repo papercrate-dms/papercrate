@@ -17,7 +17,8 @@ export interface DocumentsPanelHeaderConfig {
   leading?: ReactNode;
   actions?: ReactNode;
   breadcrumbs?: DocumentsHeaderBreadcrumb[] | null;
-  floatingActions?: ReactNode;
+  selectionActions?: ReactNode;
+  hasSelection?: boolean;
 }
 
 interface DocumentsPanelHeaderProps {
@@ -32,6 +33,8 @@ const DocumentsPanelHeader: React.FC<DocumentsPanelHeaderProps> = ({
   if (!header) {
     return null;
   }
+
+  const hasSelection = Boolean(header.hasSelection);
 
   const breadcrumbEntries = Array.isArray(header.breadcrumbs)
     ? header.breadcrumbs.filter(Boolean)
@@ -48,24 +51,28 @@ const DocumentsPanelHeader: React.FC<DocumentsPanelHeaderProps> = ({
     : [{ id: 'current-location', label: header.title }];
 
   const headerTitle = (
-    <h2>
-      <BreadcrumbTrail entries={trailEntries} separator="/" />
-      {header.subtitle ? (
-        <span className="panel-header__subtitle">{header.subtitle}</span>
+    <div>
+      <span className="panel-header__breadcrumb">
+        <BreadcrumbTrail entries={trailEntries} separator="/" />
+        {header.subtitle ? (
+          <span className="panel-header__subtitle">{header.subtitle}</span>
+        ) : null}
+      </span>
+      {hasSelection && header.selectionActions ? (
+        <span className="panel-header__selection">
+          {header.selectionActions}
+        </span>
       ) : null}
-    </h2>
+    </div>
   );
 
   return (
-    <>
-      <PanelHeader
-        leading={header.leading}
-        title={headerTitle}
-        titleTag="h2"
-        actions={header.actions}
-      />
-      {header.floatingActions}
-    </>
+    <PanelHeader
+      className={hasSelection ? 'panel-header--selection' : undefined}
+      leading={header.leading}
+      title={headerTitle}
+      actions={header.actions}
+    />
   );
 };
 

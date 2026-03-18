@@ -91,7 +91,7 @@ const SelectionAssignmentMenu: React.FC<SelectionAssignmentMenuProps> = ({
   disabled = false,
   className,
   triggerContent = null,
-  triggerClassName = 'quick-add__chip quick-add__trigger panel-floating-actions__trigger',
+  triggerClassName = 'quick-add__chip quick-add__trigger',
   showStateIndicators = true,
   showCounts = true,
   onOpenMenu,

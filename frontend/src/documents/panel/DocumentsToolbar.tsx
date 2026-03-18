@@ -5,7 +5,6 @@ import {
   ViewGridIcon,
   IconFileStack,
   RefreshIcon,
-  MinusVerticalIcon,
   FoldersIcon,
   FoldersOffIcon,
   SortAscendingLettersIcon,
@@ -120,23 +119,17 @@ export const createDocumentsTableHeaderActions = ({
       {includeDescendantsToggle ? (
         <>
           {includeDescendantsToggle}
-          <span className="main-content__actions-divider" aria-hidden="true">
-            <MinusVerticalIcon />
-          </span>
+          <span className="actions-divider" aria-hidden="true" />
         </>
       ) : null}
       {sortControls ? (
         <>
           {sortControls}
-          <span className="main-content__actions-divider" aria-hidden="true">
-            <MinusVerticalIcon />
-          </span>
+          <span className="actions-divider" aria-hidden="true" />
         </>
       ) : null}
       <ViewModeToggle />
-      <span className="main-content__actions-divider" aria-hidden="true">
-        <MinusVerticalIcon />
-      </span>
+      <span className="actions-divider" aria-hidden="true" />
       <button
         type="button"
         className="icon-button"

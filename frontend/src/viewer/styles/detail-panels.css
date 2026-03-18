@@ -175,12 +175,11 @@
   min-width: 0;
   flex: 1 1 9rem;
   max-width: 12rem;
-  overflow: hidden;
 }
 
 .quick-add__chip:hover,
 .quick-add__chip:focus-visible {
-  border-style: solid;
+  border-color: var(--accent);
   background: var(--selection-soft);
   color: var(--fg);
   outline: none;
@@ -196,8 +195,6 @@
   align-items: center;
   gap: 0.25rem;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
   flex: 1 1 0;
@@ -211,8 +208,6 @@
   display: inline-block;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

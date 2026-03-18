@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { SidebarExpandIcon } from '../components/icons';
 import DocumentsPanel from '../documents/panel/DocumentsPanel';
 import DocumentViewerPanel from '../viewer/DocumentViewerPanel';
-import TrashFloatingActions from '../documents/features/selection/TrashFloatingActions';
+import SelectionActionsTrash from '../documents/features/selection/SelectionActionsTrash';
 import { usePanelManager } from './PanelManagerContext';
 import { FolderManagerProvider } from '../folders/FolderManagerContext';
 import { useFolderTree } from '../lib/context/FolderTreeContext';
@@ -145,7 +145,7 @@ export const useWorkspaceSurface = ({
       : null;
 
     const trashProps = selectedFolder === 'trash' ? {
-      floatingActions: <TrashFloatingActions />,
+      selectionActions: <SelectionActionsTrash />,
       emptyMessage: 'Trash is empty.',
     } : {};
 

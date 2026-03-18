@@ -21,7 +21,7 @@ import {
 import DocumentsPanelHeader, {
   DocumentsPanelHeaderConfig,
 } from './DocumentsPanelHeader';
-import { SelectionFloatingPanel } from '../features/selection/SelectionFloatingActions';
+import { SelectionActionBar } from '../features/selection/SelectionActions';
 import { createDocumentsTableHeaderActions } from './DocumentsToolbar';
 import { useDocumentsFilter } from '../context/DocumentsFilterContext';
 import {
@@ -46,14 +46,14 @@ export interface DocumentsViewProps {
 
 interface DocumentsPanelProps {
   headerLeading?: ReactNode;
-  floatingActions?: ReactNode;
+  selectionActions?: ReactNode;
   emptyMessage?: string;
 }
 
 const DEFAULT_EMPTY_MESSAGE = 'No documents to show here yet. Drop files to make this space come alive.';
 
 const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) => {
-  const { headerLeading, floatingActions: floatingActionsProp, emptyMessage = DEFAULT_EMPTY_MESSAGE } = props;
+  const { headerLeading, selectionActions: selectionActionsProp, emptyMessage = DEFAULT_EMPTY_MESSAGE } = props;
 
   const { documents, searchResultIds, documentsViewMode: viewMode, documentsSortField: sortField, documentsSortDirection: sortDirection, handleDocumentsSortFieldChange: onSortFieldChange, handleDocumentsSortDirectionToggle: onSortDirectionToggle, documentLookup, searchLoading: isSearchLoading } = useDocumentsSearch();
   const { currentFolderName, breadcrumbs, currentSubfolders: subfolders, handleBreadcrumbNavigate: onBreadcrumbNavigate, refreshCurrentFolder: onRefresh } = useFolderTree();
@@ -68,8 +68,13 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
   } = useDocumentsContextValues();
 
   const {
+    selectedDocumentIds,
+    selectedFolderIds,
     clearSelection,
   } = useWorkspaceSelectionContext();
+
+  const selectionCount = (Array.isArray(selectedDocumentIds) ? selectedDocumentIds.length : 0)
+    + (Array.isArray(selectedFolderIds) ? selectedFolderIds.length : 0);
   const {
     isActive: isFilterActive,
     includeDescendants,
@@ -119,8 +124,8 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     ],
   );
 
-  const floatingActions = floatingActionsProp ?? (
-    <SelectionFloatingPanel onClearSelection={clearSelection} />
+  const selectionActions = selectionActionsProp ?? (
+    <SelectionActionBar onClearSelection={clearSelection} />
   );
 
   const headerConfig: DocumentsPanelHeaderConfig = useMemo(() => ({
@@ -129,13 +134,15 @@ const DocumentsPanelInner: React.FC<DocumentsPanelProps> = React.memo((props) =>
     leading: headerLeading,
     actions: headerActions,
     breadcrumbs,
-    floatingActions,
+    selectionActions,
+    hasSelection: selectionCount > 0,
   }), [
     headerTitle,
     headerLeading,
     headerActions,
     breadcrumbs,
-    floatingActions,
+    selectionActions,
+    selectionCount,
   ]);
 
   const currentFolderId = useMemo(() => {

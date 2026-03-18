@@ -58,7 +58,7 @@ interface BulkCorrespondentRemoveArgs {
   documentIds: DocumentId[];
 }
 
-interface SelectionFloatingActionsProps {
+interface SelectionActionsProps {
   selectionCount?: number;
   selectedDocumentIds?: SelectedIdList;
   selectedFolderIds?: SelectedIdList;
@@ -201,7 +201,7 @@ const buildCorrespondentAssignments = (
   });
 };
 
-const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
+const SelectionActions: React.FC<SelectionActionsProps> = ({
   selectionCount = 0,
   selectedDocumentIds = [],
   selectedFolderIds = [],
@@ -394,52 +394,11 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
     />
   ) : null;
 
-  const primaryButtons = showPrimaryButtons ? (
-    <div className="panel-floating__buttons">
-      {onBulkReanalyze ? (
-        <button
-          type="button"
-          className="icon-button panel-floating-actions__button"
-          onClick={() => (onBulkReanalyze as any)(documentIdList)}
-          aria-label="Re-run analysis for selection"
-          title="Re-run analysis for selection"
-          disabled={documentIdList.length === 0}
-        >
-          <AnalyzeIcon className="icon-inline" />
-        </button>
-      ) : null}
-      {onDeleteSelection ? (
-        <button
-          type="button"
-          className="icon-button danger panel-floating-actions__button"
-          onClick={() => (onDeleteSelection as any)()}
-          aria-label="Delete selected items"
-          disabled={totalCount === 0}
-        >
-          <TrashIcon className="icon-inline" />
-        </button>
-      ) : null}
-      {onClearSelection ? (
-        <button
-          type="button"
-          className="icon-button panel-floating-actions__button"
-          onClick={onClearSelection}
-          aria-label="Clear selection"
-          title="Clear selection"
-          disabled={totalCount === 0}
-        >
-          <IconX className="icon-inline" />
-        </button>
-      ) : null}
-    </div>
-  ) : null;
-
   return (
     <>
-      {summaryNode ? (
-        <span className="panel-floating__label">{summaryNode}</span>
-      ) : null}
-      <div className="panel-floating-actions panel-floating-actions--assignments">
+      {summaryNode}
+      <span className="actions-divider" aria-hidden="true" />
+      <span className="selection-assignments">
         {moveMenu}
         <SelectionAssignmentMenu
           label="Tags"
@@ -473,13 +432,53 @@ const SelectionFloatingActions: React.FC<SelectionFloatingActionsProps> = ({
           onCreate={handleCreateCorrespondentAssignment}
           disabled={!documentCount}
         />
-      </div>
-      {primaryButtons}
+      </span>
+      <span className="actions-divider" aria-hidden="true" />
+      <span className="selection-actions-right">
+        {onBulkReanalyze ? (
+          <button
+            type="button"
+            className="icon-button selection-action"
+            onClick={() => (onBulkReanalyze as any)(documentIdList)}
+            aria-label="Re-run analysis for selection"
+            title="Re-run analysis for selection"
+            disabled={documentIdList.length === 0}
+          >
+            <AnalyzeIcon className="icon-inline" />
+          </button>
+        ) : null}
+        {onDeleteSelection ? (
+          <button
+            type="button"
+            className="icon-button danger selection-action"
+            onClick={() => (onDeleteSelection as any)()}
+            aria-label="Delete selected items"
+            disabled={totalCount === 0}
+          >
+            <TrashIcon className="icon-inline" />
+          </button>
+        ) : null}
+        {onClearSelection ? (
+          <>
+            <span className="actions-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className="icon-button selection-action"
+              onClick={onClearSelection}
+              aria-label="Clear selection"
+              title="Clear selection"
+              disabled={totalCount === 0}
+            >
+              <IconX className="icon-inline" />
+            </button>
+          </>
+        ) : null}
+      </span>
     </>
   );
 };
 
-export const SelectionFloatingPanel: React.FC<{ onClearSelection?: () => void }> = ({ onClearSelection }) => {
+export const SelectionActionBar: React.FC<{ onClearSelection?: () => void }> = ({ onClearSelection }) => {
   const { selectedDocumentIds, selectedFolderIds, clearSelection } = useWorkspaceSelectionContext();
   const documentIds = Array.isArray(selectedDocumentIds) ? selectedDocumentIds : [];
   const folderIds = Array.isArray(selectedFolderIds) ? selectedFolderIds : [];
@@ -489,15 +488,11 @@ export const SelectionFloatingPanel: React.FC<{ onClearSelection?: () => void }>
   }
   const handleClear = onClearSelection || clearSelection;
   return (
-    <div className="panel-floating-region" aria-live="polite" aria-atomic="true">
-      <div className="panel-floating">
-        <SelectionFloatingActions
-          selectionCount={selectionCount}
-          selectedDocumentIds={documentIds}
-          selectedFolderIds={folderIds}
-          onClearSelection={handleClear}
-        />
-      </div>
-    </div>
+    <SelectionActions
+      selectionCount={selectionCount}
+      selectedDocumentIds={documentIds}
+      selectedFolderIds={folderIds}
+      onClearSelection={handleClear}
+    />
   );
 };

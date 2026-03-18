@@ -23,7 +23,7 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({ documentCount = 0, 
     tokens.push({
       key: 'documents',
       count: docCount,
-      icon: <FileIcon className="selection-summary__icon" size={16} />,
+      icon: <FileIcon className="icon-inline" />,
     });
   }
 
@@ -31,14 +31,14 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({ documentCount = 0, 
     tokens.push({
       key: 'folders',
       count: folderCountNumber,
-      icon: <FolderOutlineIcon className="selection-summary__icon" size={16} />,
+      icon: <FolderOutlineIcon className="icon-inline" />,
     });
   }
 
   if (!tokens.length) {
     const count = resolvedTotal;
     return (
-      <span className="selection-summary selection-summary--text">
+      <span className="quick-add__chip-label">
         {`${count} item${count === 1 ? '' : 's'}`}
       </span>
     );
@@ -46,14 +46,11 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({ documentCount = 0, 
 
   return (
     <span className="selection-summary">
-      {tokens.map((token, index) => (
-        <React.Fragment key={token.key}>
-          {index > 0 ? <span className="selection-summary__separator">·</span> : null}
-          <span className="selection-summary__token">
-            <span className="selection-summary__count">{token.count}</span>
-            {token.icon}
-          </span>
-        </React.Fragment>
+      {tokens.map((token) => (
+        <span key={token.key} className="selection-summary__token">
+          {token.icon}
+          <span>{token.count}</span>
+        </span>
       ))}
     </span>
   );
