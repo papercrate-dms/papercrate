@@ -169,14 +169,7 @@ const CapabilitySetsSection: React.FC<CapabilitySetsSectionProps> = ({
   const hasCapabilitySets = capabilitySetOptions.length > 0;
   const columnCount = supportsCapabilitySetLabels ? 6 : 5;
 
-  const handleCapabilitySetsRefresh = useCallback(() => {
-    if (onRefreshCapabilitySets) {
-      onRefreshCapabilitySets();
-    } else {
-      onRefresh?.();
-    }
-    onRefreshCapabilities?.();
-  }, [onRefresh, onRefreshCapabilities, onRefreshCapabilitySets]);
+
 
   const handleAddCapabilityToNewSet = useCallback((option: CapabilityOptionInput) => {
     const value = resolveCapabilityValue(option);
@@ -345,16 +338,7 @@ const CapabilitySetsSection: React.FC<CapabilitySetsSectionProps> = ({
 
   return (
     <div className="settings-section">
-      <div className="settings-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={handleCapabilitySetsRefresh}
-          disabled={capabilitySetsLoading}
-        >
-          {capabilitySetsLoading ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+      <h4>Capability sets</h4>
 
       <p>
         Capability sets bundle permissions that you can assign to API tokens and user memberships.

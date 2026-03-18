@@ -436,6 +436,14 @@ export const removeDocumentCorrespondent = async (
 
 
 
+export const updateTenant = async (
+  tenantId: Identifier,
+  payload: { name: string },
+): Promise<TenantSnippet> => {
+  const { data } = await api.patch<TenantSnippet>(`/tenants/${tenantId}`, payload);
+  return data;
+};
+
 export const listTenantUsers = async (tenantId: Identifier): Promise<TenantUserSummary[]> => {
   const { data } = await api.get<TenantUserSummary[]>(`/tenants/${tenantId}/users`);
   return Array.isArray(data) ? data : [];

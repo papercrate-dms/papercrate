@@ -53,6 +53,13 @@
 
 .settings-section h4 {
   margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.settings-section h4 ~ h4 {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-muted, var(--border));
 }
 
 .settings-section {
@@ -282,6 +289,7 @@ fieldset.settings-form__field legend {
   width: 100%;
   border-collapse: collapse;
   margin-top: 0.5rem;
+  table-layout: fixed;
 }
 
 .settings-table th,
@@ -290,6 +298,8 @@ fieldset.settings-form__field legend {
   border-bottom: 1px solid var(--border-muted, var(--border));
   text-align: left;
   font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-table tr:last-child td {
@@ -298,6 +308,7 @@ fieldset.settings-form__field legend {
 
 .settings-table__actions {
   white-space: nowrap;
+  width: 1%;
 }
 
 .settings-status {

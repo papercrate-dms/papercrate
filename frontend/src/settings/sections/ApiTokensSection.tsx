@@ -160,13 +160,7 @@ const ApiTokensSection = ({
     [capabilitySetMap, newTokenCapabilitySetId],
   );
 
-  const handleRefresh = useCallback(() => {
-    if (onRefresh) {
-      onRefresh();
-    }
-    onRefreshCapabilitySets?.();
-    onRefreshCapabilities?.();
-  }, [onRefresh, onRefreshCapabilities, onRefreshCapabilitySets]);
+
 
   const handleCopyToken = useCallback(async () => {
     if (!createdToken || !canCopyToken) {
@@ -276,16 +270,7 @@ const ApiTokensSection = ({
 
   return (
     <div className="settings-section">
-      <div className="settings-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={handleRefresh}
-          disabled={loading || capabilitySetsLoading}
-        >
-          {loading || capabilitySetsLoading ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+      <h4>API tokens</h4>
 
       <p>
         API tokens use predefined capability sets. Choose the set that matches the access you need when

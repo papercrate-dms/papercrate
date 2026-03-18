@@ -19,6 +19,7 @@ export interface SettingsSectionConfig {
 interface SettingsModalProps {
   open?: boolean;
   onClose?: () => void;
+  onRefresh?: () => void;
   sections?: SettingsSectionConfig[];
   defaultSectionId?: string;
   [key: string]: unknown;
@@ -27,6 +28,7 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({
   open = false,
   onClose,
+  onRefresh,
   sections,
   defaultSectionId,
   ...sectionProps
@@ -92,9 +94,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           titleTag="h3"
           titleProps={{ id: 'settings-modal-title' }}
           actions={(
-            <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
-              <CloseIcon size={16} />
-            </button>
+            <>
+              {onRefresh ? (
+                <button type="button" className="secondary" onClick={onRefresh}>
+                  Refresh
+                </button>
+              ) : null}
+              <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
+                <CloseIcon size={16} />
+              </button>
+            </>
           )}
         />
         <div className="settings-modal__body">

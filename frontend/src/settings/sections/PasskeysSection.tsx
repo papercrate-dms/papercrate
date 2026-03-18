@@ -28,10 +28,6 @@ const PasskeysSection = ({
 
   const hasPasskeys = useMemo(() => Array.isArray(passkeys) && passkeys.length > 0, [passkeys]);
 
-  const handlePasskeyRefresh = useCallback(() => {
-    onRefreshPasskeys?.();
-  }, [onRefreshPasskeys]);
-
   const handlePasskeyRegister = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -58,16 +54,7 @@ const PasskeysSection = ({
 
   return (
     <div className="settings-section">
-      <div className="settings-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={handlePasskeyRefresh}
-          disabled={passkeysLoading}
-        >
-          {passkeysLoading ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+      <h4>Passkeys</h4>
 
       {passkeysSupported === false ? (
         <p className="settings-empty">Passkeys are not enabled for this account.</p>

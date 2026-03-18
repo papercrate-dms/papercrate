@@ -9,7 +9,10 @@ interface CapabilitySet {
   is_system?: boolean;
 }
 
-interface MembersSectionProps {
+interface TenantSectionProps {
+  tenantName?: string;
+  tenantNameSaving?: boolean;
+  onRenameTenant?: (name: string) => Promise<boolean | void | null> | boolean | void | null;
   tenantUsers?: TenantUserSummary[];
   tenantUsersLoading?: boolean;
   savingTenantUserId?: Identifier | null;
@@ -26,7 +29,10 @@ interface MembersSectionProps {
   ) => Promise<boolean | void | null> | boolean | void | null;
 }
 
-const MembersSection: React.FC<MembersSectionProps> = ({
+const TenantSection: React.FC<TenantSectionProps> = ({
+  tenantName = '',
+  tenantNameSaving = false,
+  onRenameTenant,
   tenantUsers = [],
   tenantUsersLoading = false,
   savingTenantUserId = null,
@@ -37,15 +43,38 @@ const MembersSection: React.FC<MembersSectionProps> = ({
   onUpdateTenantUser,
   onDeleteTenantUser,
 }) => {
+  const [editName, setEditName] = useState(tenantName);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [editingUserId, setEditingUserId] = useState<Identifier | null>(null);
   const [editCapabilitySetId, setEditCapabilitySetId] = useState<Identifier>('');
   const [editError, setEditError] = useState<string | null>(null);
 
-  const hasUsers = tenantUsers.length > 0;
+  useEffect(() => {
+    setEditName(tenantName);
+  }, [tenantName]);
 
-  const handleRefresh = useCallback(() => {
-    onRefreshTenantUsers?.();
-  }, [onRefreshTenantUsers]);
+  const hasUsers = tenantUsers.length > 0;
+  const nameChanged = editName.trim() !== tenantName;
+
+  const handleRenameSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setNameError(null);
+      const trimmed = editName.trim();
+      if (!trimmed) {
+        setNameError('Name cannot be empty.');
+        return;
+      }
+      if (!nameChanged) {
+        return;
+      }
+      const result = await onRenameTenant?.(trimmed);
+      if (result === false) {
+        setNameError('Failed to rename tenant.');
+      }
+    },
+    [editName, nameChanged, onRenameTenant],
+  );
 
   const handleStartEdit = useCallback((user: TenantUserSummary) => {
     setEditError(null);
@@ -119,16 +148,32 @@ const MembersSection: React.FC<MembersSectionProps> = ({
 
   return (
     <div className="settings-section">
-      <div className="settings-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={handleRefresh}
-          disabled={tenantUsersLoading}
-        >
-          {tenantUsersLoading ? 'Refreshing\u2026' : 'Refresh'}
-        </button>
-      </div>
+      <h4>Tenant</h4>
+      <form className="settings-form" onSubmit={handleRenameSubmit}>
+        <div className="settings-form__field">
+          <label htmlFor="tenant-name">Tenant name</label>
+          <input
+            id="tenant-name"
+            type="text"
+            value={editName}
+            onChange={(e) => { setEditName(e.target.value); setNameError(null); }}
+            disabled={tenantNameSaving}
+          />
+        </div>
+        <div className="settings-form__actions">
+          <button
+            type="submit"
+            disabled={tenantNameSaving || !nameChanged || !editName.trim()}
+          >
+            {tenantNameSaving ? 'Saving\u2026' : 'Rename'}
+          </button>
+        </div>
+      </form>
+      {nameError ? (
+        <p className="settings-form__error">{nameError}</p>
+      ) : null}
+
+      <h4>Members</h4>
 
       <p>
         Manage who has access to this tenant and what permissions they have.
@@ -237,4 +282,4 @@ const MembersSection: React.FC<MembersSectionProps> = ({
   );
 };
 
-export default MembersSection;
+export default TenantSection;
