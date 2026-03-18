@@ -1,4 +1,4 @@
-import { shallowEqual } from 'react-redux';
+import shallowEqual from '../utils/shallowEqual';
 import type { FolderNodeId } from '../types/identifiers';
 import type { Folder } from '../types/documents';
 import { createRootNode } from '../app/workspaceUtils';

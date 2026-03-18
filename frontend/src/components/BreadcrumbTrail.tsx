@@ -6,7 +6,6 @@ import React, {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import PropTypes from 'prop-types';
 import useFloatingMenu from './useFloatingMenu';
 import {
   ELLIPSIS,
@@ -401,21 +400,6 @@ const BreadcrumbTrail = ({
         : null}
     </>
   );
-};
-
-const breadcrumbEntryShape = PropTypes.shape({
-  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  name: PropTypes.string,
-  label: PropTypes.string,
-  title: PropTypes.string,
-  onClick: PropTypes.func,
-});
-
-BreadcrumbTrail.propTypes = {
-  entries: PropTypes.arrayOf(breadcrumbEntryShape),
-  className: PropTypes.string,
-  separator: PropTypes.string,
-  truncateFromStart: PropTypes.bool,
 };
 
 export default BreadcrumbTrail;

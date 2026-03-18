@@ -1,4 +1,4 @@
-import { shallowEqual } from 'react-redux';
+import shallowEqual from '../utils/shallowEqual';
 import type { DocumentId, Identifier, TagId } from '../types/identifiers';
 import type { Tag, Correspondent } from '../types/documents';
 import type TagManager from '../lib/assets/TagManager';

@@ -17,10 +17,8 @@
     "@tabler/icons-react": "^3.36",
     "axios": "^1.13.2",
     "pdfjs-dist": "^5.4",
-    "prop-types": "^15.8.1",
     "react": "^19.2",
     "react-dom": "^19.2",
-    "react-redux": "^9.2",
     "react-router-dom": "^7.12"
   },
   "devDependencies": {
