@@ -14,13 +14,7 @@
   border-radius: 0.25rem;
 }
 
-.tags-panel,
-.correspondents-panel {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+
 
 .documents-panel tr.folder.is-drop-target {
   outline: 2px dashed var(--accent-strong, var(--accent));

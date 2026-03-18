@@ -1,28 +1,37 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import {
   getTagColorStyle,
   HEX_COLOR_PATTERN,
   generateRandomTagColor,
 } from '../utils/colors';
+import type { Tag } from '../types/documents';
+
+interface TagsPanelProps {
+  tags?: Tag[];
+  onCreateTag?: (payload: { label: string; color: string | null }) => Promise<void>;
+  onUpdateTag?: (id: string, payload: { label: string; color: string | null }) => Promise<void>;
+  onDeleteTag?: (id: string) => Promise<void>;
+  onNotify?: (message: string, variant?: string) => void;
+}
 
 function TagsPanel({
-  tags,
-  onRefresh,
+  tags = [],
   onCreateTag,
   onUpdateTag,
   onDeleteTag,
   onNotify,
-}) {
-  const [editingId, setEditingId] = useState(null);
+}: TagsPanelProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draftLabel, setDraftLabel] = useState('');
   const [draftColor, setDraftColor] = useState('');
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [createLabel, setCreateLabel] = useState('');
   const [createColor, setCreateColor] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const startEdit = useCallback((tag) => {
+  const startEdit = useCallback((tag: Tag) => {
     setEditingId(tag.id);
     setDraftLabel(tag.label);
     setDraftColor(tag.color ?? '');
@@ -64,13 +73,13 @@ function TagsPanel({
 
     setSaving(true);
     try {
-      await onUpdateTag(editingId, {
+      await onUpdateTag?.(editingId, {
         label: trimmedLabel,
         color: trimmedColor ? trimmedColor : null,
       });
       cancelEdit();
     } catch (updateError) {
-      const message = updateError?.message || 'Failed to update tag.';
+      const message = (updateError as Error)?.message || 'Failed to update tag.';
       onNotify?.(message, 'error');
     } finally {
       setSaving(false);
@@ -78,7 +87,7 @@ function TagsPanel({
   }, [editingId, draftLabel, draftColor, onUpdateTag, cancelEdit, onNotify]);
 
   const handleKeyDown = useCallback(
-    (event) => {
+    (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
         event.preventDefault();
         handleSave();
@@ -91,7 +100,7 @@ function TagsPanel({
   );
 
   const handleDelete = useCallback(
-    async (tag) => {
+    async (tag: Tag) => {
       if (!tag?.id || !onDeleteTag) {
         return;
       }
@@ -103,7 +112,7 @@ function TagsPanel({
           cancelEdit();
         }
       } catch (deleteError) {
-        const message = deleteError?.message || 'Failed to delete tag.';
+        const message = (deleteError as Error)?.message || 'Failed to delete tag.';
         onNotify?.(message, 'error');
       } finally {
         setDeletingId(null);
@@ -113,7 +122,7 @@ function TagsPanel({
   );
 
   const handleCreate = useCallback(
-    async (event) => {
+    async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!onCreateTag) {
         return;
@@ -141,7 +150,7 @@ function TagsPanel({
         setCreateLabel('');
         setCreateColor('');
       } catch (createError) {
-        const message = createError?.message || 'Failed to create tag.';
+        const message = (createError as Error)?.message || 'Failed to create tag.';
         onNotify?.(message, 'error');
       } finally {
         setCreating(false);
@@ -151,73 +160,58 @@ function TagsPanel({
   );
 
   return (
-    <section className="tags-panel">
-      <div className="panel-section__header">
-        <div className="panel-section__titles">
-          <h2>Tags</h2>
-          <div className="panel-section__subtitle">{tags.length} total</div>
-        </div>
-        <div className="header-actions tags-actions">
-          <form className="tags-actions__form" onSubmit={handleCreate}>
-            <input
-              type="text"
-              placeholder="New tag label"
-              value={createLabel}
-              onChange={(event) => setCreateLabel(event.target.value)}
-              disabled={creating}
-            />
-            <input
-              type="color"
-              className="tags-table__color-picker"
-              value={createColor || '#3366ff'}
-              onChange={(event) => setCreateColor(event.target.value)}
-              disabled={creating}
-              aria-label="Tag color (optional)"
-            />
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setCreateColor(generateRandomTagColor())}
-              disabled={creating}
-            >
-              Random color
-            </button>
-            {createColor && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setCreateColor('')}
-                disabled={creating}
-              >
-                Clear
-              </button>
-            )}
-            <button type="submit" disabled={creating || !createLabel.trim()}>
-              {creating ? 'Creating…' : 'Create'}
-            </button>
-          </form>
+    <section className="manage-panel">
+      <form className="manage-panel__create" onSubmit={handleCreate}>
+        <input
+          type="text"
+          placeholder="New tag label"
+          value={createLabel}
+          onChange={(event) => setCreateLabel(event.target.value)}
+          disabled={creating}
+        />
+        <input
+          type="color"
+          className="manage-table__color-picker"
+          value={createColor || '#3366ff'}
+          onChange={(event) => setCreateColor(event.target.value)}
+          disabled={creating}
+          aria-label="Tag color (optional)"
+        />
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => setCreateColor(generateRandomTagColor())}
+          disabled={creating}
+        >
+          Random color
+        </button>
+        {createColor && (
           <button
-            className="secondary"
             type="button"
-            onClick={onRefresh}
-            disabled={saving || creating || Boolean(deletingId)}
+            className="secondary"
+            onClick={() => setCreateColor('')}
+            disabled={creating}
           >
-            Refresh
+            Clear
           </button>
-        </div>
-      </div>
-      <div className="panel-section__body tags-panel__body">
+        )}
+        <button type="submit" disabled={creating || !createLabel.trim()}>
+          {creating ? 'Creating\u2026' : 'Create'}
+        </button>
+      </form>
+
+      <div className="manage-panel__body">
         {tags.length === 0 ? (
           <div className="empty-state">No tags created yet.</div>
         ) : (
-          <div className="tags-table">
+          <div className="manage-table">
             <table>
               <thead>
                 <tr>
                   <th scope="col">Tag</th>
                   <th scope="col">Color</th>
                   <th scope="col" className="numeric">
-                    Documents
+                    Usage
                   </th>
                   <th scope="col" className="actions">
                     Actions
@@ -229,10 +223,11 @@ function TagsPanel({
                   const isEditing = editingId === tag.id;
                   return (
                     <tr key={tag.id} className={isEditing ? 'editing' : ''}>
-                      <td className="tags-table__label">
+                      <td className="manage-table__label">
                         {isEditing ? (
                           <input
-                            className="tags-table__label-input"
+                            type="text"
+                            className="manage-table__label-input"
                             value={draftLabel}
                             onChange={(event) => setDraftLabel(event.target.value)}
                             onKeyDown={handleKeyDown}
@@ -250,28 +245,28 @@ function TagsPanel({
                       </td>
                       <td>
                         {isEditing ? (
-                          <div className="tags-table__color-editor">
+                          <div className="manage-table__color-editor">
                             <input
                               type="color"
-                              className="tags-table__color-picker"
+                              className="manage-table__color-picker"
                               value={colorPickerValue}
                               onChange={(event) => setDraftColor(event.target.value)}
-                          disabled={saving || deletingId === tag.id}
-                          aria-label="Pick tag color"
-                        />
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => setDraftColor(generateRandomTagColor())}
-                          disabled={saving || deletingId === tag.id}
-                        >
-                          Random color
-                        </button>
-                        {draftColor && (
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => setDraftColor('')}
+                              disabled={saving || deletingId === tag.id}
+                              aria-label="Pick tag color"
+                            />
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => setDraftColor(generateRandomTagColor())}
+                              disabled={saving || deletingId === tag.id}
+                            >
+                              Random color
+                            </button>
+                            {draftColor && (
+                              <button
+                                type="button"
+                                className="secondary"
+                                onClick={() => setDraftColor('')}
                                 disabled={saving || deletingId === tag.id}
                               >
                                 Clear
@@ -280,18 +275,18 @@ function TagsPanel({
                           </div>
                         ) : tag.color ? (
                           <span
-                            className="tags-table__swatch"
+                            className="manage-table__swatch"
                             style={{ backgroundColor: tag.color }}
                             aria-label={`Tag color ${tag.color}`}
                           />
                         ) : (
-                          <span className="meta">—</span>
+                          <span className="meta">{'\u2014'}</span>
                         )}
                       </td>
                       <td className="numeric">{tag.usage_count ?? 0}</td>
                       <td className="actions">
                         {isEditing ? (
-                          <div className="tags-table__edit-controls">
+                          <div className="manage-table__row-actions">
                             <button
                               type="button"
                               className="secondary"
@@ -318,7 +313,7 @@ function TagsPanel({
                             </button>
                           </div>
                         ) : (
-                          <div className="tags-table__row-actions">
+                          <div className="manage-table__row-actions">
                             <button
                               type="button"
                               className="secondary"

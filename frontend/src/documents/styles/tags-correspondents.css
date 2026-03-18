@@ -1,52 +1,91 @@
-.tags-panel__body {
-  overflow-y: auto;
+/* Shared manage panel layout (tags + correspondents modals) */
+
+.manage-panel {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.tags-table {
+.manage-panel__create {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.manage-panel__create input[type='text'] {
+  min-width: 14rem;
+  width: auto;
+}
+
+.manage-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Shared manage table */
+
+.manage-table {
   width: 100%;
   overflow: auto;
 }
 
-.tags-table table {
+.manage-table table {
   width: 100%;
   border-collapse: collapse;
   min-width: 320px;
 }
 
-.tags-table th,
-.tags-table td {
+.manage-table th,
+.manage-table td {
   padding: 0.45rem 0.6rem;
   text-align: left;
   font-size: 0.85rem;
 }
 
-.tags-table th.numeric,
-.tags-table td.numeric {
+.manage-table th.numeric,
+.manage-table td.numeric {
   text-align: right;
 }
 
-.tags-table th.actions,
-.tags-table td.actions {
+.manage-table th.actions,
+.manage-table td.actions {
   text-align: right;
   width: 0;
 }
 
-.tags-table tbody tr:hover {
+.manage-table tbody tr:hover {
   background: var(--surface-subtle);
 }
 
-.tags-table tr.editing {
+.manage-table tr.editing {
   background: var(--sidebar-hover-bg);
 }
 
-.tags-table__label {
+.manage-table__label {
   max-width: 24rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tags-table__swatch {
+.manage-table__label-input {
+  width: 100%;
+}
+
+.manage-table__row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+/* Tag-specific */
+
+.manage-table__swatch {
   display: inline-block;
   width: 1rem;
   height: 1rem;
@@ -54,76 +93,39 @@
   box-shadow: inset 0 0 0 1px var(--shadow-faint);
 }
 
-.tags-panel__error {
-  margin: 0.5rem 0;
-  color: var(--danger);
-  font-size: 0.8rem;
-}
-
-.tags-table__label-input {
-  width: 100%;
-}
-
-.tags-table__color-editor {
+.manage-table__color-editor {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.tags-table__color-picker {
+.manage-table__color-picker {
   width: 2.25rem;
   height: 2.25rem;
-  padding: 0;
-  background: none;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.tags-table__edit-controls {
-  display: flex;
-  justify-content: flex-start;
-  padding: 0.25rem;
-  gap: 0.4rem;
+.manage-table__color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
 }
 
-.tags-table__row-actions {
-  display: flex;
-  justify-content: flex-start;
-  padding: 0.25rem;
-  gap: 0.4rem;
+.manage-table__color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
 }
 
-.correspondents-panel .header-actions {
-  gap: 0.5rem;
+.manage-table__color-picker::-moz-color-swatch {
+  border: none;
+  border-radius: 1px;
 }
 
-.tags-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.tags-actions__form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.tags-actions__form input[type='text'] {
-  min-width: 14rem;
-}
-
-.correspondents-actions__form {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.correspondents-actions__form input {
-  min-width: 14rem;
-}
-
-
+/* Correspondent-specific (pills, inline form in document viewer) */
 
 .correspondent-pill {
   display: inline-flex;

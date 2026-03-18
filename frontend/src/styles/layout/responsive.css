@@ -10,8 +10,7 @@
   .sidebar,
   .documents-panel,
   .detail-panel,
-  .tags-panel,
-  .correspondents-panel {
+  .manage-panel {
     min-height: auto;
   }
 }

@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import PanelHeader from '../components/PanelHeader';
-import { CloseIcon } from '../components/icons';
+import { CloseIcon, RefreshIcon } from '../components/icons';
 import { DEFAULT_SETTINGS_SECTIONS } from '../constants/settings';
 
 export interface SettingsSectionConfig {
@@ -96,8 +96,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           actions={(
             <>
               {onRefresh ? (
-                <button type="button" className="secondary" onClick={onRefresh}>
-                  Refresh
+                <button type="button" className="icon-button" onClick={onRefresh} aria-label="Refresh">
+                  <RefreshIcon size={16} />
                 </button>
               ) : null}
               <button type="button" className="icon-button" onClick={onClose} aria-label="Close">

@@ -4,7 +4,7 @@ import { useStatusToast } from '../lib/context/StatusToastContext';
 import TagsPanel from '../tags/TagsPanel';
 import CorrespondentsPanel, { CorrespondentsPanelProps } from '../correspondents/CorrespondentsPanel';
 import PanelHeader from '../components/PanelHeader';
-import { CloseIcon } from '../components/icons';
+import { CloseIcon, RefreshIcon } from '../components/icons';
 import { CORRESPONDENTS_MODAL, TAGS_MODAL } from '../constants/app';
 import type { Tag, Correspondent } from '../types/documents';
 import type CorrespondentManager from '../lib/assets/CorrespondentManager';
@@ -99,15 +99,21 @@ export const useManagementModals = ({
             titleTag="h3"
             titleProps={{ id: 'tags-modal-title' }}
             actions={(
-              <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
-                <CloseIcon size={16} />
-              </button>
+              <>
+                {refreshTags ? (
+                  <button type="button" className="icon-button" onClick={refreshTags} aria-label="Refresh">
+                    <RefreshIcon size={16} />
+                  </button>
+                ) : null}
+                <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
+                  <CloseIcon size={16} />
+                </button>
+              </>
             )}
           />
           <div className="panel-modal__body">
             <TagsPanel
               tags={tags}
-              onRefresh={refreshTags}
               onCreateTag={onTagCreate}
               onUpdateTag={onTagUpdate}
               onDeleteTag={onTagDelete}
@@ -127,6 +133,8 @@ export const useManagementModals = ({
     showToast,
     tags,
   ]);
+
+
 
   const handleCorrespondentCreateSafe = useCallback<CorrespondentsPanelProps['onCreate']>(
     async (payload) => {
@@ -181,15 +189,21 @@ export const useManagementModals = ({
             titleTag="h3"
             titleProps={{ id: 'correspondents-modal-title' }}
             actions={(
-              <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
-                <CloseIcon size={16} />
-              </button>
+              <>
+                {refreshCorrespondents ? (
+                  <button type="button" className="icon-button" onClick={refreshCorrespondents} aria-label="Refresh">
+                    <RefreshIcon size={16} />
+                  </button>
+                ) : null}
+                <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
+                  <CloseIcon size={16} />
+                </button>
+              </>
             )}
           />
           <div className="panel-modal__body">
             <CorrespondentsPanel
               correspondents={correspondents}
-              onRefresh={refreshCorrespondents}
               onCreate={handleCorrespondentCreateSafe}
               onUpdate={handleCorrespondentUpdateSafe}
               onDelete={handleCorrespondentDeleteSafe}

@@ -4,7 +4,6 @@ import type { Correspondent } from '../types/documents';
 
 export interface CorrespondentsPanelProps {
   correspondents?: Correspondent[];
-  onRefresh?: () => void | Promise<void>;
   onCreate: (payload: { name: string }) => Promise<Correspondent | void>;
   onUpdate: (id: string, payload: { name: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -13,7 +12,6 @@ export interface CorrespondentsPanelProps {
 
 function CorrespondentsPanel({
   correspondents = [],
-  onRefresh,
   onCreate,
   onUpdate,
   onDelete,
@@ -110,49 +108,30 @@ function CorrespondentsPanel({
     [handleSave, cancelEdit],
   );
 
-  const renderUsage = useCallback((correspondent: Correspondent) => {
-    return correspondent.usage_count;
-  }, []);
-
   return (
-    <section className="correspondents-panel">
-      <div className="panel-section__header">
-        <div className="panel-section__titles">
-          <h2>Correspondents</h2>
-          <div className="panel-section__subtitle">{correspondents.length} total</div>
-        </div>
-        <div className="header-actions correspondents-actions">
-          <form className="correspondents-actions__form" onSubmit={handleCreate}>
-            <input
-              type="text"
-              placeholder="New correspondent name"
-              value={createName}
-              onChange={(event) => setCreateName(event.target.value)}
-              disabled={creating}
-            />
-            <button type="submit" disabled={creating || !createName.trim()}>
-              {creating ? 'Creating…' : 'Create'}
-            </button>
-          </form>
-          <button
-            className="secondary"
-            type="button"
-            onClick={onRefresh}
-            disabled={saving || creating || Boolean(deletingId)}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-      <div className="panel-section__body tags-panel__body">
+    <section className="manage-panel">
+      <form className="manage-panel__create" onSubmit={handleCreate}>
+        <input
+          type="text"
+          placeholder="New correspondent name"
+          value={createName}
+          onChange={(event) => setCreateName(event.target.value)}
+          disabled={creating}
+        />
+        <button type="submit" disabled={creating || !createName.trim()}>
+          {creating ? 'Creating\u2026' : 'Create'}
+        </button>
+      </form>
+
+      <div className="manage-panel__body">
         {correspondents.length === 0 ? (
           <div className="empty-state">No correspondents created yet.</div>
         ) : (
-          <div className="tags-table">
+          <div className="manage-table">
             <table>
               <thead>
                 <tr>
-                  <th scope="col">Name</th>
+                  <th scope="col">Correspondent</th>
                   <th scope="col" className="numeric">
                     Usage
                   </th>
@@ -166,10 +145,11 @@ function CorrespondentsPanel({
                   const isEditing = editingId === correspondent.id;
                   return (
                     <tr key={correspondent.id} className={isEditing ? 'editing' : ''}>
-                      <td className="tags-table__label">
+                      <td className="manage-table__label">
                         {isEditing ? (
                           <input
-                            className="tags-table__label-input"
+                            type="text"
+                            className="manage-table__label-input"
                             value={draftName}
                             onChange={(event) => setDraftName(event.target.value)}
                             onKeyDown={handleKeyDown}
@@ -180,10 +160,10 @@ function CorrespondentsPanel({
                           <span>{correspondent.name}</span>
                         )}
                       </td>
-                      <td className="numeric">{renderUsage(correspondent)}</td>
+                      <td className="numeric">{correspondent.usage_count}</td>
                       <td className="actions">
                         {isEditing ? (
-                          <div className="tags-table__edit-controls">
+                          <div className="manage-table__row-actions">
                             <button
                               type="button"
                               className="secondary"
@@ -202,7 +182,7 @@ function CorrespondentsPanel({
                             </button>
                           </div>
                         ) : (
-                          <div className="tags-table__row-actions">
+                          <div className="manage-table__row-actions">
                             <button
                               type="button"
                               className="secondary"
