@@ -59,9 +59,12 @@ const DocumentsPanelHeader: React.FC<DocumentsPanelHeaderProps> = ({
         ) : null}
       </span>
       {hasSelection && header.selectionActions ? (
-        <span className="panel-header__selection">
-          {header.selectionActions}
-        </span>
+        <>
+          <span className="panel-header__selection">
+            {header.selectionActions}
+          </span>
+          <span className="panel-header__breadcrumb" aria-hidden="true" />
+        </>
       ) : null}
     </div>
   );

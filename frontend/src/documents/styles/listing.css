@@ -69,9 +69,7 @@
   min-width: 0;
 }
 
-.panel-header--selection .panel-header__breadcrumb {
-  flex: 0 100 auto;
-}
+
 
 .panel-header--selection .panel-header__title {
   overflow: visible;
@@ -81,7 +79,7 @@
 .panel-header__selection {
   display: inline-flex;
   align-items: center;
-  flex: 1 0 auto;
+  flex: 0 1 auto;
   gap: 0.25rem;
   border: 1px solid var(--border);
   border-radius: 1rem;
