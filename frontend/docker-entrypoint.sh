@@ -4,6 +4,8 @@ set -euo pipefail
 # Add mjs to mime.types if not present
 sed -i 's|application/javascript|application/javascript mjs|' /etc/nginx/mime.types
 
+CSP_EXTRA_HOSTS="${CSP_EXTRA_HOSTS:-}"
+
 MAX_BODY_SIZE_RAW="${UPLOAD_BODY_LIMIT_BYTES:-}"
 if [ -n "$MAX_BODY_SIZE_RAW" ]; then
     MAX_BODY_SIZE=$(printf '%sm' "$((MAX_BODY_SIZE_RAW / (1024 * 1024)))")
@@ -25,7 +27,7 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'self';" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${CSP_EXTRA_HOSTS}; connect-src 'self' ${CSP_EXTRA_HOSTS}; font-src 'self'; object-src 'none'; frame-ancestors 'self';" always;
 
     # Gzip compression
     gzip on;
