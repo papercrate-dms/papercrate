@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import type { JSX } from 'react';
 import DocumentInfoPanel from './components/DocumentInfoPanel';
 import UnifiedDocumentViewer from './UnifiedDocumentViewer';
 import { resolveDocumentDownloadHref } from '../documents/documentActions';
+import { IconEye } from '@tabler/icons-react';
 
 import type { Document } from '../types/documents';
 
@@ -73,6 +74,7 @@ const DocumentViewerLayout = ({
         {
           id: 'preview',
           label: 'Preview',
+          icon: <IconEye size={16} stroke={1.6} />,
           render: () => renderViewportPane(),
         },
       ]
@@ -81,7 +83,7 @@ const DocumentViewerLayout = ({
 
   const resolvedDefaultTabId = isStacked ? 'preview' : defaultTabId;
   const summaryPlacement = 'tabs';
-  const tabsPlacement = 'bottom';
+  const tabsPlacement = 'top';
   const summaryLayout = 'compact';
 
   const detailsPane = (

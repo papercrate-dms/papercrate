@@ -4,8 +4,9 @@ import DocumentSummarySection, { DocumentSummarySectionProps } from './DocumentS
 import { describeDocumentSummary, extractDocumentMetadataPayload, type DocumentSummaryRow } from '../logic/documentSummary';
 import type { Tag, Correspondent } from '../../types/documents';
 import type { TagId, Identifier } from '../../types/identifiers';
+import { IconEye, IconInfoCircle, IconFileText, IconCode } from '@tabler/icons-react';
 
-type PanelTab = { id: string; label: string; render: (context?: Record<string, unknown>) => ReactNode };
+type PanelTab = { id: string; label: string; icon?: ReactNode; render: (context?: Record<string, unknown>) => ReactNode };
 
 type ContentState =
   | { status: 'idle'; data: null; error: null }
@@ -144,6 +145,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     return {
       id: summaryTabId,
       label: summaryTabLabel,
+      icon: <IconInfoCircle size={16} stroke={1.6} />,
       render: () => (
         <div className={`${base}__summary-tab-content`}>
           {renderSummarySection()}
@@ -190,6 +192,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: 'details',
         label: detailsTabLabel,
+        icon: <IconInfoCircle size={16} stroke={1.6} />,
         render: () => renderDetailsSection(),
       });
     }
@@ -198,6 +201,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: contentConfig.id || 'content',
         label: contentConfig.label || 'Content',
+        icon: <IconFileText size={16} stroke={1.6} />,
         render: () => {
           const messageClass = `${base}__message`;
           const errorClass = `${base}__message ${base}__message--error`;
@@ -264,6 +268,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: 'metadata',
         label: metadataTabLabel,
+        icon: <IconCode size={16} stroke={1.6} />,
         render: () => (
           <section className={`${base}__section ${base}__section--metadata-json`}>
             <pre className={`${base}__metadata-json`}>
@@ -456,7 +461,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
           className={`${base}__tab${tab.id === activeTabId ? ' is-active' : ''}`}
           onClick={() => handleTabSelect(tab.id)}
         >
-          {tab.label}
+          {tab.icon}{tab.label}
         </button>
       ))}
     </div>
