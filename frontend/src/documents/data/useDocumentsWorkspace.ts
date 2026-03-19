@@ -710,6 +710,11 @@ const useDocumentsWorkspace = ({
     await loadFolder(initialFolder, {});
   }, [refreshTags, refreshCorrespondents, routeFolderId, loadFolder, foldersManager]);
 
+  // Route-sync effect: seed state from URL on mount and when route changes from outside
+  // (e.g., direct link, browser back/forward). Don't fire when selectedFolder state changes
+  // from user interactions — use a ref to track previous route param.
+  const prevRouteFolderIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!token) {
       return;
@@ -724,8 +729,9 @@ const useDocumentsWorkspace = ({
       return;
     }
 
-    // Checking cache (folderContents) is removed, now we rely on selectedFolder effect to fetch.
-    if (targetParam !== selectedFolder) {
+    // Only sync if route param actually changed (prevents fighting state changes)
+    if (targetParam !== prevRouteFolderIdRef.current) {
+      prevRouteFolderIdRef.current = targetParam;
       selectFolder(targetParam, { immediate: true });
     }
   }, [
@@ -733,7 +739,6 @@ const useDocumentsWorkspace = ({
     appStatus,
     routeFolderId,
     routeDocumentId,
-    selectedFolder,
     selectFolder,
   ]);
 
