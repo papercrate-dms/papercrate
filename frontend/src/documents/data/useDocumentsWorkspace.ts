@@ -856,7 +856,6 @@ const useDocumentsWorkspace = ({
   }, [settingsOpen]);
 
   const detailWorkspace = useDetailWorkspace({
-    documentLookup,
     folderNodes,
     detailPanelControlRef,
     openDocumentViewer: openDocumentViewerForDetail,

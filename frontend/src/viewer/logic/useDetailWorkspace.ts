@@ -18,7 +18,6 @@ interface FolderNode {
 }
 
 interface UseDetailWorkspaceArgs {
-  documentLookup: Map<Identifier, Document>;
   folderNodes: Map<Identifier | 'root', FolderNode>;
   detailPanelControlRef: MutableRefObject<{ open?: (documentId: Identifier) => void; close?: () => void } | null>;
 
@@ -44,13 +43,11 @@ interface UseDetailWorkspaceResult {
   detailPanelOpen: boolean;
   openDetailPanel: ReturnType<typeof useDetailPanel>['openDetailPanel'];
   closeDetailPanel: ReturnType<typeof useDetailPanel>['closeDetailPanel'];
-  handleDetailPanelClose: () => void;
   resolveThumbnailUrlForDoc: (doc: Document | null) => string | null;
   resolveFolderPath: (folderId?: Identifier | 'root') => Array<{ id: Identifier | 'root'; name: string }>;
 }
 
 const useDetailWorkspace = ({
-  documentLookup,
   folderNodes,
   detailPanelControlRef,
   openDocumentViewer,
@@ -77,9 +74,7 @@ const useDetailWorkspace = ({
     detailPanelDocument,
     openDetailPanel,
     closeDetailPanel,
-  } = useDetailPanel({
-    documentLookup,
-  });
+  } = useDetailPanel();
 
   useEffect(() => {
     detailPanelControlRef.current = {
@@ -87,37 +82,6 @@ const useDetailWorkspace = ({
       close: closeDetailPanel,
     };
   }, [detailPanelControlRef, openDetailPanel, closeDetailPanel]);
-
-  // Prefetch folder ancestors for breadcrumb display
-  useEffect(() => {
-    const folderId = detailPanelDocument?.folder_id;
-    if (!folderId) {
-      return;
-    }
-
-    const visited = new Set();
-    let currentId = folderId;
-    let guard = 0;
-
-    while (currentId && currentId !== 'root' && guard < 32) {
-      guard += 1;
-      if (visited.has(currentId)) {
-        break;
-      }
-      visited.add(currentId);
-
-      const node = folderNodes.get(currentId);
-      if (!node) {
-        break;
-      }
-
-      const parentId = node.parentId ?? 'root';
-      if (!parentId || parentId === 'root') {
-        break;
-      }
-      currentId = parentId;
-    }
-  }, [detailPanelDocument, folderNodes]);
 
   const resolveThumbnailUrlForDoc = useCallback(
     (doc) =>
@@ -127,10 +91,6 @@ const useDetailWorkspace = ({
       }),
     [ensureAssetUrl, getAsset],
   );
-
-  const handleDetailPanelClose = useCallback(() => {
-    closeDetailPanel();
-  }, [closeDetailPanel]);
 
   const handleDetailTagAdd = useCallback(
     async (doc: Document, value: string, context?: { option?: unknown }) => {
@@ -174,7 +134,7 @@ const useDetailWorkspace = ({
     onCorrespondentAdd: handleCorrespondentAdd,
     onCorrespondentRemove: handleCorrespondentRemove,
     onFolderNavigate: selectFolder,
-    onClose: handleDetailPanelClose,
+    onClose: closeDetailPanel,
     resolveFolderPath,
     folderNodes,
   };
@@ -184,7 +144,6 @@ const useDetailWorkspace = ({
     detailPanelOpen,
     openDetailPanel,
     closeDetailPanel,
-    handleDetailPanelClose,
     resolveThumbnailUrlForDoc,
     resolveFolderPath,
   };

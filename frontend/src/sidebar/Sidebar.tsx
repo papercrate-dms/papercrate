@@ -5,12 +5,16 @@ import { useUI } from '../lib/context/UIContext';
 import { useTags } from '../lib/context/TagsContext';
 import { useCorrespondents } from '../lib/context/CorrespondentsContext';
 import { useFolderTree } from '../lib/context/FolderTreeContext';
+import { useDocumentsFilter } from '../documents/context/DocumentsFilterContext';
+import { useSearchPanel } from '../documents/context/SearchPanelContext';
 import SidebarFolderList from './components/SidebarFolderList';
 import SidebarTagList from './components/SidebarTagList';
 import SidebarCorrespondentList from './components/SidebarCorrespondentList';
+import SidebarSearchResults from './components/SidebarSearchResults';
 import type { TenantOption } from './components/SidebarMenu';
 import SidebarHeader from './components/SidebarHeader';
-import SidebarSearch from './components/SidebarSearch';
+import SearchTrigger from './components/SearchTrigger';
+import SearchField from './components/SearchField';
 
 const Sidebar: React.FC = () => {
   const { tags, handleTagCreate, openTagsModal } = useTags();
@@ -18,6 +22,8 @@ const Sidebar: React.FC = () => {
   const { handleLogout, tenant, tenants, tenantOptions, handleTenantSelect } = useSession();
   const { openSettings, handleFileSelection, sidebarSuppressed } = useUI();
   const { selectedFolder } = useFolderTree();
+  const { isActive: hasActiveFilters } = useDocumentsFilter();
+  const { isOpen: searchOpen } = useSearchPanel();
 
   const tenantName = (tenant as TenantOption)?.name;
   const effectiveTenants = (tenants || tenantOptions || []);
@@ -37,6 +43,23 @@ const Sidebar: React.FC = () => {
   if (sidebarSuppressed) {
     sidebarClassNames.push('sidebar--suppressed');
   }
+
+  const lists = (
+    <>
+      <SidebarFolderList />
+      <SidebarTagList
+        tags={tags}
+        untaggedFilterId={null}
+        onCreateTag={handleTagCreate}
+        onManageTags={openTagsModal}
+      />
+      <SidebarCorrespondentList
+        correspondents={correspondents}
+        onCreateCorrespondent={handleCorrespondentCreate}
+        onManageCorrespondents={openCorrespondentsModal}
+      />
+    </>
+  );
 
   return (
     <aside className={sidebarClassNames.join(' ')} ref={sidebarRef} style={sidebarStyle}>
@@ -61,22 +84,14 @@ const Sidebar: React.FC = () => {
       />
 
       <div className="panel-body sidebar__body">
-        <SidebarSearch />
-
-        <SidebarFolderList />
-
-        <SidebarTagList
-          tags={tags}
-          untaggedFilterId={null}
-          onCreateTag={handleTagCreate}
-          onManageTags={openTagsModal}
-        />
-
-        <SidebarCorrespondentList
-          correspondents={correspondents}
-          onCreateCorrespondent={handleCorrespondentCreate}
-          onManageCorrespondents={openCorrespondentsModal}
-        />
+        {searchOpen ? (
+          <SidebarSearchResults>{lists}</SidebarSearchResults>
+        ) : (
+          <>
+            {hasActiveFilters ? <SearchField /> : <SearchTrigger />}
+            {lists}
+          </>
+        )}
       </div>
     </aside>
   );

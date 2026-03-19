@@ -46,7 +46,8 @@ export interface UseWorkspaceSurfaceArgs {
 }
 
 interface UseWorkspaceSurfaceResult {
-  surface: WorkspaceSurface;
+  documentsSurface: WorkspaceSurface;
+  viewerSurface: WorkspaceSurface;
 }
 
 export const useWorkspaceSurface = ({
@@ -231,12 +232,5 @@ export const useWorkspaceSurface = ({
     detailPanelProps,
   ]);
 
-  const surface = useMemo<WorkspaceSurface>(() => {
-    if (showViewerWorkspace) {
-      return viewerSurface;
-    }
-    return documentsSurface;
-  }, [showViewerWorkspace, viewerSurface, documentsSurface]);
-
-  return { surface };
+  return { documentsSurface, viewerSurface };
 };

@@ -14,16 +14,16 @@ interface UseManagementModalsArgs {
   locationPathname?: string;
   tags?: Tag[];
   refreshTags?: () => void | Promise<void>;
-  onTagCreate?: (...args: any[]) => void | Promise<void>;
-  onTagUpdate?: (...args: any[]) => void | Promise<void>;
-  onTagDelete?: (...args: any[]) => void | Promise<void>;
+  onTagCreate?: (payload: { label: string; color: string | null }) => Promise<void>;
+  onTagUpdate?: (id: string, payload: { label: string; color: string | null }) => Promise<void>;
+  onTagDelete?: (id: string) => Promise<void>;
   correspondents?: Correspondent[];
   correspondentLookupById?: Map<Identifier, Correspondent> | null;
   correspondentLookupByName?: Map<string, Correspondent> | null;
   refreshCorrespondents?: () => void | Promise<void>;
-  onCorrespondentCreate?: (...args: any[]) => void | Promise<void>;
-  onCorrespondentUpdate?: (...args: any[]) => void | Promise<void>;
-  onCorrespondentDelete?: (...args: any[]) => void | Promise<void>;
+  onCorrespondentCreate?: (payload: { name: string }) => Promise<Correspondent | void>;
+  onCorrespondentUpdate?: (id: string, payload: { name: string }) => Promise<void>;
+  onCorrespondentDelete?: (id: string) => Promise<void>;
   correspondentManager?: CorrespondentManager | null;
 }
 

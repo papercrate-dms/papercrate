@@ -75,8 +75,11 @@ export const fetchAsset = async (id: Identifier): Promise<AssetResponse> => {
   };
 };
 
-export const listDocuments = async (params: Record<string, unknown> = {}): Promise<DocumentResponse[]> => {
-  const { data } = await api.get<DocumentResponse[]>('/documents', { params });
+export const listDocuments = async (
+  params: Record<string, unknown> = {},
+  options?: { signal?: AbortSignal },
+): Promise<DocumentResponse[]> => {
+  const { data } = await api.get<DocumentResponse[]>('/documents', { params, signal: options?.signal });
   return Array.isArray(data) ? data : [];
 };
 

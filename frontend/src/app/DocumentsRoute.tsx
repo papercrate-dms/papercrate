@@ -10,6 +10,10 @@ import { useWorkspaceSurface } from './useWorkspaceSurface';
 import { SidebarProvider, useSidebarContext } from '../sidebar/SidebarContext';
 import { PanelManagerProvider, usePanelManager } from './PanelManagerContext';
 import { PANEL_LIMITS } from '../constants/layout';
+import { SearchPanelProvider } from '../documents/context/SearchPanelContext';
+import { MainPanelStackProvider, useMainPanelStack } from './MainPanelStackContext';
+import type { MainPanel } from './MainPanelStackContext';
+import { cx } from '../utils/cx';
 import Sidebar from '../sidebar/Sidebar';
 import useDocumentsShell from './useDocumentsShell';
 
@@ -26,8 +30,9 @@ const DocumentsInner: React.FC<{
 
   const { openDetailPanel } = surfaceConfig;
   const sidebarHidden = sidebarCollapsed || sidebarSuppressed;
+  const { top: activePanel, push, remove } = useMainPanelStack();
 
-  const { surface } = useWorkspaceSurface({
+  const { documentsSurface, viewerSurface } = useWorkspaceSurface({
     sidebarHidden,
     onExpandSidebar: expandSidebar,
     ...surfaceConfig,
@@ -40,12 +45,26 @@ const DocumentsInner: React.FC<{
     };
   }, []);
 
+  // Sync viewer route with stack
+  const viewerDocId = surfaceConfig.viewerDocumentId ?? null;
+  useEffect(() => {
+    if (viewerDocId != null) {
+      push('viewer');
+    } else {
+      remove('viewer');
+    }
+  }, [viewerDocId, push, remove]);
+
   const renderSurface = () => {
+    const surface = activePanel === 'viewer'
+      ? (viewerSurface ?? documentsSurface)
+      : documentsSurface;
+
     const detailMode = surface?.detailMode ?? null;
-    const layoutClass = `documents-main${sidebarHidden ? ' documents-main--sidebar-hidden' : ''}${detailMode === 'overlay' ? ' documents-main--overlay-detail' : ''}`;
+    const layoutClass = cx('documents-main', sidebarHidden && 'documents-main--sidebar-hidden', detailMode === 'overlay' && 'documents-main--overlay-detail');
     const sidebarNode = !sidebarHidden ? <Sidebar /> : null;
     const surfaceDetail = surface && (surface as { detail?: ReactNode }).detail ? (surface as { detail?: ReactNode }).detail : null;
-    const surfaceBody = surface ? surface.content : null;
+    const surfaceBody = surface?.content ?? null;
 
     return (
       <main className={layoutClass}>
@@ -80,16 +99,23 @@ const DocumentsRouteContent: React.FC = () => {
     navigate(`/documents/${documentId}`);
   }, [navigate]);
 
+  const initialStack: MainPanel[] = ['documents'];
+  if (surfaceConfig.viewerDocumentId) initialStack.push('viewer');
+
   return (
     <DocumentsFilterProvider value={documentsFilter}>
-      <FullscreenPreviewProvider
-        onNavigate={handleDocumentNavigate}
-      >
-        <DocumentsInner
-          surfaceConfig={surfaceConfig}
-          onNavigate={handleDocumentNavigate}
-        />
-      </FullscreenPreviewProvider>
+      <MainPanelStackProvider initialStack={initialStack}>
+        <SearchPanelProvider>
+          <FullscreenPreviewProvider
+            onNavigate={handleDocumentNavigate}
+          >
+            <DocumentsInner
+              surfaceConfig={surfaceConfig}
+              onNavigate={handleDocumentNavigate}
+            />
+          </FullscreenPreviewProvider>
+        </SearchPanelProvider>
+      </MainPanelStackProvider>
     </DocumentsFilterProvider>
   );
 };

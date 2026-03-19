@@ -48,6 +48,7 @@ import {
   IconBrandMatrix,
   IconWorld,
   IconApi,
+  IconSearch,
 } from '@tabler/icons-react';
 import FolderSvg from '../assets/folder.svg';
 const logoWebp = new URL('../assets/logo.webp', import.meta.url).toString();
@@ -103,6 +104,7 @@ export const SortDescendingLettersIcon = createIcon(IconSortDescendingLetters);
 export const IconX = createIcon(TablerIconX);
 export const CloseIcon = createIcon(TablerIconX);
 export const SettingsIcon = createIcon(IconSettings);
+export const SearchIcon = createIcon(IconSearch);
 export const PlusIcon = createIcon(IconPlus);
 export const SunIcon = createIcon(IconSun);
 export const MoonIcon = createIcon(IconMoon);
