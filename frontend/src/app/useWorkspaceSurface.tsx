@@ -9,15 +9,6 @@ import { FolderManagerProvider } from '../folders/FolderManagerContext';
 import { useFolderTree } from '../lib/context/FolderTreeContext';
 import type { Identifier } from '../types/identifiers';
 
-type EnsureAssetUrl = (
-  docId: Identifier,
-  asset: unknown,
-  options?: Record<string, unknown>,
-) => Promise<unknown> | void;
-type EnsureViewerData = (docId: Identifier, options?: Record<string, unknown>) => Promise<unknown>;
-type GetDocumentAsset = (document: unknown, assetType: string) => unknown;
-type NotifyApiError = (error: unknown, fallbackMessage?: string) => void;
-
 type DetailPanelProps = (ComponentProps<typeof DocumentViewerPanel> & {
   onClose?: () => void;
   onOpenViewer?: (args: { documentIds: Array<string> }) => void;
@@ -36,12 +27,7 @@ export interface UseWorkspaceSurfaceArgs {
   viewMode?: string;
   detailPanelProps?: DetailPanelProps;
   detailPanelOpen?: boolean;
-  viewerWorkspaceDocument?: unknown;
   viewerDocumentId?: Identifier | null;
-  ensureAssetUrl?: EnsureAssetUrl;
-  ensureViewerData?: EnsureViewerData;
-  getDocumentAsset?: GetDocumentAsset;
-  notifyApiError?: NotifyApiError;
   closeDocumentViewer?: () => void;
 }
 
@@ -56,12 +42,7 @@ export const useWorkspaceSurface = ({
   viewMode,
   detailPanelProps,
   detailPanelOpen = false,
-  viewerWorkspaceDocument,
   viewerDocumentId,
-  ensureAssetUrl,
-  ensureViewerData,
-  getDocumentAsset,
-  notifyApiError,
   closeDocumentViewer,
 }: UseWorkspaceSurfaceArgs): UseWorkspaceSurfaceResult => {
   const { registerDetailCloseHandler, setDetailActive } = usePanelManager();
@@ -117,7 +98,6 @@ export const useWorkspaceSurface = ({
         const {
           onClose,
           onOpenViewer,
-          tags: tagOptions,
           folderNodes,
           ensureFolderData,
           ...restDetailProps
@@ -128,7 +108,6 @@ export const useWorkspaceSurface = ({
             sidebarMode={sidebarMode}
             onClose={onClose}
             onMaximize={onOpenViewer}
-            tagOptions={tagOptions}
             {...restDetailProps}
           />
         );
@@ -177,34 +156,14 @@ export const useWorkspaceSurface = ({
     const sidebarToggle = renderSidebarToggle ? renderSidebarToggle() : null;
     const detailExtras = detailPanelProps || {};
     const {
-      tags: tagOptions,
-      onTagAdd,
-      onTagRemove,
-      onCorrespondentAdd,
-      onCorrespondentRemove,
-      onUpdateTitle,
-      onUpdateIssued,
       resolveFolderPath,
       folderNodes,
       ensureFolderData,
-      correspondentOptions,
     } = detailExtras;
 
     const viewer = (
       <DocumentViewerPanel
-        document={viewerWorkspaceDocument || null}
-        tagOptions={tagOptions}
-        onTagAdd={onTagAdd}
-        onTagRemove={onTagRemove}
-        correspondentOptions={correspondentOptions}
-        onCorrespondentAdd={onCorrespondentAdd}
-        onCorrespondentRemove={onCorrespondentRemove}
-        onUpdateTitle={onUpdateTitle}
-        onUpdateIssued={onUpdateIssued}
-        ensureAssetUrl={ensureAssetUrl}
-        getDocumentAsset={getDocumentAsset}
-        ensurePreviewData={ensureViewerData}
-        notifyApiError={notifyApiError}
+        documentId={viewerDocumentId || null}
         sidebarToggle={sidebarToggle}
         onClose={closeDocumentViewer}
         resolveFolderPath={resolveFolderPath}
@@ -222,11 +181,7 @@ export const useWorkspaceSurface = ({
     return { content, detail: null, detailMode: null };
   }, [
     showViewerWorkspace,
-    viewerWorkspaceDocument,
-    ensureViewerData,
-    ensureAssetUrl,
-    getDocumentAsset,
-    notifyApiError,
+    viewerDocumentId,
     renderSidebarToggle,
     closeDocumentViewer,
     detailPanelProps,

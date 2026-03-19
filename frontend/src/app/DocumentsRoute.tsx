@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,11 +16,16 @@ import type { MainPanel } from './MainPanelStackContext';
 import { cx } from '../utils/cx';
 import Sidebar from '../sidebar/Sidebar';
 import useDocumentsShell from './useDocumentsShell';
+import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
 
-const DocumentsInner: React.FC<{
+/**
+ * Renders the actual layout (sidebar + main content + detail panel).
+ * Lives below FullscreenPreviewProvider so it can consume the preview context.
+ */
+const DocumentsContent: React.FC<{
   surfaceConfig: any;
-  onNavigate: (documentId: string) => void;
-}> = ({ surfaceConfig, onNavigate }) => {
+  onOpenViewer: (documentId: string) => void;
+}> = ({ surfaceConfig, onOpenViewer }) => {
   const { openFullscreenPreview } = useFullscreenPreviewContext();
   const { collapsed: sidebarCollapsed } = useSidebarContext();
   const {
@@ -30,7 +35,7 @@ const DocumentsInner: React.FC<{
 
   const { openDetailPanel } = surfaceConfig;
   const sidebarHidden = sidebarCollapsed || sidebarSuppressed;
-  const { top: activePanel, push, remove } = useMainPanelStack();
+  const { top: activePanel } = useMainPanelStack();
 
   const { documentsSurface, viewerSurface } = useWorkspaceSurface({
     sidebarHidden,
@@ -45,8 +50,57 @@ const DocumentsInner: React.FC<{
     };
   }, []);
 
-  // Sync viewer route with stack
+  const surface = activePanel === 'viewer'
+    ? (viewerSurface ?? documentsSurface)
+    : documentsSurface;
+
+  const detailMode = surface?.detailMode ?? null;
+  const layoutClass = cx(
+    'documents-main',
+    sidebarHidden && 'documents-main--sidebar-hidden',
+    detailMode === 'overlay' && 'documents-main--overlay-detail',
+  );
+  const sidebarNode = !sidebarHidden ? <Sidebar /> : null;
+  const surfaceDetail = (surface as { detail?: ReactNode } | null)?.detail ?? null;
+  const surfaceBody = surface?.content ?? null;
+
+  return (
+    <DocumentOpenProvider
+      onOpenViewer={onOpenViewer}
+      onOpenFullscreenPreview={openFullscreenPreview}
+      onOpenDetailPanel={openDetailPanel}
+    >
+      <main className={layoutClass}>
+        {sidebarNode}
+        <div className="main-content">
+          {surfaceBody}
+        </div>
+        {surfaceDetail}
+      </main>
+    </DocumentOpenProvider>
+  );
+};
+
+/**
+ * Reactive bridge between viewer state (source of truth), the panel stack,
+ * and the URL.
+ *
+ * - viewerDocumentId state changes  →  stack pushes/pops  +  URL updates
+ * - open/close handlers only manipulate state; this layer handles the rest
+ *
+ * Lives inside MainPanelStackProvider so it has access to the stack.
+ */
+const DocumentsInner: React.FC<{
+  surfaceConfig: any;
+}> = ({ surfaceConfig }) => {
+  const navigate = useNavigate();
+  const { push, remove } = useMainPanelStack();
+  const workspace = useDocumentsWorkspaceContext();
+
   const viewerDocId = surfaceConfig.viewerDocumentId ?? null;
+  const viewerReturnPath = surfaceConfig.viewerReturnPath;
+
+  // --- Reactive bridge: state → stack ---
   useEffect(() => {
     if (viewerDocId != null) {
       push('viewer');
@@ -55,36 +109,48 @@ const DocumentsInner: React.FC<{
     }
   }, [viewerDocId, push, remove]);
 
-  const renderSurface = () => {
-    const surface = activePanel === 'viewer'
-      ? (viewerSurface ?? documentsSurface)
-      : documentsSurface;
+  // --- Reactive bridge: state → URL ---
+  // Only fires when viewerDocId changes. Both navigate and viewerReturnPath
+  // are read via refs so that (a) React Router's unstable navigate reference
+  // doesn't re-trigger the effect, and (b) sidebar folder changes don't
+  // trigger spurious navigations.
+  const isInitialMount = useRef(true);
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+  const viewerReturnPathRef = useRef(viewerReturnPath);
+  viewerReturnPathRef.current = viewerReturnPath;
 
-    const detailMode = surface?.detailMode ?? null;
-    const layoutClass = cx('documents-main', sidebarHidden && 'documents-main--sidebar-hidden', detailMode === 'overlay' && 'documents-main--overlay-detail');
-    const sidebarNode = !sidebarHidden ? <Sidebar /> : null;
-    const surfaceDetail = surface && (surface as { detail?: ReactNode }).detail ? (surface as { detail?: ReactNode }).detail : null;
-    const surfaceBody = surface?.content ?? null;
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
 
-    return (
-      <main className={layoutClass}>
-        {sidebarNode}
-        <div className="main-content">
-          {surfaceBody}
-        </div>
-        {surfaceDetail}
-      </main>
-    );
-  };
+    if (viewerDocId != null) {
+      navigateRef.current(`/documents/${viewerDocId}`, { replace: true });
+    } else {
+      const returnTo = viewerReturnPathRef.current;
+      if (returnTo) {
+        navigateRef.current(returnTo, { replace: true });
+      }
+    }
+  }, [viewerDocId]);
+
+  // --- Open viewer handler ---
+  // Thin adapter: DocumentOpenProvider passes (documentId: string),
+  // workspace.openDocumentViewerForDetail expects ({ documentIds: [...] }).
+  // After this sets state, the effects above handle stack + URL.
+  const onOpenViewer = useCallback((documentId: string) => {
+    workspace.openDocumentViewerForDetail({ documentIds: [documentId] });
+  }, [workspace.openDocumentViewerForDetail]);
 
   return (
-    <DocumentOpenProvider
-      onOpenViewer={onNavigate}
-      onOpenFullscreenPreview={openFullscreenPreview}
-      onOpenDetailPanel={openDetailPanel}
-    >
-      {renderSurface()}
-    </DocumentOpenProvider>
+    <FullscreenPreviewProvider onNavigate={onOpenViewer}>
+      <DocumentsContent
+        surfaceConfig={surfaceConfig}
+        onOpenViewer={onOpenViewer}
+      />
+    </FullscreenPreviewProvider>
   );
 };
 
@@ -93,11 +159,6 @@ const DocumentsRouteContent: React.FC = () => {
     surfaceConfig,
     documentsFilter,
   } = useDocumentsShell();
-  const navigate = useNavigate();
-
-  const handleDocumentNavigate = useCallback((documentId: string) => {
-    navigate(`/documents/${documentId}`);
-  }, [navigate]);
 
   const initialStack: MainPanel[] = ['documents'];
   if (surfaceConfig.viewerDocumentId) initialStack.push('viewer');
@@ -106,14 +167,9 @@ const DocumentsRouteContent: React.FC = () => {
     <DocumentsFilterProvider value={documentsFilter}>
       <MainPanelStackProvider initialStack={initialStack}>
         <SearchPanelProvider>
-          <FullscreenPreviewProvider
-            onNavigate={handleDocumentNavigate}
-          >
-            <DocumentsInner
-              surfaceConfig={surfaceConfig}
-              onNavigate={handleDocumentNavigate}
-            />
-          </FullscreenPreviewProvider>
+          <DocumentsInner
+            surfaceConfig={surfaceConfig}
+          />
         </SearchPanelProvider>
       </MainPanelStackProvider>
     </DocumentsFilterProvider>

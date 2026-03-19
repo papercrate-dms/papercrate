@@ -9,7 +9,6 @@ import {
 import {
   useLocation,
   useMatch,
-  useNavigate,
   useParams,
 } from 'react-router-dom';
 import AssetManager, { getAssetFromVersion } from '../../lib/assets/AssetManager';
@@ -43,7 +42,7 @@ import useFolderTreeActions from '../features/folders/useFolderTreeActions';
 import useDocumentUploads from '../features/upload/useDocumentUploads';
 import useDocumentDragHandlers from '../features/upload/useDocumentDragHandlers';
 import useDocumentMutations from './useDocumentMutations';
-import useDetailWorkspace from '../../viewer/logic/useDetailWorkspace';
+
 import useTags from './useTags';
 import useCorrespondents from './useCorrespondents';
 import usePasskeys from '../../settings/usePasskeys';
@@ -112,7 +111,6 @@ const useDocumentsWorkspace = ({
     activeSortDirectionRef.current = documentsSortDirection;
   }, [documentsSortDirection]);
 
-  const navigate = useNavigate();
   const location = useLocation();
   const appState = useAppState();
   const appDispatch = useAppDispatch();
@@ -120,15 +118,6 @@ const useDocumentsWorkspace = ({
   const isTrashRoute = useMatch('/trash') !== null;
   const routeFolderId = isTrashRoute ? 'trash' : (params.folderId || null);
   const routeDocumentId = params.documentId || null;
-  const viewerDocumentId = routeDocumentId;
-
-  const handleBreadcrumbNavigate = useCallback((crumb: { id?: Identifier | string } | null) => {
-    if (!crumb || !crumb.id) {
-      return;
-    }
-    const target = crumb.id === 'root' ? '/folders' : `/folders/${crumb.id}`;
-    navigate(target);
-  }, [navigate]);
 
   const {
     status: appStatus,
@@ -151,11 +140,36 @@ const useDocumentsWorkspace = ({
 
   const tenantIdRef = useRef(currentTenantId);
   const detailPanelControlRef = useRef({ open: () => { }, close: () => { } });
+
+  // Detail panel open/close state (inlined from useDetailPanel)
+  const [detailPanelDocId, setDetailPanelDocId] = useState<DocumentId | null>(null);
+  const detailPanelOpen = detailPanelDocId !== null;
+
+  const openDetailPanel = useCallback(
+    (documentId: Identifier) => {
+      if (!documentId) return;
+      setDetailPanelDocId(documentId as DocumentId);
+    },
+    [],
+  );
+
+  const closeDetailPanel = useCallback(() => {
+    setDetailPanelDocId(null);
+  }, []);
+
+  useEffect(() => {
+    detailPanelControlRef.current = {
+      open: openDetailPanel,
+      close: closeDetailPanel,
+    };
+  }, [detailPanelControlRef, openDetailPanel, closeDetailPanel]);
+
   const isWorkspaceRoute = location.pathname.startsWith('/folders') || location.pathname === '/trash';
 
   const [draggedDocumentIds, setDraggedDocumentIds] = useState<DocumentId[]>([]);
   const [draggedFolderId, setDraggedFolderId] = useState<FolderNodeId | null>(null);
   const [activeViewerId, setActiveViewerId] = useState<DocumentId | null>(routeDocumentId || null);
+  const [viewerDocumentId, setViewerDocumentId] = useState<DocumentId | null>(routeDocumentId || null);
   const shellRef = useRef(null);
   const assetManagerRef = useRef(null);
   if (!assetManagerRef.current) {
@@ -414,17 +428,17 @@ const useDocumentsWorkspace = ({
     openDocumentViewer,
     closeDocumentViewer,
     resetViewerState,
-    viewerWorkspaceDocument,
-    viewerActive,
+    viewerReturnPath,
   } = useDocumentViewer({
-    routeDocumentId: viewerDocumentId,
-    documentsManager,
     selectedFolder,
     locationPathname: location.pathname,
     locationSearch: location.search,
     detailPanelControlRef,
     setActiveViewerId,
+    setViewerDocumentId,
   });
+
+  const viewerActive = viewerDocumentId != null;
 
   const openDocumentViewerForDetail = useCallback(
     ({ documentIds }: { documentIds?: Identifier[] } = {}) => {
@@ -552,7 +566,8 @@ const useDocumentsWorkspace = ({
     documentsSearch.setActiveTagFilters([]);
     documentsSearch.setActiveCorrespondentFilters([]);
     setActiveViewerId(null);
-    detailPanelControlRef.current.close();
+    setViewerDocumentId(null);
+    closeDetailPanel();
     assetManager.reset();
     resetViewerState();
     upload.resetUploadsState();
@@ -575,6 +590,7 @@ const useDocumentsWorkspace = ({
     setDraggedFolderId,
     documentsSearch,
     setActiveViewerId,
+    setViewerDocumentId,
     resetViewerState,
     upload,
   ]);
@@ -658,6 +674,14 @@ const useDocumentsWorkspace = ({
     handleFolderCreate,
     handleFolderDelete,
   } = folderActions;
+
+  const handleBreadcrumbNavigate = useCallback((crumb: { id?: Identifier | string } | null) => {
+    if (!crumb || !crumb.id) {
+      return;
+    }
+    const folderId = crumb.id === 'root' ? 'root' : crumb.id;
+    selectFolder(folderId);
+  }, [selectFolder]);
 
   const selectionContext = useDocumentsSelection({
     showingSearchResults,
@@ -849,25 +873,14 @@ const useDocumentsWorkspace = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [settingsOpen]);
 
-  const detailWorkspace = useDetailWorkspace({
-    folderNodes,
-    detailPanelControlRef,
-    openDocumentViewer: openDocumentViewerForDetail,
-    handleDocumentTitleUpdate,
-    handleDocumentIssuedUpdate,
-    handleDocumentTagAdd,
-    handleDocumentTagDetach,
-    ensureAssetUrl,
-    getAsset: getDocumentAsset,
-    correspondents: correspondentsState.correspondents,
-    handleCorrespondentAdd: handleDocumentCorrespondentAdd,
-    handleCorrespondentRemove: handleDocumentCorrespondentDetach,
-    selectFolder,
-    tags: tagsState.tags,
-    tagLookupById: tagsState.tagLookupById,
-    correspondentLookupById: correspondentsState.correspondentLookupById,
+  const detailPanelProps = {
+    documentId: detailPanelDocId,
+    onOpenViewer: openDocumentViewerForDetail,
+    onFolderNavigate: selectFolder,
+    onClose: closeDetailPanel,
     resolveFolderPath,
-  });
+    folderNodes,
+  };
 
 
 
@@ -1000,21 +1013,23 @@ const useDocumentsWorkspace = ({
     handleDocumentDragEnd,
     draggedDocumentIds,
     handleDocumentTitleUpdate: handleDocumentTitleUpdate,
+    handleDocumentIssuedUpdate: handleDocumentIssuedUpdate,
+    handleDocumentTagAdd,
     handleDocumentTagAttach,
     handleDocumentTagDetach,
     // Preview / viewer
     openDocumentViewerForDetail,
     viewerActive,
-    viewerWorkspaceDocument,
     viewerDocumentId,
     closeDocumentViewer,
+    viewerReturnPath,
     ensureAssetUrl,
     getDocumentAsset,
     // Detail panel
-    detailPanelProps: detailWorkspace.detailPanelProps,
-    detailPanelOpen: detailWorkspace.detailPanelOpen,
-    openDetailPanel: detailWorkspace.openDetailPanel,
-    closeDetailPanel: detailWorkspace.closeDetailPanel,
+    detailPanelProps,
+    detailPanelOpen,
+    openDetailPanel,
+    closeDetailPanel,
   };
 
   const domains = {

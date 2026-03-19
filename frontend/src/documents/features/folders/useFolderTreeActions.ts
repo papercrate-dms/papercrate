@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { DragEvent } from 'react';
 import { useStatusToast } from '../../../lib/context/StatusToastContext';
 import { hasFiles } from '../../../app/workspaceUtils';
@@ -74,7 +73,6 @@ const useFolderTreeActions = ({
   const { isInvalidFolderDrop } = utils;
   const { showToast } = useStatusToast();
   const notifyApiError = useNotifyApiError();
-  const navigate = useNavigate();
 
   const moveFolder = useCallback(
     async (folderId: FolderKey, targetFolderId: FolderKey | null) => {
@@ -125,25 +123,10 @@ const useFolderTreeActions = ({
   const selectFolder = useCallback(
     async (folderId: FolderKey | null, { replace = false, immediate = false }: SelectFolderOptions = {}) => {
       const targetId = folderId && folderId !== 'root' ? folderId : 'root';
-
-      if (!navigate || immediate) {
-        await loadFolder(targetId);
-        return;
-      }
-
-      let path: string;
-      if (targetId === 'root') {
-        path = '/folders';
-      } else if (targetId === 'trash') {
-        path = '/trash';
-      } else {
-        path = `/folders/${targetId}`;
-      }
-      navigate(path, { replace });
+      await loadFolder(targetId);
     },
     [
       loadFolder,
-      navigate,
     ],
   );
 

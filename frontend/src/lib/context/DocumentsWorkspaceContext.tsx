@@ -17,18 +17,18 @@ export interface DocumentsWorkspaceContextValue {
   handleDocumentDragEnd: (event: React.DragEvent<HTMLElement>) => void;
   draggedDocumentIds: DocumentId[];
   handleDocumentTitleUpdate: (...args: unknown[]) => unknown;
+  handleDocumentIssuedUpdate: (...args: unknown[]) => unknown;
+  handleDocumentTagAdd: (...args: unknown[]) => unknown;
   handleDocumentTagAttach: (...args: unknown[]) => unknown;
   handleDocumentTagDetach: (...args: unknown[]) => unknown;
 
   // Preview / viewer
   openDocumentViewerForDetail: (args?: { documentIds?: Identifier[] }) => void;
   viewerActive: boolean;
-  viewerWorkspaceDocument: Document | null;
   viewerDocumentId: DocumentId | null;
   closeDocumentViewer: () => void;
   ensureAssetUrl: (documentId: DocumentId, asset: Asset, options?: { force?: boolean }) => Promise<unknown>;
   getDocumentAsset: (doc: Document | null, type: string) => Asset | null;
-  ensureViewerData?: (docId: DocumentId, options?: { signal?: AbortSignal }) => Promise<Document | null>;
 
   // Detail panel
   detailPanelProps: unknown;

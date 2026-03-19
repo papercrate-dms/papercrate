@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useUI } from '../lib/context/UIContext';
 import { useFolderTree } from '../lib/context/FolderTreeContext';
 import { useDocumentsSearch } from '../lib/context/DocumentsSearchContext';
 import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
@@ -21,7 +20,6 @@ interface DocumentsShellView {
 }
 
 const useDocumentsShell = (): DocumentsShellView => {
-  const { notifyApiError } = useUI();
   const { foldersManager, handleBreadcrumbNavigate } = useFolderTree();
   const { documentsViewMode, documentsFilter, documentsManager } = useDocumentsSearch();
   const workspace = useDocumentsWorkspaceContext();
@@ -33,13 +31,9 @@ const useDocumentsShell = (): DocumentsShellView => {
       detailPanelOpen: Boolean(workspace.detailPanelOpen),
       openDetailPanel: workspace.openDetailPanel as WorkspaceSurfaceConfig['openDetailPanel'],
       closeDetailPanel: workspace.closeDetailPanel as WorkspaceSurfaceConfig['closeDetailPanel'],
-      viewerWorkspaceDocument: workspace.viewerWorkspaceDocument,
       viewerDocumentId: (workspace.viewerDocumentId as Identifier) ?? null,
       closeDocumentViewer: workspace.closeDocumentViewer as WorkspaceSurfaceConfig['closeDocumentViewer'],
-      ensureViewerData: workspace.ensureViewerData as WorkspaceSurfaceConfig['ensureViewerData'],
-      ensureAssetUrl: workspace.ensureAssetUrl as WorkspaceSurfaceConfig['ensureAssetUrl'],
-      getDocumentAsset: workspace.getDocumentAsset as WorkspaceSurfaceConfig['getDocumentAsset'],
-      notifyApiError: notifyApiError as WorkspaceSurfaceConfig['notifyApiError'],
+      viewerReturnPath: workspace.viewerReturnPath ?? null,
       handleBreadcrumbNavigate: handleBreadcrumbNavigate as WorkspaceSurfaceConfig['handleBreadcrumbNavigate'],
     };
 
@@ -49,7 +43,7 @@ const useDocumentsShell = (): DocumentsShellView => {
       documentsManager,
       foldersManager,
     };
-  }, [documentsViewMode, documentsFilter, documentsManager, workspace, notifyApiError, handleBreadcrumbNavigate, foldersManager]);
+  }, [documentsViewMode, documentsFilter, documentsManager, workspace, handleBreadcrumbNavigate, foldersManager]);
 };
 
 export default useDocumentsShell;

@@ -1,12 +1,10 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   CloseIcon,
   IconZoomInArea,
@@ -21,29 +19,21 @@ import BreadcrumbTrail from '../components/BreadcrumbTrail';
 import DocumentViewerLayout from './DocumentViewerLayout';
 import { useViewerLayoutMode } from './useViewerLayoutMode';
 import { usePanelResizeBindings } from '../app/PanelManagerContext';
+import useDocument from '../hooks/useDocument';
+import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
+import { useFolderTree } from '../lib/context/FolderTreeContext';
+import { useTags } from '../lib/context/TagsContext';
+import { useCorrespondents } from '../lib/context/CorrespondentsContext';
+import { useStatusToast } from '../lib/context/StatusToastContext';
+import useNotifyApiError from '../hooks/useNotifyApiError';
 import type { DocumentId, FolderId } from '../types/identifiers';
 import type { Document } from '../types/documents';
-import type { Asset } from '../types/assets';
 
 type SidebarMode = 'overlay' | 'inline';
 
 interface DocumentViewerPanelProps {
-  document: Document | null;
+  documentId: DocumentId | null;
 
-  // Summary section action callbacks (document-specific)
-  tagOptions?: any[];
-  onTagAdd?: (...args: unknown[]) => void;
-  onTagRemove?: (...args: unknown[]) => void;
-  correspondentOptions?: any[];
-  onCorrespondentAdd?: (...args: unknown[]) => void;
-  onCorrespondentRemove?: (...args: unknown[]) => void;
-  onUpdateTitle?: (...args: unknown[]) => unknown;
-  onUpdateIssued?: (...args: unknown[]) => unknown;
-
-  ensureAssetUrl?: (documentId: DocumentId, asset: Asset, options?: { force?: boolean }) => Promise<unknown>;
-  getDocumentAsset?: (doc: Document | null, type: string) => Asset | null;
-  ensurePreviewData?: (docId: DocumentId, options?: { signal?: AbortSignal }) => Promise<Document | null>;
-  notifyApiError?: (error: unknown, fallbackMessage?: string) => void;
   sidebarToggle?: ReactNode;
   onClose?: () => void;
   resolveFolderPath?: (doc: Document | null) => Array<{ id?: string; name?: string }>;
@@ -67,18 +57,7 @@ const createDocumentViewerHeaderActions = ({
 };
 
 const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
-  document,
-  tagOptions,
-  onTagAdd,
-  onTagRemove,
-  correspondentOptions,
-  onCorrespondentAdd,
-  onCorrespondentRemove,
-  onUpdateTitle,
-  onUpdateIssued,
-  ensureAssetUrl,
-  getDocumentAsset,
-  ensurePreviewData,
+  documentId,
   sidebarToggle = null,
   onClose,
   resolveFolderPath,
@@ -86,7 +65,51 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   onMaximize,
   sidebarMode = 'overlay',
 }) => {
-  const navigate = useNavigate();
+  const document = useDocument(documentId);
+  const workspace = useDocumentsWorkspaceContext();
+  const { selectFolder } = useFolderTree();
+  const {
+    ensureAssetUrl,
+    getDocumentAsset,
+    handleDocumentTitleUpdate,
+    handleDocumentIssuedUpdate,
+    handleDocumentTagAdd,
+    closeDocumentViewer,
+  } = workspace;
+  const { tags: tagOptions, handleDocumentTagDetach } = useTags();
+  const {
+    correspondents: correspondentOptions,
+    handleDocumentCorrespondentAdd,
+    handleDocumentCorrespondentDetach,
+  } = useCorrespondents();
+  const { showToast } = useStatusToast();
+  const notifyApiError = useNotifyApiError();
+
+  const onTagAdd = useCallback(
+    async (doc: Document, value: string, context?: { option?: unknown }) => {
+      if (!handleDocumentTagAdd) return;
+      try {
+        await (handleDocumentTagAdd as (doc: Document, value: string, context?: { option?: unknown }) => Promise<void>)(doc, value, context);
+        showToast('Tag assigned.', 'success');
+      } catch (error) {
+        notifyApiError(error, 'Failed to assign tag.');
+      }
+    },
+    [handleDocumentTagAdd, showToast, notifyApiError],
+  );
+
+  const onTagRemove = useCallback(
+    async (docId: unknown, tagId: unknown) => {
+      if (!handleDocumentTagDetach) return;
+      try {
+        await (handleDocumentTagDetach as (...args: unknown[]) => Promise<unknown>)(docId, tagId);
+        showToast('Tag removed.', 'success');
+      } catch (error) {
+        notifyApiError(error, 'Failed to remove tag.');
+      }
+    },
+    [handleDocumentTagDetach, showToast, notifyApiError],
+  );
   const isSidebarVariant = variant === 'sidebar';
   const [tabNav, setTabNav] = useState<ReactNode>(null);
   const metadataPayload = useMemo(
@@ -101,26 +124,13 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
     return Boolean(getDocumentAsset(document, 'text-content'));
   }, [document, getDocumentAsset]);
 
-  useEffect(() => {
-    if (!document?.id || !ensurePreviewData) {
-      return;
-    }
-    const download = document.current_version?.download;
-    if (download?.expires_at && download.expires_at <= Date.now()) {
-      ensurePreviewData(document.id).catch((error) => {
-        console.warn('Failed to refresh expired document', error);
-      });
-    }
-  }, [document, ensurePreviewData]);
-
   const navigateToFolder = useCallback(
     (folderId: FolderId | null) => {
-      const target = folderId == null
-        ? '/folders'
-        : `/folders/${folderId}`;
-      navigate(target);
+      const targetFolder = folderId ?? 'root';
+      selectFolder(targetFolder);
+      closeDocumentViewer();
     },
-    [navigate],
+    [selectFolder, closeDocumentViewer],
   );
 
   const summaryProps = useMemo(
@@ -129,10 +139,10 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
       onTagAdd,
       onTagRemove,
       correspondentOptions,
-      onCorrespondentAdd,
-      onCorrespondentRemove,
-      onUpdateTitle,
-      onUpdateIssued,
+      onCorrespondentAdd: handleDocumentCorrespondentAdd,
+      onCorrespondentRemove: handleDocumentCorrespondentDetach,
+      onUpdateTitle: handleDocumentTitleUpdate,
+      onUpdateIssued: handleDocumentIssuedUpdate,
       onFolderNavigate: navigateToFolder,
     }),
     [
@@ -140,10 +150,10 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
       onTagAdd,
       onTagRemove,
       correspondentOptions,
-      onCorrespondentAdd,
-      onCorrespondentRemove,
-      onUpdateTitle,
-      onUpdateIssued,
+      handleDocumentCorrespondentAdd,
+      handleDocumentCorrespondentDetach,
+      handleDocumentTitleUpdate,
+      handleDocumentIssuedUpdate,
       navigateToFolder,
     ],
   );

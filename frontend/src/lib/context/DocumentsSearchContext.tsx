@@ -3,6 +3,7 @@ import { createSafeContext } from '../../utils/createSafeContext';
 import type { DocumentId } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import type { DocumentsFilterValue } from '../../documents/context/DocumentsFilterContext';
+import type DocumentsManager from '../../documents/DocumentsManager';
 
 export interface DocumentsSearchContextValue {
   searchQuery: string;
@@ -16,7 +17,7 @@ export interface DocumentsSearchContextValue {
   searchResultIds: DocumentId[] | null;
   documents: Document[];
   documentsFilter: DocumentsFilterValue;
-  documentsManager: unknown;
+  documentsManager: DocumentsManager<Document>;
   documentLookup: Map<DocumentId, Document>;
 }
 

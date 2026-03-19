@@ -1,26 +1,14 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useRef } from 'react';
 import type {
   Dispatch,
   MutableRefObject,
   SetStateAction,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { DocumentId } from '../types/identifiers';
 
 type FolderId = DocumentId | 'root';
 
-import type { Document } from '../types/documents';
-import useNotifyApiError from '../hooks/useNotifyApiError';
-
 interface UseDocumentViewerArgs {
-  routeDocumentId?: DocumentId | null;
-  documentsManager: {
-    getById: (id: DocumentId) => Document | null;
-    ensure: (id: DocumentId) => Promise<Document | null>;
-    getMany: (ids: DocumentId[]) => Document[];
-    subscribe: (listener: () => void) => () => void;
-    ingest: (docs: unknown[]) => { canonical: Document[]; changed: boolean };
-  };
   selectedFolder?: FolderId | null;
   locationPathname: string;
   locationSearch: string;
@@ -29,57 +17,44 @@ interface UseDocumentViewerArgs {
     close?: () => void;
   } | null>;
   setActiveViewerId: Dispatch<SetStateAction<DocumentId | null>>;
+  setViewerDocumentId: Dispatch<SetStateAction<DocumentId | null>>;
 }
 
 interface UseDocumentViewerResult {
-  ensureViewerData: (documentId: DocumentId) => Promise<Document | null>;
+  activateViewer: (documentId: DocumentId) => void;
   openDocumentViewer: (documentId: DocumentId, options?: { replace?: boolean }) => void;
-  closeDocumentViewer: (folderId?: FolderId) => void;
+  closeDocumentViewer: () => void;
   resetViewerState: () => void;
-  viewerWorkspaceDocument: Document | null;
-  viewerActive: boolean;
+  /** The path to navigate back to when the viewer closes. */
+  viewerReturnPath: string | null;
 }
 
 const useDocumentViewer = ({
-  routeDocumentId,
-  documentsManager,
   selectedFolder,
   locationPathname,
   locationSearch,
   detailPanelControlRef,
   setActiveViewerId,
+  setViewerDocumentId,
 }: UseDocumentViewerArgs): UseDocumentViewerResult => {
   const viewerReturnPathRef = useRef<string | null>(null);
-  const notifyApiError = useNotifyApiError();
-  const navigate = useNavigate();
 
   const resetViewerState = useCallback(() => {
     viewerReturnPathRef.current = null;
   }, []);
 
-  const ensureViewerData = useCallback(
-    async (documentId: DocumentId): Promise<Document | null> => {
-      if (!documentId) return null;
-
-      const doc = await documentsManager.ensure(documentId);
-
-      if (!doc) {
-        throw new Error('Document metadata unavailable.');
-      }
+  const activateViewer = useCallback(
+    (documentId: DocumentId): void => {
+      if (!documentId) return;
 
       if (!viewerReturnPathRef.current) {
-        const fallbackFolderId = doc?.folder_id || 'root';
-        viewerReturnPathRef.current =
-          fallbackFolderId === 'root' ? '/folders' : `/folders/${fallbackFolderId}`;
+        viewerReturnPathRef.current = '/folders';
       }
 
       setActiveViewerId(documentId);
-      return doc;
+      setViewerDocumentId(documentId);
     },
-    [
-      documentsManager,
-      setActiveViewerId,
-    ],
+    [setActiveViewerId, setViewerDocumentId],
   );
 
   const openDocumentViewer = useCallback(
@@ -87,73 +62,39 @@ const useDocumentViewer = ({
       if (!documentId) return;
       detailPanelControlRef.current?.close?.();
       viewerReturnPathRef.current = `${locationPathname}${locationSearch}`;
-      navigate(`/documents/${documentId}`, { replace });
+      setActiveViewerId(documentId);
+      setViewerDocumentId(documentId);
     },
-    [navigate, locationPathname, locationSearch, detailPanelControlRef],
+    [locationPathname, locationSearch, detailPanelControlRef, setActiveViewerId, setViewerDocumentId],
   );
 
   const closeDocumentViewer = useCallback(
-    (folderId?: FolderId) => {
-      const fallbackPath = viewerReturnPathRef.current;
-      viewerReturnPathRef.current = null;
-
-      if (fallbackPath) {
-        navigate(fallbackPath, { replace: false });
-        return;
-      }
-
-      const targetId = folderId || selectedFolder || 'root';
-      const path = targetId === 'root' ? '/folders' : `/folders/${targetId}`;
-      navigate(path, { replace: false });
+    () => {
+      // Note: viewerReturnPathRef is intentionally NOT cleared here.
+      // The reactive bridge in DocumentsInner reads it to navigate back
+      // after the state change triggers a re-render. It gets overwritten
+      // on the next openDocumentViewer call.
+      setActiveViewerId(null);
+      setViewerDocumentId(null);
     },
-    [navigate, selectedFolder],
+    [setActiveViewerId, setViewerDocumentId],
   );
 
-  useEffect(() => {
-    if (!routeDocumentId) {
-      return undefined;
-    }
+  // Direct-link seeding is handled by useState(routeDocumentId) in useDocumentsWorkspace.
+  // No effect needed here — the state is already initialized from the route param on mount.
 
-    let cancelled = false;
-
-    ensureViewerData(routeDocumentId).catch((error) => {
-      if (cancelled) {
-        return;
-      }
-      notifyApiError(error, 'Failed to open document preview.');
-      closeDocumentViewer();
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [routeDocumentId, ensureViewerData, notifyApiError, closeDocumentViewer]);
-
-  const getViewerDocument = useCallback(
-    () => routeDocumentId ? documentsManager.getById(routeDocumentId) : null,
-    [routeDocumentId, documentsManager],
-  );
-
-  const subscribeToManager = useCallback(
-    (cb: () => void) => documentsManager.subscribe(cb),
-    [documentsManager],
-  );
-
-  const viewerWorkspaceDocument = useSyncExternalStore(
-    subscribeToManager,
-    getViewerDocument,
-    getViewerDocument,
-  );
-
-  const viewerActive = Boolean(routeDocumentId && viewerWorkspaceDocument);
+  // Derive return path for consumers. Falls back to the selected folder.
+  const fallback = selectedFolder && selectedFolder !== 'root'
+    ? `/folders/${selectedFolder}`
+    : '/folders';
+  const viewerReturnPath = viewerReturnPathRef.current || fallback;
 
   return {
-    ensureViewerData,
+    activateViewer,
     openDocumentViewer,
     closeDocumentViewer,
     resetViewerState,
-    viewerWorkspaceDocument,
-    viewerActive,
+    viewerReturnPath,
   };
 };
 

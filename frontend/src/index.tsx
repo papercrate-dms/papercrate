@@ -66,6 +66,7 @@ const AppLayout: React.FC = () => {
         <UploadQueueOverlay
           queue={domains.ui.uploadQueue || []}
           onClearQueue={domains.ui.clearUploadQueue}
+          onDocumentClick={(documentId) => domains.workspace.openDocumentViewerForDetail({ documentIds: [documentId] })}
         />
         <StatusToastOverlay />
         <Outlet />
@@ -91,10 +92,12 @@ const AppRouter: React.FC = () => (
     <Route path="/account/login" element={<LoginRoute />} />
     <Route element={<TenantAwareLayout />}>
       <Route path="/" element={<Navigate to="/folders" replace />} />
-      <Route path="/folders" element={<DocumentsRoute />} />
-      <Route path="/folders/:folderId" element={<DocumentsRoute />} />
-      <Route path="/trash" element={<DocumentsRoute />} />
-      <Route path="/documents/:documentId" element={<DocumentsRoute />} />
+      <Route element={<DocumentsRoute />}>
+        <Route path="/folders" element={null} />
+        <Route path="/folders/:folderId" element={null} />
+        <Route path="/trash" element={null} />
+        <Route path="/documents/:documentId" element={null} />
+      </Route>
       <Route path="*" element={<Navigate to="/folders" replace />} />
     </Route>
   </Routes>

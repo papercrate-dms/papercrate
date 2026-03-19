@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import type { TenantId } from '../../types/identifiers';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
@@ -25,7 +24,6 @@ const useTenantManager = ({
 }: UseTenantManagerOptions) => {
   const { showToast } = useStatusToast();
   const notifyApiError = useNotifyApiError();
-  const navigate = useNavigate();
   const appDispatch = useAppDispatch();
 
   const handleTenantSelect = useCallback(
@@ -74,8 +72,9 @@ const useTenantManager = ({
         const tenantLabel = data?.tenant?.name || data?.tenant?.id || 'tenant';
         showToast(`Switched to ${tenantLabel}.`, 'info');
 
-        // 5. Handle UI/Navigation changes AFTER state is secure
-        navigate('/folders', { replace: true });
+        // UI/Navigation will update reactively as workspace state changes
+        // (tenant change triggers workspace reset via effects)
+
 
       } catch (error) {
         notifyApiError(error, 'Failed to switch tenant.');
@@ -85,7 +84,6 @@ const useTenantManager = ({
       appDispatch,
       currentTenantId,
       handleDocumentsViewModeChange,
-      navigate,
       notifyApiError,
       showToast,
     ],

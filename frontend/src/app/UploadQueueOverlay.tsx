@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   CloseIcon,
   LoaderIcon,
@@ -26,6 +25,7 @@ interface UploadQueueItem {
 interface UploadQueueOverlayProps {
   queue?: UploadQueueItem[];
   onClearQueue?: () => void;
+  onDocumentClick?: (documentId: string) => void;
 }
 
 const STATUS_META: Record<string, { label: string; tone: string; icon: JSX.Element }> = {
@@ -56,8 +56,7 @@ const STATUS_META: Record<string, { label: string; tone: string; icon: JSX.Eleme
   },
 };
 
-const UploadQueueOverlay = ({ queue = [], onClearQueue }: UploadQueueOverlayProps): JSX.Element | null => {
-  const navigate = useNavigate();
+const UploadQueueOverlay = ({ queue = [], onClearQueue, onDocumentClick }: UploadQueueOverlayProps): JSX.Element | null => {
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -153,7 +152,7 @@ const UploadQueueOverlay = ({ queue = [], onClearQueue }: UploadQueueOverlayProp
                   if (!documentId) {
                     return;
                   }
-                  navigate(`/documents/${documentId}`);
+                  onDocumentClick?.(documentId);
                 };
                 return (
                   <li key={item.id} className={`upload-queue-overlay__item upload-queue-overlay__item--${item.status}`}>

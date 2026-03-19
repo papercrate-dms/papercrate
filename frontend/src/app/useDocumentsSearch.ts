@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../lib/store/appState';
 import { TAG_FILTER_UNTAGGED } from './workspaceUtils';
 import { listDocuments } from '../lib/api/apiClient';
@@ -82,7 +81,6 @@ const useDocumentsSearch = ({
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [searchTrigger, setSearchTrigger] = useState<number>(0);
   const notifyApiError = useNotifyApiError();
-  const navigate = useNavigate();
 
   const toggleTagFilter = useCallback((tagId: Identifier) => {
     if (!tagId) return;
@@ -131,13 +129,9 @@ const useDocumentsSearch = ({
   }, []);
 
   const handleSearchSubmit = useCallback(() => {
-    if (!navigate) return;
-    const targetFolder = selectedFolder && selectedFolder !== 'root' ? selectedFolder : 'root';
-    const targetPath = targetFolder === 'root' ? '/folders' : `/folders/${targetFolder}`;
-    if (!isWorkspaceRoute || locationPathname !== targetPath) {
-      navigate(targetPath, { replace: false });
-    }
-  }, [navigate, selectedFolder, isWorkspaceRoute, locationPathname]);
+    // Search is triggered by state change (searchQuery, selectedFolder).
+    // No navigation needed — selectedFolder is already set via state.
+  }, []);
 
   const documentsFilterValue = useMemo(
     () => ({

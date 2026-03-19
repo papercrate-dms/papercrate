@@ -21,7 +21,7 @@ export const useDocumentTagMutations = ({
     tagsState,
     documentsState,
 }: UseDocumentTagMutationsArgs) => {
-    // Note: Toasts are handled by the caller, e.g. useDetailWorkspace or ResultQueue.
+    // Note: Toasts are handled by the caller, e.g. DocumentViewerPanel or ResultQueue.
 
     const attachTagToDocument = useCallback(
         async ({

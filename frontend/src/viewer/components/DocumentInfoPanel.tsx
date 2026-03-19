@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import DocumentSummarySection, { DocumentSummarySectionProps } from './DocumentSummarySection';
 import { describeDocumentSummary, extractDocumentMetadataPayload, type DocumentSummaryRow } from '../logic/documentSummary';
-import type { Tag, Correspondent } from '../../types/documents';
-import type { TagId, Identifier } from '../../types/identifiers';
+import { useTags } from '../../lib/context/TagsContext';
+import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
 import { EyeIcon, InfoIcon, FileTextIcon, CodeIcon } from '../../components/icons';
 
 type PanelTab = { id: string; label: string; icon?: ReactNode; render: (context?: Record<string, unknown>) => ReactNode };
@@ -17,8 +17,6 @@ type ContentState =
   | { status: 'error'; data: null; error: unknown };
 
 export interface DocumentInfoPanelProps {
-  tagLookupById?: Map<TagId, Tag>;
-  correspondentLookupById?: Map<Identifier, Correspondent>;
   summaryProps?: Omit<DocumentSummarySectionProps, 'document' | 'layout'>;
   metadataItems?: DocumentSummaryRow[];
   metadataPayload?: Record<string, unknown>;
@@ -55,8 +53,6 @@ export interface DocumentInfoPanelProps {
 
 const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   document,
-  tagLookupById,
-  correspondentLookupById,
   summaryProps = {},
   metadataItems: metadataItemsProp,
   metadataPayload: metadataPayloadProp,
@@ -79,6 +75,8 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   onTabNavChange,
 }) => {
   const base = classNamePrefix;
+  const { tagLookupById } = useTags();
+  const { correspondentLookupById } = useCorrespondents();
 
   const metadataItems = useMemo(() => {
     if (Array.isArray(metadataItemsProp) && metadataItemsProp.length) {
@@ -116,10 +114,9 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     <DocumentSummarySection
       document={document}
       layout={summaryLayout}
-      correspondentLookupById={correspondentLookupById}
       {...summaryProps}
     />
-  ), [document, summaryLayout, summaryProps, correspondentLookupById]);
+  ), [document, summaryLayout, summaryProps]);
 
   const renderDetailsSection = useCallback(() => (
     <section className={`${base}__section`}>
