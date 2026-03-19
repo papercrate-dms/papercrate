@@ -17,6 +17,7 @@ import { cx } from '../utils/cx';
 import Sidebar from '../sidebar/Sidebar';
 import useDocumentsShell from './useDocumentsShell';
 import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
+import { useFolderTree } from '../lib/context/FolderTreeContext';
 
 /**
  * Renders the actual layout (sidebar + main content + detail panel).
@@ -88,6 +89,8 @@ const DocumentsContent: React.FC<{
  * - viewerDocumentId state changes  →  stack pushes/pops  +  URL updates
  * - open/close handlers only manipulate state; this layer handles the rest
  *
+ * Also syncs folder selection state to the URL.
+ *
  * Lives inside MainPanelStackProvider so it has access to the stack.
  */
 const DocumentsInner: React.FC<{
@@ -96,9 +99,11 @@ const DocumentsInner: React.FC<{
   const navigate = useNavigate();
   const { push, remove } = useMainPanelStack();
   const workspace = useDocumentsWorkspaceContext();
+  const folderTree = useFolderTree();
 
   const viewerDocId = surfaceConfig.viewerDocumentId ?? null;
   const viewerReturnPath = surfaceConfig.viewerReturnPath;
+  const selectedFolder = folderTree.selectedFolder;
 
   // --- Reactive bridge: state → stack ---
   useEffect(() => {
@@ -109,7 +114,7 @@ const DocumentsInner: React.FC<{
     }
   }, [viewerDocId, push, remove]);
 
-  // --- Reactive bridge: state → URL ---
+  // --- Reactive bridge: state → URL (viewer) ---
   // Only fires when viewerDocId changes. Both navigate and viewerReturnPath
   // are read via refs so that (a) React Router's unstable navigate reference
   // doesn't re-trigger the effect, and (b) sidebar folder changes don't
@@ -135,6 +140,30 @@ const DocumentsInner: React.FC<{
       }
     }
   }, [viewerDocId]);
+
+  // --- Reactive bridge: state → URL (folder selection) ---
+  // Only fires when selectedFolder changes. The navigate ref pattern prevents
+  // the effect from re-triggering due to navigate function reference changes.
+  // Skip initial mount to avoid redundant URL updates (route param is correct on load).
+  const isFolderInitialMount = useRef(true);
+  const folderNavigateRef = useRef(navigate);
+  folderNavigateRef.current = navigate;
+
+  useEffect(() => {
+    if (isFolderInitialMount.current) {
+      isFolderInitialMount.current = false;
+      return;
+    }
+
+    if (selectedFolder === 'trash') {
+      folderNavigateRef.current('/trash', { replace: true });
+    } else if (selectedFolder && selectedFolder !== 'root') {
+      folderNavigateRef.current(`/folders/${selectedFolder}`, { replace: true });
+    } else {
+      // root folder - navigate to home or a default route
+      folderNavigateRef.current('/', { replace: true });
+    }
+  }, [selectedFolder]);
 
   // --- Open viewer handler ---
   // Thin adapter: DocumentOpenProvider passes (documentId: string),
