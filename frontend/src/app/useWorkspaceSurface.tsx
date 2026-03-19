@@ -7,6 +7,8 @@ import SelectionActionsTrash from '../documents/features/selection/SelectionActi
 import { usePanelManager } from './PanelManagerContext';
 import { FolderManagerProvider } from '../folders/FolderManagerContext';
 import { useFolderTree } from '../lib/context/FolderTreeContext';
+import { useDocumentsWorkspaceContext } from '../lib/context/DocumentsWorkspaceContext';
+import { useDocumentsSearch } from '../lib/context/DocumentsSearchContext';
 import type { Identifier } from '../types/identifiers';
 
 type DetailPanelProps = (ComponentProps<typeof DocumentViewerPanel> & {
@@ -24,11 +26,6 @@ type WorkspaceSurface = { content: ReactNode; detail?: ReactNode | null; detailM
 export interface UseWorkspaceSurfaceArgs {
   sidebarHidden?: boolean;
   onExpandSidebar?: () => void;
-  viewMode?: string;
-  detailPanelProps?: DetailPanelProps;
-  detailPanelOpen?: boolean;
-  viewerDocumentId?: Identifier | null;
-  closeDocumentViewer?: () => void;
 }
 
 interface UseWorkspaceSurfaceResult {
@@ -39,14 +36,16 @@ interface UseWorkspaceSurfaceResult {
 export const useWorkspaceSurface = ({
   sidebarHidden = false,
   onExpandSidebar,
-  viewMode,
-  detailPanelProps,
-  detailPanelOpen = false,
-  viewerDocumentId,
-  closeDocumentViewer,
 }: UseWorkspaceSurfaceArgs): UseWorkspaceSurfaceResult => {
   const { registerDetailCloseHandler, setDetailActive } = usePanelManager();
   const { selectedFolder } = useFolderTree();
+  const workspace = useDocumentsWorkspaceContext();
+  const { documentsViewMode: viewMode } = useDocumentsSearch();
+
+  const detailPanelProps = (workspace.detailPanelProps ?? null) as DetailPanelProps;
+  const detailPanelOpen = Boolean(workspace.detailPanelOpen);
+  const viewerDocumentId = workspace.viewerDocumentId ?? null;
+  const closeDocumentViewer = workspace.closeDocumentViewer;
 
   useEffect(() => {
     const handler = detailPanelProps?.onClose || null;
@@ -144,6 +143,7 @@ export const useWorkspaceSurface = ({
     renderSidebarToggle,
     detailPanelOpen,
     detailPanelProps,
+    selectedFolder,
   ]);
 
   const showViewerWorkspace = Boolean(viewerDocumentId);

@@ -27,6 +27,7 @@ export interface DocumentsWorkspaceContextValue {
   viewerActive: boolean;
   viewerDocumentId: DocumentId | null;
   closeDocumentViewer: () => void;
+  viewerReturnPath: string | null;
   ensureAssetUrl: (documentId: DocumentId, asset: Asset, options?: { force?: boolean }) => Promise<unknown>;
   getDocumentAsset: (doc: Document | null, type: string) => Asset | null;
 
