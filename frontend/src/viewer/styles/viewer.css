@@ -30,8 +30,8 @@
 .document-viewer {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, clamp(18rem, 30vw, 26rem)) minmax(0, 1fr);
-  grid-template-areas: 'details viewport';
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(18rem, 30vw, 26rem));
+  grid-template-areas: 'viewport details';
   align-items: stretch;
   gap: 1rem;
   min-height: 0;
@@ -295,44 +295,36 @@
 }
 
 .document-viewer__tabs {
-  display: flex;
-  align-items: stretch;
+  display: inline-flex;
+  align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 999px;
-  background: var(--surface-overlay, var(--surface));
-  border: 1px solid var(--outline-subtle);
-  box-shadow: var(--panel-shadow-soft, none);
 }
 
 .document-viewer__tab {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.3rem;
   appearance: none;
   border: none;
   background: transparent;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 0.25rem;
   color: var(--muted);
   cursor: pointer;
-  transition:
-    color 120ms ease,
-    background-color 120ms ease;
-  border-radius: 999px;
-  flex: 1;
-  text-align: center;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 4px;
 }
 
 .document-viewer__tab:hover,
 .document-viewer__tab:focus-visible {
-  color: var(--accent);
+  background: var(--sidebar-hover-bg);
+  color: var(--fg);
 }
 
 .document-viewer__tab.is-active {
-  color: var(--accent-strong, var(--accent));
+  color: var(--accent);
+}
+
+.document-viewer__tab.is-active:hover {
   background: var(--accent-soft);
 }
 

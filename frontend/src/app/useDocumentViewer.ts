@@ -70,7 +70,7 @@ const useDocumentViewer = ({
       if (!viewerReturnPathRef.current) {
         const fallbackFolderId = doc?.folder_id || 'root';
         viewerReturnPathRef.current =
-          fallbackFolderId === 'root' ? '/documents' : `/documents/folder/${fallbackFolderId}`;
+          fallbackFolderId === 'root' ? '/folders' : `/folders/${fallbackFolderId}`;
       }
 
       setActiveViewerId(documentId);
@@ -103,7 +103,7 @@ const useDocumentViewer = ({
       }
 
       const targetId = folderId || selectedFolder || 'root';
-      const path = targetId === 'root' ? '/documents' : `/documents/folder/${targetId}`;
+      const path = targetId === 'root' ? '/folders' : `/folders/${targetId}`;
       navigate(path, { replace: false });
     },
     [navigate, selectedFolder],

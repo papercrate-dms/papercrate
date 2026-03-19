@@ -367,7 +367,7 @@ const LoginRoute: React.FC = () => {
     if (target.startsWith('/')) {
       return target;
     }
-    return '/documents';
+    return '/folders';
   }, [location.state]);
 
   if (!['logged-out', 'authenticating', 'selecting-tenant'].includes(appStatus)) {

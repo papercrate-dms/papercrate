@@ -18,7 +18,7 @@ interface UseDocumentsSearchArgs {
   api: ApiClient;
   selectedFolder?: Identifier | 'root' | null;
   locationPathname?: string;
-  isDocumentsRoute?: boolean;
+  isWorkspaceRoute?: boolean;
   searchIncludeDescendants?: boolean;
   documentsSortField?: string;
   documentsSortDirection?: string;
@@ -67,7 +67,7 @@ const useDocumentsSearch = ({
   api,
   selectedFolder,
   locationPathname,
-  isDocumentsRoute,
+  isWorkspaceRoute,
   searchIncludeDescendants,
   documentsSortField,
   documentsSortDirection,
@@ -133,11 +133,11 @@ const useDocumentsSearch = ({
   const handleSearchSubmit = useCallback(() => {
     if (!navigate) return;
     const targetFolder = selectedFolder && selectedFolder !== 'root' ? selectedFolder : 'root';
-    const targetPath = targetFolder === 'root' ? '/documents' : `/documents/folder/${targetFolder}`;
-    if (!isDocumentsRoute || locationPathname !== targetPath) {
+    const targetPath = targetFolder === 'root' ? '/folders' : `/folders/${targetFolder}`;
+    if (!isWorkspaceRoute || locationPathname !== targetPath) {
       navigate(targetPath, { replace: false });
     }
-  }, [navigate, selectedFolder, isDocumentsRoute, locationPathname]);
+  }, [navigate, selectedFolder, isWorkspaceRoute, locationPathname]);
 
   const documentsFilterValue = useMemo(
     () => ({

@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -87,6 +88,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
 }) => {
   const navigate = useNavigate();
   const isSidebarVariant = variant === 'sidebar';
+  const [tabNav, setTabNav] = useState<ReactNode>(null);
   const metadataPayload = useMemo(
     () => extractDocumentMetadataPayload(document),
     [document],
@@ -114,8 +116,8 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   const navigateToFolder = useCallback(
     (folderId: FolderId | null) => {
       const target = folderId == null
-        ? '/documents'
-        : `/documents/folder/${folderId}`;
+        ? '/folders'
+        : `/folders/${folderId}`;
       navigate(target);
     },
     [navigate],
@@ -255,9 +257,13 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
     }));
   }, [breadcrumbs, navigateToFolder]);
 
-  const headerActions = createDocumentViewerHeaderActions({
-    document,
-  });
+  const downloadAction = createDocumentViewerHeaderActions({ document });
+  const headerActions = (
+    <>
+      {tabNav && <><span className="actions-divider" aria-hidden="true" />{tabNav}<span className="actions-divider" aria-hidden="true" /></>}
+      {downloadAction}
+    </>
+  );
 
   const maximizeButton = isSidebarVariant && onMaximize
     ? (
@@ -355,6 +361,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
           contentTabConfig={contentTabConfig}
           previewLoadingMessage="Loading preview…"
           layoutMode={isStackedLayout ? 'stacked' : 'split'}
+          onTabNavChange={setTabNav}
         />
       </section>
     </div>

@@ -75,7 +75,7 @@ const useTenantManager = ({
         showToast(`Switched to ${tenantLabel}.`, 'info');
 
         // 5. Handle UI/Navigation changes AFTER state is secure
-        navigate('/documents', { replace: true });
+        navigate('/folders', { replace: true });
 
       } catch (error) {
         notifyApiError(error, 'Failed to switch tenant.');

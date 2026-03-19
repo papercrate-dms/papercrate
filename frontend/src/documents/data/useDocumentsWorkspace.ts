@@ -7,10 +7,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import {
-  matchPath,
   useLocation,
   useMatch,
   useNavigate,
+  useParams,
 } from 'react-router-dom';
 import AssetManager, { getAssetFromVersion } from '../../lib/assets/AssetManager';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
@@ -116,18 +116,17 @@ const useDocumentsWorkspace = ({
   const location = useLocation();
   const appState = useAppState();
   const appDispatch = useAppDispatch();
-  const trashMatch = matchPath('/documents/trash', location.pathname);
-  const folderMatch = matchPath('/documents/folder/:folderId', location.pathname);
-  const docMatch = !trashMatch ? matchPath('/documents/:documentId', location.pathname) : null;
-  const routeFolderId = trashMatch ? 'trash' : (folderMatch?.params?.folderId || null);
-  const routeDocumentId = docMatch?.params?.documentId || null;
+  const params = useParams<{ folderId?: string; documentId?: string }>();
+  const isTrashRoute = useMatch('/trash') !== null;
+  const routeFolderId = isTrashRoute ? 'trash' : (params.folderId || null);
+  const routeDocumentId = params.documentId || null;
   const viewerDocumentId = routeDocumentId;
 
   const handleBreadcrumbNavigate = useCallback((crumb: { id?: Identifier | string } | null) => {
     if (!crumb || !crumb.id) {
       return;
     }
-    const target = crumb.id === 'root' ? '/documents' : `/documents/folder/${crumb.id}`;
+    const target = crumb.id === 'root' ? '/folders' : `/folders/${crumb.id}`;
     navigate(target);
   }, [navigate]);
 
@@ -152,12 +151,7 @@ const useDocumentsWorkspace = ({
 
   const tenantIdRef = useRef(currentTenantId);
   const detailPanelControlRef = useRef({ open: () => { }, close: () => { } });
-  const documentsRouteMatch = useMatch('/documents');
-  const documentsFolderRouteMatch = useMatch('/documents/folder/:folderId');
-  const documentsDetailRouteMatch = useMatch('/documents/:documentId');
-  const isDocumentsRoute = Boolean(
-    documentsRouteMatch || documentsFolderRouteMatch || documentsDetailRouteMatch,
-  );
+  const isWorkspaceRoute = location.pathname.startsWith('/folders') || location.pathname === '/trash';
 
   const [draggedDocumentIds, setDraggedDocumentIds] = useState<DocumentId[]>([]);
   const [draggedFolderId, setDraggedFolderId] = useState<FolderNodeId | null>(null);
@@ -394,7 +388,7 @@ const useDocumentsWorkspace = ({
     api: apiClient,
     selectedFolder,
     locationPathname: location.pathname,
-    isDocumentsRoute,
+    isWorkspaceRoute,
     searchIncludeDescendants,
     documentsSortField,
     documentsSortDirection,

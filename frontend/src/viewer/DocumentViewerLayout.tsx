@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useRef } from 'react';
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import DocumentInfoPanel from './components/DocumentInfoPanel';
 import UnifiedDocumentViewer from './UnifiedDocumentViewer';
 import { resolveDocumentDownloadHref } from '../documents/documentActions';
-import { IconEye } from '@tabler/icons-react';
+import { EyeIcon } from '../components/icons';
 
 import type { Document } from '../types/documents';
 
@@ -33,6 +33,7 @@ interface DocumentViewerLayoutProps {
   infoPanelProps?: Record<string, unknown>;
   previewLoadingMessage?: string;
   layoutMode?: LayoutMode;
+  onTabNavChange?: (node: ReactNode) => void;
 }
 const DocumentViewerLayout = ({
   document,
@@ -45,6 +46,7 @@ const DocumentViewerLayout = ({
   infoPanelProps = {},
   previewLoadingMessage = 'Preparing preview…',
   layoutMode = 'split',
+  onTabNavChange,
 }: DocumentViewerLayoutProps): JSX.Element => {
   const isStacked = layoutMode === 'stacked';
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ const DocumentViewerLayout = ({
         {
           id: 'preview',
           label: 'Preview',
-          icon: <IconEye size={16} stroke={1.6} />,
+          icon: <EyeIcon />,
           render: () => renderViewportPane(),
         },
       ]
@@ -102,6 +104,7 @@ const DocumentViewerLayout = ({
           summaryLayout={summaryLayout}
           leadingTabs={stackedLeadingTabs}
           tabsPlacement={tabsPlacement}
+          onTabNavChange={onTabNavChange}
           {...infoPanelProps}
         />
       </div>

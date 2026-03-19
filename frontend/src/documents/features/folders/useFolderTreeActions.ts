@@ -133,11 +133,11 @@ const useFolderTreeActions = ({
 
       let path: string;
       if (targetId === 'root') {
-        path = '/documents';
+        path = '/folders';
       } else if (targetId === 'trash') {
-        path = '/documents/trash';
+        path = '/trash';
       } else {
-        path = `/documents/folder/${targetId}`;
+        path = `/folders/${targetId}`;
       }
       navigate(path, { replace });
     },

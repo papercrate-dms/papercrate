@@ -49,6 +49,9 @@ import {
   IconWorld,
   IconApi,
   IconSearch,
+  IconEye,
+  IconFileText,
+  IconCode,
 } from '@tabler/icons-react';
 import FolderSvg from '../assets/folder.svg';
 const logoWebp = new URL('../assets/logo.webp', import.meta.url).toString();
@@ -118,6 +121,9 @@ export const WindowMaximizeIcon = createIcon(IconWindowMaximize);
 export const LogoutIcon = createIcon(IconLogout);
 export const ChevronDownIcon = createIcon(IconChevronDown);
 export const ChevronUpIcon = createIcon(IconChevronUp);
+export const EyeIcon = createIcon(IconEye);
+export const FileTextIcon = createIcon(IconFileText);
+export const CodeIcon = createIcon(IconCode);
 
 // Icons with different default stroke
 export const LoaderIcon = createIcon(IconLoader, { defaultStroke: 1.8 });

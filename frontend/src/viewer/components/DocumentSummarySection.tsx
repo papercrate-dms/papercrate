@@ -493,7 +493,7 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
     };
   }, [resolvedFolderId, folderManager]);
 
-  const folderHref = resolvedFolderId == null ? '/documents' : `/documents/folder/${resolvedFolderId}`;
+  const folderHref = resolvedFolderId == null ? '/folders' : `/folders/${resolvedFolderId}`;
 
   const handleFolderClick = useCallback(
     (event: React.MouseEvent) => {

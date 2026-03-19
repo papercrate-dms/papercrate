@@ -4,7 +4,7 @@ import DocumentSummarySection, { DocumentSummarySectionProps } from './DocumentS
 import { describeDocumentSummary, extractDocumentMetadataPayload, type DocumentSummaryRow } from '../logic/documentSummary';
 import type { Tag, Correspondent } from '../../types/documents';
 import type { TagId, Identifier } from '../../types/identifiers';
-import { IconEye, IconInfoCircle, IconFileText, IconCode } from '@tabler/icons-react';
+import { EyeIcon, InfoIcon, FileTextIcon, CodeIcon } from '../../components/icons';
 
 type PanelTab = { id: string; label: string; icon?: ReactNode; render: (context?: Record<string, unknown>) => ReactNode };
 
@@ -49,6 +49,7 @@ export interface DocumentInfoPanelProps {
   leadingTabs?: PanelTab[];
   trailingTabs?: PanelTab[];
   tabsPlacement?: 'top' | 'bottom';
+  onTabNavChange?: (node: ReactNode) => void;
   summaryLayout?: 'default' | 'compact';
 }
 
@@ -75,6 +76,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   trailingTabs = [],
   tabsPlacement = 'top',
   summaryLayout = 'default',
+  onTabNavChange,
 }) => {
   const base = classNamePrefix;
 
@@ -145,7 +147,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     return {
       id: summaryTabId,
       label: summaryTabLabel,
-      icon: <IconInfoCircle size={16} stroke={1.6} />,
+      icon: <InfoIcon />,
       render: () => (
         <div className={`${base}__summary-tab-content`}>
           {renderSummarySection()}
@@ -192,7 +194,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: 'details',
         label: detailsTabLabel,
-        icon: <IconInfoCircle size={16} stroke={1.6} />,
+      icon: <InfoIcon />,
         render: () => renderDetailsSection(),
       });
     }
@@ -201,7 +203,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: contentConfig.id || 'content',
         label: contentConfig.label || 'Content',
-        icon: <IconFileText size={16} stroke={1.6} />,
+        icon: <FileTextIcon />,
         render: () => {
           const messageClass = `${base}__message`;
           const errorClass = `${base}__message ${base}__message--error`;
@@ -268,7 +270,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
       tabsList.push({
         id: 'metadata',
         label: metadataTabLabel,
-        icon: <IconCode size={16} stroke={1.6} />,
+        icon: <CodeIcon />,
         render: () => (
           <section className={`${base}__section ${base}__section--metadata-json`}>
             <pre className={`${base}__metadata-json`}>
@@ -435,7 +437,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     document?.id,
   ]);
 
-  const handleTabSelect = (tabId) => {
+  const handleTabSelect = useCallback((tabId) => {
     if (!visibleTabs.some((tab) => tab.id === tabId)) {
       return;
     }
@@ -445,27 +447,37 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     if (tabId !== activeTabId) {
       onTabChange?.(tabId);
     }
-  };
+  }, [visibleTabs, isControlled, activeTabId, onTabChange]);
 
   const singleTab = visibleTabs.length === 1 ? visibleTabs[0] : null;
   const shouldHideNav = hideTabNavWhenSingle && singleTab;
 
-  const tabNav = (
-    <div className={`${base}__tabs`} role="tablist" aria-label="Document details">
-      {visibleTabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={tab.id === activeTabId}
-          className={`${base}__tab${tab.id === activeTabId ? ' is-active' : ''}`}
-          onClick={() => handleTabSelect(tab.id)}
-        >
-          {tab.icon}{tab.label}
-        </button>
-      ))}
-    </div>
-  );
+  const tabNav = useMemo(() => {
+    if (shouldHideNav) return null;
+    return (
+      <div className={`${base}__tabs`} role="tablist" aria-label="Document details">
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={tab.id === activeTabId}
+            aria-label={tab.label}
+            title={tab.label}
+            className={`${base}__tab${tab.id === activeTabId ? ' is-active' : ''}`}
+            onClick={() => handleTabSelect(tab.id)}
+          >
+            {tab.icon}
+          </button>
+        ))}
+      </div>
+    );
+  }, [shouldHideNav, base, visibleTabs, activeTabId, handleTabSelect]);
+
+  // Sync tab nav to parent via callback
+  useEffect(() => {
+    if (onTabNavChange) onTabNavChange(tabNav);
+  }, [onTabNavChange, tabNav]);
 
   const tabPanels = (
     <div className={`${base}__tabpanes`}>
@@ -479,25 +491,18 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     </div>
   );
 
+  const renderInlineNav = !onTabNavChange && !shouldHideNav;
   const tabsWrapperClass = `${base}__tabs-wrapper${tabsPlacement === 'bottom' ? ` ${base}__tabs-wrapper--bottom` : ''}`;
 
   return (
     <>
       {summaryNode}
-      {shouldHideNav ? (
-        <div className={`${base}__tabpanes ${base}__tabpanes--single`}>
-          <div className={`${base}__tabpanel`}>
-            {renderTabContent(singleTab, { document })}
-          </div>
-        </div>
-      ) : (
-        <div className={tabsWrapperClass}>
-          {tabsPlacement !== 'bottom' ? tabNav : null}
-          {tabsPlacement === 'bottom' ? tabPanels : null}
-          {tabsPlacement === 'bottom' ? tabNav : null}
-          {tabsPlacement !== 'bottom' ? tabPanels : null}
-        </div>
-      )}
+      <div className={tabsWrapperClass}>
+        {renderInlineNav && tabsPlacement !== 'bottom' ? tabNav : null}
+        {tabsPlacement === 'bottom' ? tabPanels : null}
+        {renderInlineNav && tabsPlacement === 'bottom' ? tabNav : null}
+        {tabsPlacement !== 'bottom' ? tabPanels : null}
+      </div>
     </>
   );
 };
