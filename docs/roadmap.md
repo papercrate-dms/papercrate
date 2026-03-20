@@ -44,8 +44,8 @@ Items required for the beta release.
 ### Stability
 - [x] **Critical**: Add top-level React Error Boundary with fallback UI (rendering errors currently white-screen the app)
 - [ ] Install `@types/react` + `@types/react-dom` and fix ~381 type errors (React 19 ships no types; project currently compiles untyped)
-- [ ] Remove dead dependencies (`react-redux`, `prop-types`)
-- [ ] Fix broken `test:engine` script in package.json
+- [x] Remove dead dependencies (`react-redux`, `prop-types`)
+- [x] Fix broken `test:engine` script in package.json
 
 ### Build & Production
 - [x] Enable webpack `splitChunks` for vendor code splitting
@@ -57,11 +57,10 @@ Items required for the beta release.
 
 ### Cleanup
 - [ ] clean: Audit `apiClient` usage; migrate to Managers where appropriate (e.g. `useDocumentMutations` vs `DocumentsManager`)
-- [ ] clean: Review all `ensure*` calls (ensure no double-fetching)
-- [ ] clean: Rename `useDocumentsWorkspace` to match context (Component `DocumentsWorkspace` does not exist; likely `useDocumentsView`)
+- [x] clean: Review all `ensure*` calls (ensure no double-fetching)
 - [x] clean: Refactor long prop lists (e.g., `UseDocumentsPanelPropsArgs`)
-- [ ] clean: Fix folder issues during tenant switch
-- [x] clean: Cleanup folder ID and 'root' handling (`null` vs `'root'` opaque IDs).
+- [ ] clean: Fix folder issues during tenant switch (workspace not reset, FoldersManager has no force-refresh, stale folder IDs persist)
+- [ ] clean: Cleanup folder ID and 'root' handling (local FolderId redefinitions, `=== 'root' ? null` conversions scattered)
 
 ### Regressions
 - [ ] regression: **Verified**: `FoldersManager`: Implement `invalidateTree` (currently missing).

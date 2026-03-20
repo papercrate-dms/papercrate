@@ -42,6 +42,7 @@ const InlineRenameInput: React.FC<InlineRenameInputProps> = ({
                     }
                 }}
                 onBlur={(event) => {
+                    if (type === 'date') return;
                     const nextFocus = event.relatedTarget;
                     if (!nextFocus || !event.currentTarget.parentElement?.contains(nextFocus)) {
                         onCancel();

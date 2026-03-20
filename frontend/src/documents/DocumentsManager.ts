@@ -1,9 +1,26 @@
 import shallowEqual from '../utils/shallowEqual';
+import { extractDocumentFromResponse } from './data/useWorkspaceManagers';
 import type { DocumentId, Identifier, TagId } from '../types/identifiers';
 import type { Tag, Correspondent } from '../types/documents';
 import type TagManager from '../lib/assets/TagManager';
 import type CorrespondentManager from '../lib/assets/CorrespondentManager';
-import { listDocuments } from '../lib/api/apiClient';
+import {
+  listDocuments,
+  updateDocument,
+  trashDocument,
+  restoreDocument,
+  purgeDocument,
+  queueDocumentReanalysis,
+  bulkReanalyzeDocuments,
+  addDocumentTags,
+  deleteDocumentTag,
+  bulkTagDocuments,
+  addDocumentCorrespondent,
+  removeDocumentCorrespondent,
+  assignCorrespondentsBulk,
+  moveDocumentToFolder,
+  moveDocumentsBulk,
+} from '../lib/api/apiClient';
 
 type ManagedDocument = { id?: DocumentId | null; tags?: Identifier[] | null; correspondents?: Identifier[] | null } & Record<string, unknown>;
 
@@ -71,39 +88,45 @@ class DocumentsManager<T extends ManagedDocument = ManagedDocument> {
 
       if (this.tagManager && Array.isArray((doc as any).tags)) {
         const rawTags = (doc as any).tags as any[];
-        const validTags: Tag[] = [];
-        const tagIds: TagId[] = [];
+        // Skip extraction if array already contains plain IDs (strings)
+        if (rawTags.length > 0 && typeof rawTags[0] === 'object') {
+          const validTags: Tag[] = [];
+          const tagIds: TagId[] = [];
 
-        rawTags.forEach(tag => {
-          if (tag.id) {
-            tagIds.push(tag.id);
-            validTags.push(tag as Tag);
+          rawTags.forEach(tag => {
+            if (tag.id) {
+              tagIds.push(tag.id);
+              validTags.push(tag as Tag);
+            }
+          });
+
+          if (validTags.length > 0) {
+            this.tagManager.ingest(validTags);
           }
-        });
 
-        if (validTags.length > 0) {
-          this.tagManager.ingest(validTags);
+          (doc as any).tags = tagIds;
         }
-
-        (doc as any).tags = tagIds;
       }
 
       if (this.correspondentManager && Array.isArray((doc as any).correspondents)) {
         const rawCorrespondents = (doc as any).correspondents as any[];
-        const validCorrespondents: Correspondent[] = [];
-        const correspondentIds: Identifier[] = [];
+        // Skip extraction if array already contains plain IDs (strings)
+        if (rawCorrespondents.length > 0 && typeof rawCorrespondents[0] === 'object') {
+          const validCorrespondents: Correspondent[] = [];
+          const correspondentIds: Identifier[] = [];
 
-        rawCorrespondents.forEach(corr => {
-          if (corr.id) {
-            correspondentIds.push(corr.id);
-            validCorrespondents.push(corr as Correspondent);
+          rawCorrespondents.forEach(corr => {
+            if (corr.id) {
+              correspondentIds.push(corr.id);
+              validCorrespondents.push(corr as Correspondent);
+            }
+          });
+
+          if (validCorrespondents.length > 0) {
+            this.correspondentManager.ingest(validCorrespondents);
           }
-        });
-
-        if (validCorrespondents.length > 0) {
-          this.correspondentManager.ingest(validCorrespondents);
+          (doc as any).correspondents = correspondentIds;
         }
-        (doc as any).correspondents = correspondentIds;
       }
 
       const existing = nextById.get(id as DocumentId);
@@ -182,14 +205,17 @@ class DocumentsManager<T extends ManagedDocument = ManagedDocument> {
     }
 
     let changed = false;
-    const next = new Map<DocumentId, T>();
+    let next = this.byId;
     this.byId.forEach((doc, key) => {
       const updated = mapper(doc);
       const nextDoc = updated === undefined ? doc : updated;
       if (nextDoc !== doc) {
+        if (!changed) {
+          next = new Map(this.byId);
+        }
         changed = true;
+        next.set(key, nextDoc ?? doc);
       }
-      next.set(key, nextDoc ?? doc);
     });
 
     if (changed) {
@@ -243,6 +269,130 @@ class DocumentsManager<T extends ManagedDocument = ManagedDocument> {
 
   getSnapshot(): Map<DocumentId, T> {
     return this.byId;
+  }
+
+  // --- Mutations ---
+
+  async updateFields(id: DocumentId, fields: Record<string, unknown>): Promise<T | null> {
+    const data = await updateDocument(id, fields);
+    const doc = extractDocumentFromResponse(data);
+    if (doc) {
+      const { canonical } = this.ingest([doc]);
+      return canonical[0] ?? null;
+    }
+    this.update(id, (d) => ({ ...d, ...fields } as T));
+    return this.getById(id);
+  }
+
+  async trash(id: DocumentId): Promise<void> {
+    await trashDocument(id);
+  }
+
+  async restore(id: DocumentId, folderId?: Identifier | null): Promise<void> {
+    await restoreDocument(id, folderId);
+  }
+
+  async purge(id: DocumentId): Promise<void> {
+    await purgeDocument(id);
+  }
+
+  async reanalyze(id: DocumentId, options?: { force?: boolean }): Promise<void> {
+    await queueDocumentReanalysis(id, options);
+  }
+
+  async bulkReanalyze(ids: Identifier[]): Promise<{ queued?: number }> {
+    return bulkReanalyzeDocuments({ document_ids: ids });
+  }
+
+  async addTags(documentId: DocumentId, tagIds: Identifier[]): Promise<void> {
+    await addDocumentTags(documentId, tagIds);
+    this.update(documentId, (doc) => {
+      const current = doc.tags ?? [];
+      const currentSet = new Set(current);
+      const next = [...current, ...tagIds.filter((id) => !currentSet.has(id))];
+      return { ...doc, tags: next } as T;
+    });
+  }
+
+  async removeTag(documentId: DocumentId, tagId: Identifier): Promise<void> {
+    await deleteDocumentTag(documentId, tagId);
+    this.update(documentId, (doc) => {
+      const current = doc.tags ?? [];
+      const next = current.filter((id: Identifier) => id !== tagId);
+      return next.length === current.length ? doc : ({ ...doc, tags: next } as T);
+    });
+  }
+
+  async bulkTag(
+    documentIds: Identifier[],
+    tagIds: Identifier[],
+    action: 'add' | 'remove',
+  ): Promise<void> {
+    await bulkTagDocuments({ document_ids: documentIds, tag_ids: tagIds, action });
+    const idSet = new Set(documentIds);
+    const tagSet = new Set(tagIds);
+    this.map((doc) => {
+      if (!idSet.has(doc.id as Identifier)) return undefined;
+      const current = doc.tags as Identifier[] ?? [];
+      let next: Identifier[];
+      if (action === 'add') {
+        const currentSet = new Set(current);
+        next = [...current, ...tagIds.filter((id) => !currentSet.has(id))];
+      } else {
+        next = current.filter((id) => !tagSet.has(id));
+      }
+      if (next.length === current.length && next.every((id, i) => id === current[i])) return undefined;
+      return { ...doc, tags: next } as T;
+    });
+  }
+
+  async addCorrespondent(documentId: DocumentId, correspondentId: Identifier): Promise<void> {
+    await addDocumentCorrespondent(documentId, correspondentId);
+    this.update(documentId, (doc) => {
+      const current = doc.correspondents ?? [];
+      if (current.includes(correspondentId)) return doc;
+      return { ...doc, correspondents: [...current, correspondentId] } as T;
+    });
+  }
+
+  async removeCorrespondent(documentId: DocumentId, correspondentId: Identifier): Promise<void> {
+    await removeDocumentCorrespondent(documentId, correspondentId);
+    this.update(documentId, (doc) => {
+      const current = doc.correspondents ?? [];
+      const next = current.filter((id: Identifier) => id !== correspondentId);
+      return next.length === current.length ? doc : ({ ...doc, correspondents: next } as T);
+    });
+  }
+
+  async bulkCorrespondent(
+    documentIds: Identifier[],
+    assignments: Array<{ correspondent_id?: Identifier }>,
+    action: 'add' | 'remove',
+  ): Promise<void> {
+    await assignCorrespondentsBulk({ document_ids: documentIds, assignments, action });
+    const idSet = new Set(documentIds);
+    const corrIds = new Set(assignments.map((a) => a.correspondent_id).filter(Boolean) as Identifier[]);
+    this.map((doc) => {
+      if (!idSet.has(doc.id as Identifier)) return undefined;
+      const current = doc.correspondents as Identifier[] ?? [];
+      let next: Identifier[];
+      if (action === 'add') {
+        const currentSet = new Set(current);
+        next = [...current, ...Array.from(corrIds).filter((id) => !currentSet.has(id))];
+      } else {
+        next = current.filter((id) => !corrIds.has(id));
+      }
+      if (next.length === current.length && next.every((id, i) => id === current[i])) return undefined;
+      return { ...doc, correspondents: next } as T;
+    });
+  }
+
+  async moveToFolder(id: DocumentId, folderId: Identifier | null): Promise<void> {
+    await moveDocumentToFolder(id, folderId);
+  }
+
+  async bulkMove(ids: Identifier[], folderId: Identifier | null): Promise<void> {
+    await moveDocumentsBulk(ids, folderId);
   }
 }
 

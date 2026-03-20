@@ -110,7 +110,7 @@ export const useWorkspaceSurface = ({
             {...restDetailProps}
           />
         );
-        if (folderNodes && ensureFolderData) {
+        if (folderNodes) {
           return (
             <FolderManagerProvider folderNodes={folderNodes} ensureFolderData={ensureFolderData}>
               {viewer}
@@ -170,7 +170,7 @@ export const useWorkspaceSurface = ({
       />
     );
 
-    const content = folderNodes && ensureFolderData
+    const content = folderNodes
       ? (
         <FolderManagerProvider folderNodes={folderNodes} ensureFolderData={ensureFolderData}>
           {viewer}

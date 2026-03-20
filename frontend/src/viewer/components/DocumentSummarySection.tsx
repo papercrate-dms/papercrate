@@ -569,7 +569,7 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
   const startIssuedEdit = useCallback(() => {
     if (!editableIssued || !document) return;
     setIsIssuedEditing(true);
-    setIssuedDraft(toDateInputValue(document.issued_at));
+    setIssuedDraft(toDateInputValue(document.issued_at) || toDateInputValue(new Date()));
     setIssuedError(null);
   }, [document, editableIssued]);
 
@@ -584,6 +584,11 @@ const DocumentSummarySection: React.FC<DocumentSummarySectionProps> = ({
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!editableIssued || !document || !onUpdateIssued) return;
+      const currentInputValue = toDateInputValue(document.issued_at);
+      if (issuedDraft === currentInputValue) {
+        cancelIssuedEdit();
+        return;
+      }
       const normalizedValue = issuedDraft ? toIssuedTimestamp(issuedDraft, document.issued_at) : null;
       setIssuedSaving(true);
       try {

@@ -9,8 +9,7 @@
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "check": "tsc --noEmit && npx knip && npm run lint",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:engine": "node --test tests/workspaceEngine.test.js"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

@@ -27,7 +27,7 @@ export const FolderManagerProvider: React.FC<FolderManagerProviderProps> = ({
   children,
 }) => {
   const value = useMemo<FolderManager>(() => {
-    if (!folderNodes || !ensureFolderData) {
+    if (!folderNodes) {
       return defaultManager;
     }
 
@@ -40,8 +40,11 @@ export const FolderManagerProvider: React.FC<FolderManagerProviderProps> = ({
       const cached = getNameSync(folderId);
       if (cached) return cached;
       if (folderId == null) return DEFAULT_FOLDER_NAME;
-      await ensureFolderData(folderId, { includeDocuments: false });
-      return getNameSync(folderId) ?? `Folder ${folderId}`;
+      if (ensureFolderData) {
+        await ensureFolderData(folderId, { includeDocuments: false });
+        return getNameSync(folderId) ?? `Folder ${folderId}`;
+      }
+      return `Folder ${folderId}`;
     };
 
     return { getNameSync, resolveName };

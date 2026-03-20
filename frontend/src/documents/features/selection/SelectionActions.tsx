@@ -302,9 +302,9 @@ const SelectionActions: React.FC<SelectionActionsProps> = ({
         return;
       }
       if (item.state === 'all') {
-        await (onBulkTagRemove as any)?.({ label: item.label || '', input: null, documentIds: documentIdList });
+        await (onBulkTagRemove as any)?.({ label: item.label || '', tagId: item.id, input: null, documentIds: documentIdList });
       } else {
-        await (onBulkTagAdd as any)?.({ label: item.label || '', input: null, documentIds: documentIdList });
+        await (onBulkTagAdd as any)?.({ label: item.label || '', tagId: item.id, input: null, documentIds: documentIdList });
       }
     },
     [selectedDocCount, onBulkTagAdd, onBulkTagRemove, documentIdList],
@@ -333,6 +333,8 @@ const SelectionActions: React.FC<SelectionActionsProps> = ({
           assignments: [{ correspondent_id: item.id }],
           documentIds: documentIdList,
         });
+      } else if (item.id) {
+        await (onBulkCorrespondentAdd as any)?.({ name: item.label || '', correspondentId: item.id, documentIds: documentIdList });
       } else {
         await (onBulkCorrespondentAdd as any)?.({ name: item.label || '', input: null, documentIds: documentIdList });
       }

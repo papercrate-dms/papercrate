@@ -1,16 +1,6 @@
 import { useCallback } from 'react';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
-import { extractDocumentFromResponse } from './useWorkspaceManagers';
-
-import {
-  queueDocumentReanalysis,
-  trashDocument,
-  updateDocument,
-  bulkTagDocuments,
-  bulkReanalyzeDocuments,
-  assignCorrespondentsBulk,
-} from '../../lib/api/apiClient';
 import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
 import type { Document, MessageOptions } from '../../types/documents';
 import { useDocumentTagMutations } from './useDocumentTagMutations';
@@ -136,7 +126,7 @@ const useDocumentMutations = ({
   const handleThumbnailRegeneration = useCallback(
     async (documentId: DocumentId) => {
       try {
-        await queueDocumentReanalysis(documentId);
+        await documentsState.documentsManager.reanalyze(documentId);
         showToast('Analysis queued.', 'info');
         // Close preview if it's the current one to allow refresh?
         if (viewerDocumentId === documentId) {
@@ -146,7 +136,7 @@ const useDocumentMutations = ({
         notifyApiError(error, 'Failed to queue analysis.');
       }
     },
-    [closeDocumentViewer, notifyApiError, viewerDocumentId, showToast],
+    [documentsState, closeDocumentViewer, notifyApiError, viewerDocumentId, showToast],
   );
 
   const handleDocumentsDelete = useCallback(
@@ -156,9 +146,7 @@ const useDocumentMutations = ({
       // Optimistic update could happen here but usually we wait for standardized confirmation
       // However workspace expects mutation here.
       try {
-        await Promise.all(documentIds.map((id) => trashDocument(id)));
-
-        // Remove from local state and manager
+        await Promise.all(documentIds.map((id) => documentsState.documentsManager.trash(id)));
         documentsState.documentsManager.remove(documentIds);
 
         if (showMessage) {
@@ -188,20 +176,7 @@ const useDocumentMutations = ({
         return false;
       }
       try {
-        const data = await updateDocument(documentId, { title: trimmed });
-        const updatedDocument = extractDocumentFromResponse(data) as any;
-
-        if (updatedDocument) {
-          documentsState.documentsManager.ingest([updatedDocument]);
-        } else {
-          documentsState.documentsManager.update(documentId, (doc) => {
-            if (updatedDocument) {
-              return { ...doc, ...updatedDocument };
-            }
-            return { ...doc, title: trimmed };
-          });
-        }
-
+        await documentsState.documentsManager.updateFields(documentId, { title: trimmed });
         showToast('Document title updated.', 'success');
         return true;
       } catch (error) {
@@ -221,17 +196,7 @@ const useDocumentMutations = ({
     async (documentId: DocumentId, nextIssuedDate: number | null) => {
       const payload = { issued_at: nextIssuedDate || null };
       try {
-        const data = await updateDocument(documentId, payload);
-        const updatedDocument = extractDocumentFromResponse(data) as any;
-
-        if (updatedDocument) {
-          documentsState.documentsManager.ingest([updatedDocument]);
-        } else {
-          documentsState.documentsManager.update(documentId, (doc) => {
-            return { ...doc, issued_at: payload.issued_at };
-          });
-        }
-
+        await documentsState.documentsManager.updateFields(documentId, payload);
         const message = payload.issued_at ? 'Issued date updated.' : 'Issued date cleared.';
         showToast(message, 'success');
         return true;
@@ -288,24 +253,7 @@ const useDocumentMutations = ({
 
       try {
         const tagIds = tagsToProcess.map(t => t.id);
-        await bulkTagDocuments({ document_ids: targetIds, tag_ids: tagIds, action });
-
-        documentsState.documentsManager.map((doc) => {
-          if (!targetIds.includes(doc.id)) return undefined;
-          const oldTags = doc.tags || [];
-          let newTags = [...oldTags];
-          const processIds = new Set(tagIds);
-
-          if (action === 'add') {
-            const currentIds = new Set(oldTags);
-            tagIds.forEach(tid => {
-              if (!currentIds.has(tid)) newTags.push(tid);
-            });
-          } else {
-            newTags = newTags.filter(tid => !processIds.has(tid));
-          }
-          return { ...doc, tags: newTags };
-        });
+        await documentsState.documentsManager.bulkTag(targetIds, tagIds, action);
 
         return { ok: true, docsCount: targetIds.length, tagCount: tagsToProcess.length, label: labels[0] };
       } catch (e) {
@@ -316,7 +264,19 @@ const useDocumentMutations = ({
     [documentsState, resolveTargetDocumentIds, tagsState, notifyApiError]
   );
 
-  const handleBulkTagAddFromDetail = useCallback(async ({ label, input, documentIds }: { label?: string; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
+  const handleBulkTagAddFromDetail = useCallback(async ({ label, tagId, input, documentIds }: { label?: string; tagId?: Identifier; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
+    if (tagId) {
+      const targetIds = resolveTargetDocumentIds(documentIds);
+      if (!targetIds.length) return;
+      try {
+        await documentsState.documentsManager.bulkTag(targetIds, [tagId], 'add');
+        showToast(`Added tag "${label || ''}" to ${targetIds.length} documents.`, 'success');
+        if (input) input.value = '';
+      } catch (e) {
+        notifyApiError(e, 'Bulk tag operation failed');
+      }
+      return;
+    }
     const text = label || input?.value?.trim();
     if (!text) return;
 
@@ -325,9 +285,20 @@ const useDocumentMutations = ({
       showToast(`Added tag "${text}" to ${res.docsCount} documents.`, 'success');
       if (input) input.value = '';
     }
-  }, [bulkTagOperation, showToast]);
+  }, [bulkTagOperation, documentsState, resolveTargetDocumentIds, showToast, notifyApiError]);
 
-  const handleBulkTagRemoveFromDetail = useCallback(async ({ label, input, documentIds }: { label?: string; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
+  const handleBulkTagRemoveFromDetail = useCallback(async ({ label, tagId, input, documentIds }: { label?: string; tagId?: Identifier; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
+    if (tagId) {
+      const targetIds = resolveTargetDocumentIds(documentIds);
+      if (!targetIds.length) return;
+      try {
+        await documentsState.documentsManager.bulkTag(targetIds, [tagId], 'remove');
+        showToast(`Removed tag "${label || ''}" from ${targetIds.length} documents.`, 'success');
+      } catch (e) {
+        notifyApiError(e, 'Bulk tag operation failed');
+      }
+      return;
+    }
     const text = label || input?.value?.trim();
     if (!text) return;
 
@@ -335,7 +306,7 @@ const useDocumentMutations = ({
     if (res.ok) {
       showToast(`Removed tag "${text}" from ${res.docsCount} documents.`, 'success');
     }
-  }, [bulkTagOperation, showToast]);
+  }, [bulkTagOperation, documentsState, resolveTargetDocumentIds, showToast, notifyApiError]);
 
   const handleBulkSelectionReanalyze = useCallback(async (documentIdsOverride?: Identifier[] | null) => {
     const ids = resolveTargetDocumentIds(documentIdsOverride || undefined);
@@ -344,57 +315,51 @@ const useDocumentMutations = ({
       return;
     }
     try {
-      await bulkReanalyzeDocuments({ document_ids: ids });
+      await documentsState.documentsManager.bulkReanalyze(ids);
       showToast(`Queued reanalysis for ${ids.length} documents.`, 'success');
     } catch (e) {
       notifyApiError(e, 'Failed to queue reanalysis');
     }
   }, [resolveTargetDocumentIds, showToast, notifyApiError]);
 
-  const handleBulkCorrespondentAdd = useCallback(async ({ name, input, documentIds }: { name?: string; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
-    const text = name || input?.value?.trim();
-    if (!text) return;
+  const handleBulkCorrespondentAdd = useCallback(async ({ name, correspondentId, input, documentIds }: { name?: string; correspondentId?: Identifier; input?: HTMLInputElement | null; documentIds?: Identifier[] }) => {
     const ids = resolveTargetDocumentIds(documentIds);
     if (!ids.length) return;
 
-    const { correspondentManager, correspondentLookupByName } = correspondentsState;
-    const normalized = text.trim();
+    const { correspondentManager, correspondentLookupByName, correspondentLookupById } = correspondentsState;
 
-    let corr = correspondentLookupByName?.get(normalized.toLowerCase());
+    let corr = correspondentId ? correspondentLookupById?.get(correspondentId) ?? { id: correspondentId, name: name || '' } : null;
 
     if (!corr) {
-      try {
-        // Create new correspondent
-        const payload = correspondentManager.buildPayload({ name: normalized });
-        corr = await correspondentManager.create(payload);
-      } catch (e) {
-        console.error('Failed to create correspondent', e);
-        showToast('Failed to create correspondent.', 'error');
-        return;
+      const text = name || input?.value?.trim();
+      if (!text) return;
+      const normalized = text.trim();
+
+      corr = correspondentLookupByName?.get(normalized.toLowerCase()) ?? null;
+
+      if (!corr) {
+        try {
+          const payload = correspondentManager.buildPayload({ name: normalized });
+          corr = await correspondentManager.create(payload);
+        } catch (e) {
+          console.error('Failed to create correspondent', e);
+          showToast('Failed to create correspondent.', 'error');
+          return;
+        }
       }
     }
 
-    if (!corr) {
+    if (!corr?.id) {
       showToast('Correspondent could not be found or created.', 'error');
       return;
     }
 
     try {
-      await assignCorrespondentsBulk({
-        document_ids: ids,
-        assignments: [{ correspondent_id: corr.id }],
-        action: 'add'
-      });
-
-      documentsState.documentsManager.map((doc) => {
-        if (ids.includes(doc.id)) {
-          const current = doc.correspondents || [];
-          if (corr?.id && !current.includes(corr.id)) {
-            return { ...doc, correspondents: [...current, corr.id] };
-          }
-        }
-        return undefined;
-      });
+      await documentsState.documentsManager.bulkCorrespondent(
+        ids,
+        [{ correspondent_id: corr.id }],
+        'add',
+      );
       showToast(`Assigned "${corr.name}" to ${ids.length} documents.`, 'success');
       if (input) input.value = '';
     } catch (e) {
@@ -422,23 +387,7 @@ const useDocumentMutations = ({
     const assignments = Array.from(correspondentsToRemove).map(id => ({ correspondent_id: id }));
 
     try {
-      await assignCorrespondentsBulk({
-        document_ids: ids,
-        assignments,
-        action: 'remove'
-      });
-
-      documentsState.documentsManager.map((doc) => {
-        if (ids.includes(doc.id)) {
-          // Remove any of the targeted correspondents from the document
-          const current = doc.correspondents || [];
-          const newCorrespondents = current.filter(cId => !correspondentsToRemove.has(cId));
-          if (current.length !== newCorrespondents.length) {
-            return { ...doc, correspondents: newCorrespondents };
-          }
-        }
-        return undefined;
-      });
+      await documentsState.documentsManager.bulkCorrespondent(ids, assignments, 'remove');
       showToast(`Removed correspondents from ${ids.length} documents.`, 'success');
     } catch (e) {
       notifyApiError(e, 'Failed to remove correspondents');

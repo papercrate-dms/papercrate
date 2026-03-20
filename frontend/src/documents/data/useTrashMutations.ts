@@ -1,11 +1,9 @@
 import { useCallback } from 'react';
-import { restoreDocument, purgeDocument, trashDocument } from '../../lib/api/apiClient';
 import { useDocumentsSearch } from '../../lib/context/DocumentsSearchContext';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import { useUI } from '../../lib/context/UIContext';
 import type { DocumentId, Identifier } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
-import type DocumentsManager from '../DocumentsManager';
 
 export function useTrashMutations() {
   const { documentLookup, documentsManager } = useDocumentsSearch();
@@ -15,8 +13,8 @@ export function useTrashMutations() {
   const trashDocuments = useCallback(async (ids: DocumentId[]) => {
     if (!ids.length) return;
     try {
-      await Promise.all(ids.map((id) => trashDocument(id)));
-      (documentsManager as DocumentsManager)?.remove?.(ids);
+      await Promise.all(ids.map((id) => documentsManager.trash(id)));
+      documentsManager.remove(ids);
       const count = ids.length;
       showToast(`Moved ${count} document${count === 1 ? '' : 's'} to trash.`, 'success');
     } catch (error) {
@@ -29,9 +27,9 @@ export function useTrashMutations() {
     try {
       await Promise.all(ids.map((id) => {
         const doc = documentLookup?.get(id) as Document | undefined;
-        return restoreDocument(id, doc?.folder_id as Identifier ?? null);
+        return documentsManager.restore(id, doc?.folder_id as Identifier ?? null);
       }));
-      (documentsManager as DocumentsManager)?.remove?.(ids);
+      documentsManager.remove(ids);
       const count = ids.length;
       showToast(`Restored ${count} document${count === 1 ? '' : 's'}.`, 'success');
     } catch (error) {
@@ -47,8 +45,8 @@ export function useTrashMutations() {
     );
     if (!confirmed) return;
     try {
-      await Promise.all(ids.map((id) => purgeDocument(id)));
-      (documentsManager as DocumentsManager)?.remove?.(ids);
+      await Promise.all(ids.map((id) => documentsManager.purge(id)));
+      documentsManager.remove(ids);
       showToast(`Permanently deleted ${count} document${count === 1 ? '' : 's'}.`, 'success');
     } catch (error) {
       notifyApiError(error, 'Failed to delete documents.');

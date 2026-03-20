@@ -11,6 +11,20 @@ interface DocumentsManagerInterface {
     ingest(rawDocs: Document[]): { canonical: Document[]; changed: boolean };
     remove(ids: Array<DocumentId>): boolean;
     list(params: Record<string, unknown>, options?: { signal?: AbortSignal }): Promise<DocumentId[]>;
+    updateFields(id: DocumentId, fields: Record<string, unknown>): Promise<Document | null>;
+    trash(id: DocumentId): Promise<void>;
+    restore(id: DocumentId, folderId?: Identifier | null): Promise<void>;
+    purge(id: DocumentId): Promise<void>;
+    reanalyze(id: DocumentId, options?: { force?: boolean }): Promise<void>;
+    bulkReanalyze(ids: Identifier[]): Promise<{ queued?: number }>;
+    addTags(documentId: DocumentId, tagIds: Identifier[]): Promise<void>;
+    removeTag(documentId: DocumentId, tagId: Identifier): Promise<void>;
+    bulkTag(documentIds: Identifier[], tagIds: Identifier[], action: 'add' | 'remove'): Promise<void>;
+    addCorrespondent(documentId: DocumentId, correspondentId: Identifier): Promise<void>;
+    removeCorrespondent(documentId: DocumentId, correspondentId: Identifier): Promise<void>;
+    bulkCorrespondent(documentIds: Identifier[], assignments: Array<{ correspondent_id?: Identifier }>, action: 'add' | 'remove'): Promise<void>;
+    moveToFolder(id: DocumentId, folderId: Identifier | null): Promise<void>;
+    bulkMove(ids: Identifier[], folderId: Identifier | null): Promise<void>;
 }
 
 export interface DocumentsState {

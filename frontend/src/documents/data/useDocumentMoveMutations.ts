@@ -10,12 +10,6 @@ import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 import { DEFAULT_FOLDER_NAME } from '../../app/workspaceUtils';
 import { getEntryId, isDocumentEntry } from '../../app/entryKey';
-import {
-    moveDocumentsBulk,
-    moveDocumentToFolder,
-    restoreDocument,
-    trashDocument,
-} from '../../lib/api/apiClient';
 import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import type {
@@ -98,13 +92,16 @@ export const useDocumentMoveMutations = ({
 
 
             try {
+                const { documentsManager } = documentsState;
+
                 if (targetFolderId === 'trash') {
                     // Moving to trash = trashing
                     const activeIds = movedDocs
                         .filter(({ document }) => !document.deleted_at)
                         .map(({ id }) => id);
                     if (activeIds.length > 0) {
-                        await Promise.all(activeIds.map((id) => trashDocument(id)));
+                        await Promise.all(activeIds.map((id) => documentsManager.trash(id)));
+                        documentsManager.remove(activeIds);
                     }
                 } else {
                     // Documents that are trashed need restore, not move
@@ -114,22 +111,22 @@ export const useDocumentMoveMutations = ({
                     const activeIds = uniqueIds.filter((id) => !trashedIds.includes(id));
 
                     if (trashedIds.length > 0) {
-                        await Promise.all(trashedIds.map((id) => restoreDocument(id, target as Identifier)));
+                        await Promise.all(trashedIds.map((id) => documentsManager.restore(id, target as Identifier)));
                     }
 
                     if (activeIds.length === 1) {
-                        await moveDocumentToFolder(activeIds[0], target);
+                        await documentsManager.moveToFolder(activeIds[0], target);
                     } else if (activeIds.length > 1) {
-                        await moveDocumentsBulk(activeIds, target);
+                        await documentsManager.bulkMove(activeIds, target);
                     }
+
+                    // Remove moved documents from the current folder view
+                    documentsManager.remove(uniqueIds);
                 }
 
                 const count = uniqueIds.length;
                 const suffix = count === 1 ? '' : 's';
                 showToast(`Moved ${count} document${suffix} to ${targetLabel}.`, 'success');
-
-                // Remove moved documents from the current folder view
-                documentsState.documentsManager.remove(uniqueIds);
 
                 if (uniqueIdSet.size) {
                     const pruneRow = (rows: string[]) => rows.filter(id => !uniqueIdSet.has(getEntryId(id) as DocumentId));

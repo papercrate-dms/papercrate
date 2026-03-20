@@ -1,10 +1,6 @@
 import { useCallback } from 'react';
 import type { DocumentId } from '../../types/identifiers';
 import type { Document, Tag } from '../../types/documents';
-import {
-    addDocumentTags,
-    deleteDocumentTag,
-} from '../../lib/api/apiClient';
 import type { TagsState, DocumentsState } from '../types/workspaceTypes';
 
 interface DocumentTagExtras {
@@ -35,18 +31,7 @@ export const useDocumentTagMutations = ({
                 return false;
             }
 
-            await addDocumentTags(documentId, [tag.id]);
-            documentsState.documentsManager.map((doc) => {
-                if (doc.id !== documentId) {
-                    return undefined;
-                }
-                const currentTags = Array.isArray(doc.tags) ? doc.tags : [];
-
-                if (currentTags.includes(tag.id)) {
-                    return doc;
-                }
-                return { ...doc, tags: [...currentTags, tag.id] };
-            });
+            await documentsState.documentsManager.addTags(documentId, [tag.id]);
 
             return true;
         },
@@ -120,22 +105,7 @@ export const useDocumentTagMutations = ({
                 return false;
             }
 
-            await deleteDocumentTag(documentId, tagId);
-            // Inlined applyTagRemovalToCaches logic
-            documentsState.documentsManager.map((doc) => {
-                if (doc.id !== documentId) {
-                    return undefined;
-                }
-                if (!doc || !Array.isArray(doc.tags)) {
-                    return doc;
-                }
-                // Filter IDs
-                const nextTags = doc.tags.filter((id) => id !== tagId);
-                if (nextTags.length === doc.tags.length) {
-                    return doc;
-                }
-                return { ...doc, tags: nextTags };
-            });
+            await documentsState.documentsManager.removeTag(documentId, tagId);
             return true;
         },
         [documentsState],
