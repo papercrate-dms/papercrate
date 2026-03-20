@@ -9,7 +9,7 @@ interface UseBulkDocumentActionsArgs {
   selectedFolderIds?: Identifier[];
   handleDocumentsDelete: (ids: Identifier[], options?: MessageOptions) => Promise<boolean>;
   handleFolderDelete: (id: Identifier, options?: MessageOptions) => Promise<boolean>;
-  clearDocumentSelection: () => void;
+  clearSelection: () => void;
 }
 
 const useBulkDocumentActions = ({
@@ -17,7 +17,7 @@ const useBulkDocumentActions = ({
   selectedFolderIds,
   handleDocumentsDelete,
   handleFolderDelete,
-  clearDocumentSelection,
+  clearSelection,
 }: UseBulkDocumentActionsArgs) => {
   const { showToast } = useStatusToast();
 
@@ -41,9 +41,7 @@ const useBulkDocumentActions = ({
       parts.push(`${folderIds.length} folder${folderIds.length === 1 ? '' : 's'}`);
     }
     const descriptor = parts.join(' and ');
-    const confirmation = parts.length === 1
-      ? `Delete ${descriptor}? Folders must be empty before deletion. You can restore documents later from trash.`
-      : `Delete ${descriptor}? Folders must be empty before deletion. You can restore documents later from trash.`;
+    const confirmation = `Delete ${descriptor}? Folders must be empty before deletion. You can restore documents later from trash.`;
 
     if (!window.confirm(confirmation)) {
       return;
@@ -70,7 +68,7 @@ const useBulkDocumentActions = ({
       return;
     }
 
-    clearDocumentSelection();
+    clearSelection();
 
     const successParts = [];
     if (docIds.length) {
@@ -82,7 +80,7 @@ const useBulkDocumentActions = ({
 
     showToast(successParts.join(' '), 'success');
   }, [
-    clearDocumentSelection,
+    clearSelection,
     handleDocumentsDelete,
     handleFolderDelete,
     selectedDocumentIds,

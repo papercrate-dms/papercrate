@@ -5,11 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  useLocation,
-  useMatch,
-  useParams,
-} from 'react-router-dom';
+import { useLocation, useMatch, useParams } from 'react-router-dom';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 import useViewerState from './useViewerState';
 import { useEntryPointer as useEntryPointerCore } from '../features/selection/useEntryPointer';
@@ -20,9 +16,9 @@ import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useDocumentDragHandlers from '../features/upload/useDocumentDragHandlers';
 import useDocumentMutations from './useDocumentMutations';
 import { resolveBreadcrumbs } from '../logic/breadcrumbs';
-import useWorkspaceManagers from './useWorkspaceManagers';
+import useWorkspaceManagers, { extractDocumentFromResponse } from './useWorkspaceManagers';
 import { useAppDispatch, useAppState } from '../../lib/store/appState';
-import { useApi } from '../../lib/context/ApiContext';
+
 import { useWorkspaceSelection } from '../../app/useWorkspaceSelection';
 import { EntryType } from '../../constants/documents';
 import type { DocumentId, FolderNodeId, Identifier } from '../../types/identifiers';
@@ -64,10 +60,10 @@ const useDocumentsWorkspace = ({
   const routeDocumentId = params.documentId || null;
 
   const { status: appStatus, token } = appState;
-  const { client: apiClient } = useApi();
   const { showToast } = useStatusToast();
   const notifyApiError = useNotifyApiError();
-  const isWorkspaceRoute = location.pathname.startsWith('/folders') || location.pathname === '/trash';
+
+  const [selectedFolder, setSelectedFolder] = useState<FolderNodeId>(routeFolderId || 'root');
 
   const [draggedDocumentIds, setDraggedDocumentIds] = useState<DocumentId[]>([]);
   const [draggedFolderId, setDraggedFolderId] = useState<FolderNodeId | null>(null);
@@ -75,9 +71,8 @@ const useDocumentsWorkspace = ({
 
   const {
     assetManager, tagManager, correspondentManager, foldersManager, documentsManager,
-    documents, setDocuments, documentLookup, extractDocumentFromResponse,
-    tagSnapshot, correspondentSnapshot, tagsForMutations, correspondentsForMutations,
-    foldersSnapshot,
+    documents, setDocuments, documentLookup,
+    tagSnapshot, correspondentSnapshot, foldersSnapshot,
   } = useWorkspaceManagers();
 
   const selectionState = useWorkspaceSelection();
@@ -89,8 +84,6 @@ const useDocumentsWorkspace = ({
     applySelection, handleEntrySelection, clearSelection,
     promoteSelectionOrder: promoteSelectionOrderRaw, configureSelectionEnvironment,
   } = selectionState;
-
-  const [selectedFolder, setSelectedFolder] = useState<FolderNodeId>(routeFolderId || 'root');
 
   const viewer = useViewerState({
     routeDocumentId, selectedFolder,
@@ -164,11 +157,11 @@ const useDocumentsWorkspace = ({
   // --- Mutations ---
 
   const documentMutationsResult = useDocumentMutations({
-    documentsState: { documentLookup, setDocuments, documentsManager, extractDocumentFromResponse, ingestDocuments: (docs: unknown[]) => documentsManager.ingest(docs) },
+    documentsState: { documentLookup, setDocuments, documentsManager },
     folderState: { selectedFolder, folderLabelMap },
     selectionState,
-    tagsState: { tags: tagsForMutations, tagLookupById: tagSnapshot, refreshTags: async () => { tagManager.ensureAll(true).catch(() => {}); }, tagManager },
-    correspondentsState: { correspondents: correspondentsForMutations, correspondentLookupById: correspondentSnapshot, correspondentLookupByName: new Map(), refreshCorrespondents: async () => { correspondentManager.ensureAll(true).catch(() => {}); }, correspondentManager },
+    tagsState: { tags: Array.from(tagSnapshot.values()) as any, tagLookupById: tagSnapshot, refreshTags: async () => { tagManager.ensureAll(true).catch(() => {}); }, tagManager },
+    correspondentsState: { correspondents: Array.from(correspondentSnapshot.values()) as any, correspondentLookupById: correspondentSnapshot, correspondentLookupByName: new Map(), refreshCorrespondents: async () => { correspondentManager.ensureAll(true).catch(() => {}); }, correspondentManager },
     closeDocumentViewer, viewerDocumentId, resolveTargetDocumentIds,
   });
 
@@ -253,7 +246,7 @@ const useDocumentsWorkspace = ({
   const { handleDeleteSelection } = useBulkDocumentActions({
     selectedDocumentIds, selectedFolderIds,
     handleDocumentsDelete, handleFolderDelete,
-    clearDocumentSelection: clearSelection,
+    clearSelection,
   });
 
   // --- Detail panel ---
@@ -301,7 +294,6 @@ const useDocumentsWorkspace = ({
 
     // DocumentsSearchProvider
     searchProps: {
-      api: apiClient, locationPathname: location.pathname, isWorkspaceRoute,
       searchIncludeDescendants, documentsSortField, documentsSortDirection,
       setSearchIncludeDescendants, documentsManager, documentsViewMode,
       handleDocumentsViewModeChange, handleDocumentsSortFieldChange,

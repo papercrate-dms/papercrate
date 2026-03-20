@@ -5,7 +5,7 @@ import { useFolder } from './FolderContext';
 import useWorkspaceSelectionSync from '../../documents/features/selection/useWorkspaceSelectionSync';
 import useDocumentsSelection from '../../documents/features/selection/useDocumentsSelection';
 import type { MutableRefObject } from 'react';
-import type { DocumentId, Identifier } from '../../types/identifiers';
+import type { DocumentId, Identifier, TagId } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import type { Asset } from '../../types/assets';
 
@@ -14,18 +14,18 @@ export interface DocumentsWorkspaceContextValue {
   clearDocumentSelection: () => void;
   handleDeleteSelection: () => Promise<void> | void;
   handleEntryPointerCore: (entry: unknown, event: unknown) => void;
-  handleBulkSelectionReanalyze: (...args: unknown[]) => Promise<void> | void;
+  handleBulkSelectionReanalyze: (documentIdsOverride?: Identifier[] | null) => Promise<void>;
   selectionValue: unknown;
 
   // Mutations
   handleDocumentDragStart: (event: React.DragEvent<HTMLElement>, doc: Document) => void;
   handleDocumentDragEnd: (event: React.DragEvent<HTMLElement>) => void;
   draggedDocumentIds: DocumentId[];
-  handleDocumentTitleUpdate: (...args: unknown[]) => unknown;
-  handleDocumentIssuedUpdate: (...args: unknown[]) => unknown;
-  handleDocumentTagAdd: (...args: unknown[]) => unknown;
-  handleDocumentTagAttach: (...args: unknown[]) => unknown;
-  handleDocumentTagDetach: (...args: unknown[]) => unknown;
+  handleDocumentTitleUpdate: (documentId: DocumentId, nextTitle: string) => Promise<boolean>;
+  handleDocumentIssuedUpdate: (documentId: DocumentId, nextIssuedDate: number | null) => Promise<void>;
+  handleDocumentTagAdd: (documentId: DocumentId, tagId: TagId) => Promise<void>;
+  handleDocumentTagAttach: (documentId: DocumentId, tagId: TagId) => Promise<void>;
+  handleDocumentTagDetach: (documentId: DocumentId, tagId: TagId) => Promise<void>;
 
   // Preview / viewer
   openDocumentViewerForDetail: (args?: { documentIds?: Identifier[] }) => void;

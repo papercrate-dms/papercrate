@@ -7,8 +7,7 @@ import PanelHeader from '../components/PanelHeader';
 import { CloseIcon, RefreshIcon } from '../components/icons';
 import { CORRESPONDENTS_MODAL, TAGS_MODAL } from '../constants/app';
 import type { Tag, Correspondent } from '../types/documents';
-import type CorrespondentManager from '../lib/assets/CorrespondentManager';
-import type { Identifier } from '../types/identifiers';
+
 
 interface UseManagementModalsArgs {
   locationPathname?: string;
@@ -18,13 +17,10 @@ interface UseManagementModalsArgs {
   onTagUpdate?: (id: string, payload: { label: string; color: string | null }) => Promise<void>;
   onTagDelete?: (id: string) => Promise<void>;
   correspondents?: Correspondent[];
-  correspondentLookupById?: Map<Identifier, Correspondent> | null;
-  correspondentLookupByName?: Map<string, Correspondent> | null;
   refreshCorrespondents?: () => void | Promise<void>;
   onCorrespondentCreate?: (payload: { name: string }) => Promise<Correspondent | void>;
   onCorrespondentUpdate?: (id: string, payload: { name: string }) => Promise<void>;
   onCorrespondentDelete?: (id: string) => Promise<void>;
-  correspondentManager?: CorrespondentManager | null;
 }
 
 interface UseManagementModalsResult {
@@ -136,35 +132,7 @@ export const useManagementModals = ({
 
 
 
-  const handleCorrespondentCreateSafe = useCallback<CorrespondentsPanelProps['onCreate']>(
-    async (payload) => {
-      if (!onCorrespondentCreate) {
-        return undefined;
-      }
-      return onCorrespondentCreate(payload) ?? undefined;
-    },
-    [onCorrespondentCreate],
-  );
 
-  const handleCorrespondentUpdateSafe = useCallback<CorrespondentsPanelProps['onUpdate']>(
-    async (id, payload) => {
-      if (!onCorrespondentUpdate) {
-        return;
-      }
-      await onCorrespondentUpdate(id, payload);
-    },
-    [onCorrespondentUpdate],
-  );
-
-  const handleCorrespondentDeleteSafe = useCallback<CorrespondentsPanelProps['onDelete']>(
-    async (id) => {
-      if (!onCorrespondentDelete) {
-        return;
-      }
-      await onCorrespondentDelete(id);
-    },
-    [onCorrespondentDelete],
-  );
 
   const correspondentsModal = useMemo(() => {
     if (activeModal !== CORRESPONDENTS_MODAL) {
@@ -204,9 +172,9 @@ export const useManagementModals = ({
           <div className="panel-modal__body">
             <CorrespondentsPanel
               correspondents={correspondents}
-              onCreate={handleCorrespondentCreateSafe}
-              onUpdate={handleCorrespondentUpdateSafe}
-              onDelete={handleCorrespondentDeleteSafe}
+              onCreate={onCorrespondentCreate as CorrespondentsPanelProps['onCreate']}
+              onUpdate={onCorrespondentUpdate as CorrespondentsPanelProps['onUpdate']}
+              onDelete={onCorrespondentDelete as CorrespondentsPanelProps['onDelete']}
               onNotify={showToast}
             />
           </div>
@@ -217,9 +185,9 @@ export const useManagementModals = ({
     activeModal,
     closeActiveModal,
     correspondents,
-    handleCorrespondentCreateSafe,
-    handleCorrespondentDeleteSafe,
-    handleCorrespondentUpdateSafe,
+    onCorrespondentCreate,
+    onCorrespondentDelete,
+    onCorrespondentUpdate,
     refreshCorrespondents,
     showToast,
   ]);

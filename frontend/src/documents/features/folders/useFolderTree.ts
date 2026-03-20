@@ -24,17 +24,13 @@ const useFolderTree = ({
   externalSetSelectedFolder,
 }: UseFolderTreeOptions) => {
   // Subscribe to manager updates
-  const managerSnapshot = useSyncExternalStore(
+  const combined = useSyncExternalStore(
     useCallback(cb => foldersManager ? foldersManager.subscribe(cb) : () => { }, [foldersManager]),
-    () => foldersManager ? foldersManager.getSnapshot() : null,
-    () => foldersManager ? foldersManager.getSnapshot() : null,
+    () => foldersManager ? foldersManager.getCombinedSnapshot() : null,
+    () => foldersManager ? foldersManager.getCombinedSnapshot() : null,
   );
-
-  const treeSnapshot = useSyncExternalStore(
-    useCallback(cb => foldersManager ? foldersManager.subscribe(cb) : () => { }, [foldersManager]),
-    () => foldersManager ? foldersManager.getTreeSnapshot() : [],
-    () => foldersManager ? foldersManager.getTreeSnapshot() : [],
-  );
+  const managerSnapshot = combined?.byId ?? null;
+  const treeSnapshot = combined?.tree ?? [];
 
   // Track expanded state locally
   const [expandedIds, setExpandedIds] = useState<Set<FolderNodeId>>(new Set(['root']));
@@ -68,8 +64,6 @@ const useFolderTree = ({
 
     // Reconstruct the nodes integrating data from byId and structure from tree
     // plus local UI state (expanded)
-    const rootChildren: FolderNodeId[] = [];
-
     flatStructure.forEach((item) => {
       const id = item.id as FolderNodeId;
       const data = dataSnapshot.get(id);
@@ -90,9 +84,7 @@ const useFolderTree = ({
         hasChildren: children.length > 0
       });
 
-      if (parentId === 'root') {
-        rootChildren.push(id);
-      }
+
     });
 
     return map;
@@ -166,32 +158,27 @@ const useFolderTree = ({
     return node?.name || DEFAULT_FOLDER_NAME;
   }, [selectedFolder, folderNodes]);
 
-  const folderOptions: FolderOption[] = useMemo(() => {
+  // Single-pass derivation of both folderOptions (sorted array) and folderLabelMap (lookup).
+  const { folderOptions, folderLabelMap } = useMemo(() => {
     const cache = new Map<FolderNodeId, string>();
     const computePath = (id: FolderNodeId | null): string => {
-      if (cache.has(id as FolderNodeId)) {
-        return cache.get(id as FolderNodeId) as string;
-      }
-      if (!id || id === 'root') {
-        cache.set('root', DEFAULT_FOLDER_NAME);
-        return DEFAULT_FOLDER_NAME;
-      }
+      if (cache.has(id as FolderNodeId)) return cache.get(id as FolderNodeId) as string;
+      if (!id || id === 'root') { cache.set('root', DEFAULT_FOLDER_NAME); return DEFAULT_FOLDER_NAME; }
       const node = folderNodes.get(id);
-      if (!node) {
-        return 'Folder';
-      }
+      if (!node) return 'Folder';
       const parentId = (node.parentId || 'root') as FolderId;
-      const parentPath = computePath(parentId);
-      const name = node.name || 'Folder';
-      const fullPath = parentId === 'root' ? name : `${parentPath}/${name}`;
+      const fullPath = parentId === 'root' ? (node.name || 'Folder') : `${computePath(parentId)}/${node.name || 'Folder'}`;
       cache.set(id, fullPath);
       return fullPath;
     };
 
     const entries: FolderOption[] = [];
+    const labelMap = new Map<FolderNodeId, string>();
     folderNodes.forEach((node, id) => {
       if (!node) return;
-      entries.push({ id, label: computePath(id) });
+      const label = computePath(id);
+      entries.push({ id, label });
+      labelMap.set(id, label);
     });
 
     entries.sort((a, b) => {
@@ -200,17 +187,8 @@ const useFolderTree = ({
       return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
     });
 
-    return entries;
+    return { folderOptions: entries, folderLabelMap: labelMap };
   }, [folderNodes]);
-
-
-  const folderLabelMap = useMemo(() => {
-    const map = new Map<FolderNodeId, string>();
-    folderOptions.forEach((option) => {
-      map.set(option.id, option.label);
-    });
-    return map;
-  }, [folderOptions]);
 
   // Exposed helper to toggle expansion (if needed by consumers who can reach here)
   const toggleFolder = useCallback((folderId: FolderNodeId) => {

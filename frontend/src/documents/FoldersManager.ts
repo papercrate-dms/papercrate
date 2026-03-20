@@ -291,6 +291,19 @@ class FoldersManager {
         return this.treeSnapshot;
     }
 
+    private combinedSnapshot: { byId: Map<FolderNodeId, Folder>; tree: FolderTreeNode[] } | null = null;
+
+    getCombinedSnapshot(): { byId: Map<FolderNodeId, Folder>; tree: FolderTreeNode[] } {
+        if (
+            this.combinedSnapshot === null ||
+            this.combinedSnapshot.byId !== this.byId ||
+            this.combinedSnapshot.tree !== this.treeSnapshot
+        ) {
+            this.combinedSnapshot = { byId: this.byId, tree: this.treeSnapshot };
+        }
+        return this.combinedSnapshot;
+    }
+
     async ensureTree(): Promise<FolderTreeNode[]> {
         if (this.treeSnapshot.length > 0) {
             return this.treeSnapshot;

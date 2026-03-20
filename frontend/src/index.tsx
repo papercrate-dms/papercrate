@@ -66,6 +66,8 @@ const UploadOverlays: React.FC = () => {
 // Nesting order: Session > Folder > Search > Tags > Correspondents > UI > FolderTree > Workspace
 // - Folder above Search so SearchProvider reads selectedFolder/visibleSubfolders from FolderContext.
 // - Search above Tags/Correspondents so they read filter state from SearchContext.
+// - Tags above UI so UIProvider calls useTags() for management modals.
+// - Correspondents is sibling of Tags (both only need SearchContext filter state).
 // - Folder above UI so UIProvider reads selectedFolder/refreshCurrentFolder from FolderContext.
 // - UI above FolderTree so FolderTreeProvider reads handleFileDrop from UIContext.
 const AppLayout: React.FC = () => {

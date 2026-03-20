@@ -89,7 +89,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
     async (doc: Document, value: string, context?: { option?: unknown }) => {
       if (!handleDocumentTagAdd) return;
       try {
-        await (handleDocumentTagAdd as (doc: Document, value: string, context?: { option?: unknown }) => Promise<void>)(doc, value, context);
+        await (handleDocumentTagAdd as unknown as (doc: Document, value: string, context?: { option?: unknown }) => Promise<void>)(doc, value, context);
         showToast('Tag assigned.', 'success');
       } catch (error) {
         notifyApiError(error, 'Failed to assign tag.');

@@ -34,8 +34,7 @@ export interface FolderTreeContextValue {
   moveDocumentsToFolder: (documentIds: unknown[], targetFolderId?: FolderNodeId | null) => Promise<void>;
   handleBreadcrumbNavigate: (crumb: { id?: Identifier | string } | null) => void;
   resolveFolderPath: (folderId?: FolderNodeId) => BreadcrumbEntry[];
-  selectFolder: (folderId: FolderNodeId, options?: { immediate?: boolean }) => void;
-  loadFolder: (folderId: FolderNodeId, options?: Record<string, unknown>) => Promise<void>;
+  selectFolder: (folderId: FolderNodeId | null) => void;
   folderClickHandlers: FolderClickHandlers;
   handleFolderRename: (folderId: FolderNodeId, name: string) => Promise<boolean> | boolean;
   handleFolderDelete: (folderId: FolderNodeId) => Promise<void> | void;
@@ -150,7 +149,6 @@ export const FolderTreeProvider: React.FC<FolderTreeProviderProps> = ({
     moveDocumentsToFolder,
     handleBreadcrumbNavigate,
     selectFolder: folderActions.selectFolder,
-    loadFolder: folderActions.loadFolder,
     folderClickHandlers: folderActions.folderClickHandlers,
     handleFolderRename: folderActions.handleFolderRename,
     handleFolderDelete: folderActions.handleFolderDelete,

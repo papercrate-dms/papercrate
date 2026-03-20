@@ -89,8 +89,6 @@ export const UIProvider: React.FC<UIProviderProps> = ({
     onTagUpdate: tagsCtx.handleTagUpdate as any,
     onTagDelete: tagsCtx.handleTagDelete as any,
     correspondents: correspondentsCtx.correspondents,
-    correspondentLookupById: correspondentsCtx.correspondentLookupById,
-    correspondentLookupByName: correspondentsCtx.correspondentLookupByName,
     refreshCorrespondents: correspondentsCtx.refreshCorrespondents,
     onCorrespondentCreate: correspondentsCtx.handleCorrespondentCreate as any,
     onCorrespondentUpdate: correspondentsCtx.handleCorrespondentUpdate as any,

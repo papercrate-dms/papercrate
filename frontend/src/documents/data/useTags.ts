@@ -1,13 +1,12 @@
-import { MutableRefObject, useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
-import type { TagId, TenantId } from '../../types/identifiers';
+import type { TagId } from '../../types/identifiers';
 import type { Tag } from '../../types/documents';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 import TagManager from '../../lib/assets/TagManager';
 
 interface UseTagsOptions {
   tagManager: TagManager;
-  tenantIdRef: MutableRefObject<TenantId | null>;
   setActiveTagFilters: (updater: (prev: Array<TagId>) => Array<TagId>) => void;
   documentsManager?: { map: (mapper: (doc: any) => any) => void };
 }
@@ -26,7 +25,7 @@ const useTags = ({
   tagManager,
   setActiveTagFilters,
   documentsManager,
-}: UseTagsOptions): UseTagsResult => {
+}: UseTagsOptions) => {
   const { showToast } = useStatusToast();
   const notifyApiError = useNotifyApiError();
 

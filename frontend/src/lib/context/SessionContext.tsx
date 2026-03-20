@@ -20,7 +20,6 @@ export interface SessionContextValue {
   handleLogout: () => void;
   tenant: TenantOption | null;
   tenants: TenantOption[];
-  tenantOptions: TenantOption[];
   handleTenantSelect: (tenant: TenantOption | null, options?: { refreshOnly?: boolean }) => void;
   passkeys: UsePasskeysResult;
 }
@@ -47,7 +46,6 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ onDocumentsVie
     handleLogout,
     tenant: tenantRecord,
     tenants: tenantOptions,
-    tenantOptions,
     handleTenantSelect,
     passkeys,
   };

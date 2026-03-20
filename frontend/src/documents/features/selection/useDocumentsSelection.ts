@@ -97,10 +97,6 @@ const useDocumentsSelection = ({
     [promoteSelectionOrderRaw, selectionAnchorRef, setFocusedDocumentId, setActiveViewerId],
   );
 
-  const clearDocumentSelection = useCallback(() => {
-    clearSelection();
-  }, [clearSelection]);
-
   const prevFocusedDocIdRef = useRef<DocumentId | null>(focusedDocumentId);
   useEffect(() => {
     const previous = prevFocusedDocIdRef.current;
@@ -148,7 +144,7 @@ const useDocumentsSelection = ({
     navigableRows,
     navigableRowKeys,
     promoteSelectionOrder,
-    clearDocumentSelection,
+    clearDocumentSelection: clearSelection,
   };
 };
 

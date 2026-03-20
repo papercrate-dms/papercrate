@@ -1,7 +1,6 @@
 import { useCallback, useRef } from 'react';
 import type {
   Dispatch,
-  MutableRefObject,
   SetStateAction,
 } from 'react';
 import type { DocumentId } from '../types/identifiers';
@@ -12,10 +11,7 @@ interface UseDocumentViewerArgs {
   selectedFolder?: FolderId | null;
   locationPathname: string;
   locationSearch: string;
-  detailPanelControlRef: MutableRefObject<{
-    open?: (args?: { documentIds?: DocumentId[] }) => void;
-    close?: () => void;
-  } | null>;
+  closeDetailPanel: () => void;
   setActiveViewerId: Dispatch<SetStateAction<DocumentId | null>>;
   setViewerDocumentId: Dispatch<SetStateAction<DocumentId | null>>;
 }
@@ -33,7 +29,7 @@ const useDocumentViewer = ({
   selectedFolder,
   locationPathname,
   locationSearch,
-  detailPanelControlRef,
+  closeDetailPanel,
   setActiveViewerId,
   setViewerDocumentId,
 }: UseDocumentViewerArgs): UseDocumentViewerResult => {
@@ -60,12 +56,12 @@ const useDocumentViewer = ({
   const openDocumentViewer = useCallback(
     (documentId: DocumentId, { replace = false }: { replace?: boolean } = {}) => {
       if (!documentId) return;
-      detailPanelControlRef.current?.close?.();
+      closeDetailPanel();
       viewerReturnPathRef.current = `${locationPathname}${locationSearch}`;
       setActiveViewerId(documentId);
       setViewerDocumentId(documentId);
     },
-    [locationPathname, locationSearch, detailPanelControlRef, setActiveViewerId, setViewerDocumentId],
+    [locationPathname, locationSearch, closeDetailPanel, setActiveViewerId, setViewerDocumentId],
   );
 
   const closeDocumentViewer = useCallback(

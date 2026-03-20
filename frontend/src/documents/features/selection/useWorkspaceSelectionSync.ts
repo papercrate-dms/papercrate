@@ -8,7 +8,7 @@ interface UseWorkspaceSelectionSyncArgs {
   setSelectedEntries: (entries: Array<string>) => void;
   setSelectionOrder: (order: Array<string>) => void;
   selectionOrderRef: MutableRefObject<Array<string>>;
-  selectionAnchorRef: MutableRefObject<Identifier | string | null>;
+  selectionAnchorRef: MutableRefObject<string | null>;
   setFocusedDocumentId: (id: Identifier | null) => void;
   selectedDocumentIds: Identifier[];
   activeViewerId: Identifier | null;
@@ -51,7 +51,6 @@ const useWorkspaceSelectionSync = ({
     setFocusedDocumentId(null);
   }, [
     showingSearchResults,
-    searchQuery,
     setSelectedEntries,
     setSelectionOrder,
     selectionOrderRef,

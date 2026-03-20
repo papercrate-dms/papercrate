@@ -50,7 +50,6 @@ export const TagsProvider: React.FC<TagsProviderProps> = ({
 
   const tagsState = useTagsHook({
     tagManager,
-    tenantIdRef: { current: null },
     setActiveTagFilters,
     documentsManager: documentsManager ?? undefined,
   });

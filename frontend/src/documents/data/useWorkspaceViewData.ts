@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { DocumentId, FolderId } from '../../types/identifiers';
+import type { DocumentId } from '../../types/identifiers';
 import type { Document } from '../../types/documents';
 import { createDocumentEntryKey, createFolderEntryKey } from '../../app/entryKey';
 
@@ -9,7 +9,6 @@ interface UseWorkspaceViewDataArgs {
     searchResultIds: DocumentId[] | null;
     showingSearchResults: boolean;
     currentSubfolders: any[];
-    selectedFolder: FolderId;
 }
 
 const useWorkspaceViewData = ({

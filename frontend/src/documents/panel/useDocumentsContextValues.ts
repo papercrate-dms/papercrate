@@ -17,7 +17,7 @@ export const useDocumentsContextValues = () => {
     const { searchLoading: isSearchLoading, searchQuery, searchResultIds, documents } = useDocumentsSearch();
     const { selectedFolder, draggedFolderId, selectFolder, handleFolderRename, handleFolderDragStart, handleFolderDragEnd, folderClickHandlers } = useFolderTree();
     const { handleDocumentDragStart, handleDocumentDragEnd, draggedDocumentIds: draggingDocumentIds, handleDocumentTagAttach, handleDocumentTagDetach, handleEntryPointerCore: onEntryPointer, handleDocumentTitleUpdate } = useDocumentsWorkspaceContext();
-    const { activeCorrespondentIds, correspondentLookupById } = useCorrespondents();
+    const { activeCorrespondentFilters, correspondentLookupById } = useCorrespondents();
     const { tagLookupById, activeTagFilters } = useTags();
 
     const {
@@ -28,8 +28,6 @@ export const useDocumentsContextValues = () => {
         toggleTag: toggleTagFilter,
         toggleCorrespondent: toggleCorrespondentFilter,
     } = useDocumentsFilter();
-
-    const activeCorrespondentFilters = useCorrespondents().activeCorrespondentFilters;
 
     const scrollRef = useRef<HTMLElement | null>(null);
     const suppressDocumentClickRef = useRef(false);
@@ -45,8 +43,8 @@ export const useDocumentsContextValues = () => {
 
     // Handlers
     const tagHandlers = useTagInteractions({
-        onAssignTagToDocument: handleDocumentTagAttach as (docId: string, tagId: string) => Promise<boolean> | void,
-        onRemoveTagFromDocument: handleDocumentTagDetach as (docId: string, tagId: string) => Promise<boolean> | void,
+        onAssignTagToDocument: handleDocumentTagAttach as unknown as (docId: string, tagId: string) => Promise<boolean> | void,
+        onRemoveTagFromDocument: handleDocumentTagDetach as unknown as (docId: string, tagId: string) => Promise<boolean> | void,
         onTagClick: toggleTagFilter,
     });
 
@@ -56,8 +54,8 @@ export const useDocumentsContextValues = () => {
         [draggingDocumentIds],
     );
     const activeCorrespondentIdSet = useMemo(
-        () => new Set(activeCorrespondentIds || []),
-        [activeCorrespondentIds],
+        () => new Set(activeCorrespondentFilters || []),
+        [activeCorrespondentFilters],
     );
     const showingSearchResults = Array.isArray(searchResultIds);
     const hasDocumentEntries = (documents || []).length > 0 || (showingSearchResults && (searchResultIds || []).length > 0);

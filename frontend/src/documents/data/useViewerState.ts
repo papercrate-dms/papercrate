@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { getAssetFromVersion } from '../../lib/assets/AssetManager';
 import { mergeAssetIntoDocument } from '../../app/workspaceUtils';
 import useDocumentViewer from '../../app/useDocumentViewer';
@@ -25,7 +25,6 @@ const useViewerState = ({
   notifyApiError,
 }: UseViewerStateOptions) => {
   // --- Detail panel ---
-  const detailPanelControlRef = useRef({ open: () => { }, close: () => { } });
   const [detailPanelDocId, setDetailPanelDocId] = useState<DocumentId | null>(null);
   const detailPanelOpen = detailPanelDocId !== null;
 
@@ -41,13 +40,6 @@ const useViewerState = ({
     setDetailPanelDocId(null);
   }, []);
 
-  useEffect(() => {
-    detailPanelControlRef.current = {
-      open: openDetailPanel,
-      close: closeDetailPanel,
-    };
-  }, [detailPanelControlRef, openDetailPanel, closeDetailPanel]);
-
   // --- Viewer state ---
   const [activeViewerId, setActiveViewerId] = useState<DocumentId | null>(routeDocumentId || null);
   const [viewerDocumentId, setViewerDocumentId] = useState<DocumentId | null>(routeDocumentId || null);
@@ -61,7 +53,7 @@ const useViewerState = ({
     selectedFolder,
     locationPathname,
     locationSearch,
-    detailPanelControlRef,
+    closeDetailPanel,
     setActiveViewerId,
     setViewerDocumentId,
   });
@@ -125,7 +117,6 @@ const useViewerState = ({
     detailPanelOpen,
     openDetailPanel,
     closeDetailPanel,
-    detailPanelControlRef,
     // Viewer
     activeViewerId,
     setActiveViewerId,

@@ -19,14 +19,14 @@ import SearchField from './components/SearchField';
 const Sidebar: React.FC = () => {
   const { tags, handleTagCreate } = useTags();
   const { correspondents, handleCorrespondentCreate } = useCorrespondents();
-  const { handleLogout, tenant, tenants, tenantOptions, handleTenantSelect } = useSession();
+  const { handleLogout, tenant, tenants, handleTenantSelect } = useSession();
   const { openSettings, handleFileSelection, openTagsModal, openCorrespondentsModal } = useUI();
   const { selectedFolder } = useFolderTree();
   const { isActive: hasActiveFilters } = useDocumentsFilter();
   const { isOpen: searchOpen } = useSearchPanel();
 
   const tenantName = (tenant as TenantOption)?.name;
-  const effectiveTenants = (tenants || tenantOptions || []);
+  const effectiveTenants = tenants || [];
   const activeTenantId = (tenant as TenantOption)?.id;
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);

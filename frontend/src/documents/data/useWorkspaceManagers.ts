@@ -6,7 +6,13 @@ import FoldersManager from '../FoldersManager';
 import { fetchAsset, fetchDocument } from '../../lib/api/apiClient';
 import useDocuments from './useDocuments';
 import type { DocumentId, Identifier } from '../../types/identifiers';
-import type { Tag, Correspondent } from '../../types/documents';
+
+
+/** Extract a document from an API response payload. Pure utility — no hook needed. */
+export const extractDocumentFromResponse = (payload: unknown): unknown => {
+  if (!payload) return null;
+  return (payload as any).document || payload;
+};
 
 const useWorkspaceManagers = () => {
   // --- AssetManager ---
@@ -42,14 +48,6 @@ const useWorkspaceManagers = () => {
   const foldersManager = foldersManagerRef.current;
 
   // --- Documents ---
-  const extractDocumentFromResponse = useCallback(
-    (payload) => {
-      if (!payload) return null;
-      return payload.document || payload;
-    },
-    [],
-  );
-
   const fetchDocumentById = useCallback(
     async (documentId: DocumentId) => {
       if (!documentId) return null;
@@ -92,8 +90,7 @@ const useWorkspaceManagers = () => {
     () => correspondentManager.getSnapshot(),
     () => correspondentManager.getSnapshot(),
   );
-  const tagsForMutations = Array.from(tagSnapshot.values()) as Tag[];
-  const correspondentsForMutations = Array.from(correspondentSnapshot.values()) as Correspondent[];
+
 
   const foldersSnapshot = useSyncExternalStore(
     useCallback((cb) => foldersManager.subscribe(cb), [foldersManager]),
@@ -112,12 +109,8 @@ const useWorkspaceManagers = () => {
     documents,
     setDocuments,
     documentLookup,
-    extractDocumentFromResponse,
-    // Snapshots for mutations
     tagSnapshot,
     correspondentSnapshot,
-    tagsForMutations,
-    correspondentsForMutations,
     foldersSnapshot,
   };
 };

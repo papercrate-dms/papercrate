@@ -41,7 +41,7 @@ const [FolderCtx, useFolder] = createSafeContext<FolderContextValue>('Folder');
 interface FolderProviderProps {
   foldersManager: FoldersManager;
   foldersSnapshot: Map<string, Folder>;
-  /** External selectedFolder state (owned by useDocumentsWorkspace, needed above provider stack) */
+  /** External selectedFolder state (owned by useDocumentsWorkspace) */
   selectedFolder: FolderNodeId;
   setSelectedFolder: Dispatch<SetStateAction<FolderNodeId>>;
   documentsSortField: string;
@@ -74,6 +74,7 @@ export const FolderProvider: React.FC<FolderProviderProps> = ({
   const {
     folderNodes,
     selectedFolder,
+    setSelectedFolder,
     isInvalidFolderDrop,
     currentFolderName,
     folderOptions,
@@ -190,10 +191,9 @@ export const FolderProvider: React.FC<FolderProviderProps> = ({
       updateViewState(selectedFolder, data, includeDocuments);
       showToast('Folder refreshed successfully', 'success');
     } catch (error) {
-      showToast('Failed to refresh folder', 'error');
-      console.error('Failed to refresh folder:', error);
+      notifyApiError(error, 'Failed to refresh folder');
     }
-  }, [selectedFolder, fetchFolderData, updateViewState, showToast]);
+  }, [selectedFolder, fetchFolderData, updateViewState, showToast, notifyApiError]);
 
   const value: FolderContextValue = {
     foldersManager,

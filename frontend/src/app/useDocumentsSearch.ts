@@ -7,17 +7,10 @@ import type { Identifier } from '../types/identifiers';
 
 import type { Document } from '../types/documents';
 
-type ApiClient = {
-  get: <T = unknown>(url: string, config?: { params?: Record<string, unknown> }) => Promise<{ data: T }>;
-};
-
 import useNotifyApiError from '../hooks/useNotifyApiError';
 
 interface UseDocumentsSearchArgs {
-  api: ApiClient;
   selectedFolder?: Identifier | 'root' | null;
-  locationPathname?: string;
-  isWorkspaceRoute?: boolean;
   searchIncludeDescendants?: boolean;
   documentsSortField?: string;
   documentsSortDirection?: string;
@@ -42,7 +35,7 @@ interface UseDocumentsSearchResult {
   toggleCorrespondentFilter: (correspondentId?: Identifier | null) => void;
   isFilterActive: boolean;
   clearFilters: () => void;
-  handleSearchChange: (value: string) => void;
+
   handleSearchSubmit: () => void;
   refetchSearchResults: () => void;
   documentsFilterValue: {
@@ -63,10 +56,7 @@ interface UseDocumentsSearchResult {
 }
 
 const useDocumentsSearch = ({
-  api,
   selectedFolder,
-  locationPathname,
-  isWorkspaceRoute,
   searchIncludeDescendants,
   documentsSortField,
   documentsSortDirection,
@@ -124,14 +114,11 @@ const useDocumentsSearch = ({
     setSearchIncludeDescendants,
   ]);
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-  }, []);
 
-  const handleSearchSubmit = useCallback(() => {
-    // Search is triggered by state change (searchQuery, selectedFolder).
-    // No navigation needed — selectedFolder is already set via state.
-  }, []);
+
+  // Search is fully reactive — results update as the query state changes.
+  // No explicit submit action is needed; this is a no-op kept for API compatibility.
+  const handleSearchSubmit = useCallback(() => {}, []);
 
   const documentsFilterValue = useMemo(
     () => ({
@@ -142,7 +129,7 @@ const useDocumentsSearch = ({
       activeTagIds: activeTagFilters,
       activeCorrespondentIds: activeCorrespondentFilters,
       isActive: isFilterActive,
-      setQuery: handleSearchChange,
+      setQuery: setSearchQuery,
       submit: handleSearchSubmit,
       clear: clearFilters,
       toggleTag: toggleTagFilter,
@@ -157,8 +144,8 @@ const useDocumentsSearch = ({
       activeTagFilters,
       activeCorrespondentFilters,
       isFilterActive,
-      handleSearchChange,
       handleSearchSubmit,
+      setSearchQuery,
       clearFilters,
       toggleTagFilter,
       toggleCorrespondentFilter,
@@ -252,7 +239,6 @@ const useDocumentsSearch = ({
       }
     };
   }, [
-    api,
     token,
     isFilterActive,
     searchQuery,
@@ -282,7 +268,6 @@ const useDocumentsSearch = ({
     toggleCorrespondentFilter,
     isFilterActive,
     clearFilters,
-    handleSearchChange,
     handleSearchSubmit,
     refetchSearchResults,
     documentsFilterValue,

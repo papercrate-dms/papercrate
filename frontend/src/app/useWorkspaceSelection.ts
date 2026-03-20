@@ -76,22 +76,6 @@ export const useWorkspaceSelection = ({
     [handleEntrySelection],
   );
 
-  const inspectDocument = useCallback(
-    (documentId?: string) => {
-      if (!documentId) return;
-      onDocumentActivate(documentId);
-    },
-    [onDocumentActivate],
-  );
-
-  const inspectFolder = useCallback(
-    (folderId?: string) => {
-      if (!folderId) return;
-      onInspectFolder(folderId);
-    },
-    [onInspectFolder],
-  );
-
   return {
     selectedEntries,
     selectedDocumentIds,
@@ -111,7 +95,5 @@ export const useWorkspaceSelection = ({
     configureSelectionEnvironment,
     setSelectedEntries,
     setSelectionOrder,
-    inspectDocument,
-    inspectFolder,
   };
 };

@@ -11,7 +11,6 @@ export interface CorrespondentsContextValue {
   correspondentLookupById: Map<Identifier, Correspondent>;
   correspondentLookupByName: Map<string, Correspondent>;
   activeCorrespondentFilters: Identifier[];
-  activeCorrespondentIds?: Identifier[];
   refreshCorrespondents: () => Promise<void>;
   handleCorrespondentCreate: (payload: { name?: string }) => Promise<unknown>;
   handleCorrespondentUpdate: (id: Identifier, changes: { name?: string }) => Promise<boolean>;

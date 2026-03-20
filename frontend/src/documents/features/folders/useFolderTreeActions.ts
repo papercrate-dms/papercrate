@@ -7,17 +7,10 @@ import type { MessageOptions } from '../../../types/documents';
 
 type FolderKey = FolderId | 'root';
 
-interface LoadFolderOptions {
-  preserveSearch?: boolean;
-}
 
-interface SelectFolderOptions {
-  replace?: boolean;
-  immediate?: boolean;
-}
 
 interface FolderClickHandlers {
-  onSelect: (folderId: FolderKey, options?: SelectFolderOptions) => Promise<void>;
+  onSelect: (folderId: FolderKey) => Promise<void>;
   onDrop: (event: DragEvent<HTMLElement>, folderId: FolderKey) => Promise<void>;
   onDragOver: (event: DragEvent<HTMLElement>, folderId: FolderKey) => void;
   onDragLeave: (event: DragEvent<HTMLElement>) => void;
@@ -101,6 +94,7 @@ const useFolderTreeActions = ({
       try {
         await foldersManager.move(folderId, targetKey);
 
+        // Re-set to same id to trigger a re-fetch after the folder has moved to a new parent.
         if (selectedFolder === folderId) {
           setSelectedFolder(folderId);
         }
@@ -121,22 +115,11 @@ const useFolderTreeActions = ({
     ],
   );
 
-  const loadFolder = useCallback(
-    async (folderId: FolderKey | null, { preserveSearch: _preserveSearch = false }: LoadFolderOptions = {}) => {
-      const targetId = folderId || 'root';
-      setSelectedFolder(targetId);
+  const selectFolder = useCallback(
+    (folderId: FolderKey | null) => {
+      setSelectedFolder(folderId || 'root');
     },
     [setSelectedFolder],
-  );
-
-  const selectFolder = useCallback(
-    async (folderId: FolderKey | null, { replace = false, immediate = false }: SelectFolderOptions = {}) => {
-      const targetId = folderId && folderId !== 'root' ? folderId : 'root';
-      await loadFolder(targetId);
-    },
-    [
-      loadFolder,
-    ],
   );
 
   const handleFolderRename = useCallback(
@@ -176,13 +159,9 @@ const useFolderTreeActions = ({
         : (selectedFolder === 'root' ? null : selectedFolder);
 
       setCreatingFolder(true);
-      let succeeded = false;
       try {
         await foldersManager.create(name.trim(), targetParentId);
-
         showToast('Folder created.', 'success');
-
-        succeeded = true;
         return true;
       } catch (error) {
         const message = error.response?.data?.error || 'Failed to create folder.';
@@ -190,9 +169,6 @@ const useFolderTreeActions = ({
         return false;
       } finally {
         setCreatingFolder(false);
-        if (!succeeded) {
-          showToast('Folder creation failed.', 'error');
-        }
       }
     },
     [
@@ -383,7 +359,6 @@ const useFolderTreeActions = ({
   );
 
   return {
-    loadFolder,
     selectFolder,
     handleFolderRename,
     handleFolderCreate,

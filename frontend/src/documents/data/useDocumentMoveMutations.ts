@@ -1,4 +1,11 @@
 import { useCallback } from 'react';
+const normalizeDocumentId = (value: unknown): DocumentId | null => {
+    if (!value) return null;
+    if (typeof value === 'object' && 'id' in value && (value as any).id != null) {
+        return (value as Document).id as DocumentId;
+    }
+    return value as DocumentId;
+};
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
 import { DEFAULT_FOLDER_NAME } from '../../app/workspaceUtils';
@@ -32,14 +39,6 @@ export const useDocumentMoveMutations = ({
 }: UseDocumentMoveMutationsArgs) => {
     const { showToast } = useStatusToast();
     const notifyApiError = useNotifyApiError();
-
-    const normalizeDocumentId = (value: unknown): DocumentId | null => {
-        if (!value) return null;
-        if (value && typeof value === 'object' && 'id' in value && value.id != null) {
-            return value.id as DocumentId;
-        }
-        return value as DocumentId;
-    };
 
     const moveDocumentsToFolder = useCallback(
         async (documentIds: Array<DocumentId | Document>, targetFolderId?: NullableFolderId) => {

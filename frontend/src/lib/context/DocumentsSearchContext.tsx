@@ -34,15 +34,7 @@ export interface DocumentsSearchContextValue {
 
 const [DocumentsSearchCtx, useDocumentsSearch] = createSafeContext<DocumentsSearchContextValue>('DocumentsSearch');
 
-type ApiClient = {
-  get: <T = unknown>(url: string, config?: { params?: Record<string, unknown> }) => Promise<{ data: T }>;
-};
-
 export interface DocumentsSearchProviderProps {
-  // Inputs for useDocumentsSearch hook
-  api: ApiClient;
-  locationPathname: string;
-  isWorkspaceRoute: boolean;
   searchIncludeDescendants: boolean;
   documentsSortField: string;
   documentsSortDirection: string;
@@ -60,9 +52,6 @@ export interface DocumentsSearchProviderProps {
 }
 
 export const DocumentsSearchProvider: React.FC<DocumentsSearchProviderProps> = ({
-  api,
-  locationPathname,
-  isWorkspaceRoute,
   searchIncludeDescendants,
   documentsSortField,
   documentsSortDirection,
@@ -80,10 +69,7 @@ export const DocumentsSearchProvider: React.FC<DocumentsSearchProviderProps> = (
   const { selectedFolder, visibleSubfolders } = useFolder();
 
   const search = useDocumentsSearchHook({
-    api,
     selectedFolder,
-    locationPathname,
-    isWorkspaceRoute,
     searchIncludeDescendants,
     documentsSortField,
     documentsSortDirection,
@@ -101,7 +87,6 @@ export const DocumentsSearchProvider: React.FC<DocumentsSearchProviderProps> = (
     searchResultIds,
     showingSearchResults,
     currentSubfolders: visibleSubfolders,
-    selectedFolder,
   });
 
   const value: DocumentsSearchContextValue = {

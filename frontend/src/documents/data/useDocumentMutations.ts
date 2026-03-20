@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useStatusToast } from '../../lib/context/StatusToastContext';
 import useNotifyApiError from '../../hooks/useNotifyApiError';
+import { extractDocumentFromResponse } from './useWorkspaceManagers';
 
 import {
   queueDocumentReanalysis,
@@ -188,10 +189,10 @@ const useDocumentMutations = ({
       }
       try {
         const data = await updateDocument(documentId, { title: trimmed });
-        const updatedDocument = documentsState.extractDocumentFromResponse?.(data);
+        const updatedDocument = extractDocumentFromResponse(data) as any;
 
-        if (updatedDocument && documentsState.ingestDocuments) {
-          documentsState.ingestDocuments([updatedDocument]);
+        if (updatedDocument) {
+          documentsState.documentsManager.ingest([updatedDocument]);
         } else {
           documentsState.documentsManager.update(documentId, (doc) => {
             if (updatedDocument) {
@@ -221,15 +222,12 @@ const useDocumentMutations = ({
       const payload = { issued_at: nextIssuedDate || null };
       try {
         const data = await updateDocument(documentId, payload);
-        const updatedDocument = documentsState.extractDocumentFromResponse?.(data);
+        const updatedDocument = extractDocumentFromResponse(data) as any;
 
-        if (updatedDocument && documentsState.ingestDocuments) {
-          documentsState.ingestDocuments([updatedDocument]);
+        if (updatedDocument) {
+          documentsState.documentsManager.ingest([updatedDocument]);
         } else {
           documentsState.documentsManager.update(documentId, (doc) => {
-            if (updatedDocument) {
-              return { ...doc, ...updatedDocument };
-            }
             return { ...doc, issued_at: payload.issued_at };
           });
         }

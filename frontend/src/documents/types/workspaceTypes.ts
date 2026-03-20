@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { DocumentId, FolderId, Identifier } from '../../types/identifiers';
+import type { DocumentId, FolderId, Identifier, TagId } from '../../types/identifiers';
 import type { Document, Tag, Correspondent } from '../../types/documents';
 
 import type TagManager from '../../lib/assets/TagManager';
@@ -8,7 +8,7 @@ import type CorrespondentManager from '../../lib/assets/CorrespondentManager';
 interface DocumentsManagerInterface {
     map(mapper: (doc: Document) => Document | undefined): boolean;
     update(id: DocumentId, updater: (doc: Document) => Partial<Document> | Document | undefined): boolean;
-    ingest(rawDocs: unknown[]): { canonical: Document[]; changed: boolean };
+    ingest(rawDocs: Document[]): { canonical: Document[]; changed: boolean };
     remove(ids: Array<DocumentId>): boolean;
 }
 
@@ -16,8 +16,6 @@ export interface DocumentsState {
     documentLookup: Map<DocumentId, Document>;
     setDocuments: Dispatch<SetStateAction<Document[]>>;
     documentsManager: DocumentsManagerInterface;
-    extractDocumentFromResponse?: (payload: unknown) => Document | null;
-    ingestDocuments?: (docs: unknown[]) => { canonical: Document[]; changed: boolean };
 }
 
 export interface FolderState {
@@ -38,7 +36,7 @@ export interface SelectionState {
 
 export interface TagsState {
     tags: Tag[];
-    tagLookupById: Map<DocumentId, Tag>;
+    tagLookupById: Map<TagId, Tag>;
     refreshTags: () => Promise<void>;
     tagManager: TagManager;
 }
