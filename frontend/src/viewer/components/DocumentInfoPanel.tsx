@@ -5,6 +5,7 @@ import { describeDocumentSummary, extractDocumentMetadataPayload, type DocumentS
 import { useTags } from '../../lib/context/TagsContext';
 import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
 import { EyeIcon, InfoIcon, FileTextIcon, CodeIcon } from '../../components/icons';
+import VirtualizedTextViewer from './VirtualizedTextViewer';
 
 type PanelTab = { id: string; label: string; icon?: ReactNode; render: (context?: Record<string, unknown>) => ReactNode };
 
@@ -244,7 +245,10 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
               );
             case 'loaded':
               return (
-                <pre className={objectClass}>{contentState.data}</pre>
+                <VirtualizedTextViewer
+                  text={contentState.data}
+                  className={objectClass}
+                />
               );
             case 'unavailable':
               return (

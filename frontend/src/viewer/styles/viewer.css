@@ -363,6 +363,21 @@
   font-family: inherit;
 }
 
+.document-viewer__object--text-content--virtualized {
+  overflow: auto;
+  white-space: pre;
+}
+
+.document-viewer__object--text-content--virtualized__sentinel {
+  position: relative;
+}
+
+.document-viewer__object--text-content--virtualized__window {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
 .document-viewer__message--error {
   color: var(--danger);
 }
