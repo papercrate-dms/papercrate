@@ -43,6 +43,15 @@ const SearchField: React.FC = () => {
 
   return (
     <div className="search-field">
+      <button
+        type="button"
+        className="search-field__clear"
+        onClick={handleClear}
+        aria-label="Clear all filters"
+        title="Clear all filters"
+      >
+        &times;
+      </button>
       <input
         ref={inputRef}
         type="search"
@@ -53,15 +62,6 @@ const SearchField: React.FC = () => {
         placeholder="Search documents..."
         aria-label="Search documents"
       />
-      <button
-        type="button"
-        className="search-field__clear"
-        onClick={handleClear}
-        aria-label="Clear all filters"
-        title="Clear all filters"
-      >
-        &times;
-      </button>
     </div>
   );
 };

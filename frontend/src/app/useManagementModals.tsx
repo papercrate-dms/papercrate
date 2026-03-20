@@ -94,18 +94,16 @@ export const useManagementModals = ({
             title="Manage Tags"
             titleTag="h3"
             titleProps={{ id: 'tags-modal-title' }}
-            actions={(
-              <>
-                {refreshTags ? (
-                  <button type="button" className="icon-button" onClick={refreshTags} aria-label="Refresh">
-                    <RefreshIcon size={16} />
-                  </button>
-                ) : null}
-                <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
-                  <CloseIcon size={16} />
-                </button>
-              </>
+            leading={(
+              <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
+                <CloseIcon size={16} />
+              </button>
             )}
+            actions={refreshTags ? (
+              <button type="button" className="icon-button" onClick={refreshTags} aria-label="Refresh">
+                <RefreshIcon size={16} />
+              </button>
+            ) : null}
           />
           <div className="panel-modal__body">
             <TagsPanel
@@ -156,18 +154,16 @@ export const useManagementModals = ({
             title="Manage Correspondents"
             titleTag="h3"
             titleProps={{ id: 'correspondents-modal-title' }}
-            actions={(
-              <>
-                {refreshCorrespondents ? (
-                  <button type="button" className="icon-button" onClick={refreshCorrespondents} aria-label="Refresh">
-                    <RefreshIcon size={16} />
-                  </button>
-                ) : null}
-                <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
-                  <CloseIcon size={16} />
-                </button>
-              </>
+            leading={(
+              <button type="button" className="icon-button" onClick={closeActiveModal} aria-label="Close">
+                <CloseIcon size={16} />
+              </button>
             )}
+            actions={refreshCorrespondents ? (
+              <button type="button" className="icon-button" onClick={refreshCorrespondents} aria-label="Refresh">
+                <RefreshIcon size={16} />
+              </button>
+            ) : null}
           />
           <div className="panel-modal__body">
             <CorrespondentsPanel

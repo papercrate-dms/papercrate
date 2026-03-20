@@ -49,7 +49,7 @@ const SelectionSummary: React.FC<SelectionSummaryProps> = ({ documentCount = 0, 
       {tokens.map((token) => (
         <span key={token.key} className="selection-summary__token">
           {token.icon}
-          <span>{token.count}</span>
+          <span className="selection-summary__count">{token.count}</span>
         </span>
       ))}
     </span>

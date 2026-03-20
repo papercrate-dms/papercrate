@@ -114,25 +114,25 @@ const UploadQueueOverlay = ({ queue = [], onClearQueue, onDocumentClick }: Uploa
             <span className="panel-header__subtitle">{summary}</span>
           </span>
         )}
+        leading={(
+          <button
+            type="button"
+            className="icon-button"
+            onClick={handleDismissOverlay}
+            aria-label="Clear uploads and hide overlay"
+          >
+            <CloseIcon size={16} />
+          </button>
+        )}
         actions={(
-          <div className="upload-queue-overlay__controls">
-            <button
-              type="button"
-              className="icon-button ghost"
-              onClick={() => setCollapsed(!collapsed)}
-              aria-label={collapsed ? 'Expand upload queue' : 'Collapse upload queue'}
-            >
-              {collapsed ? <BottombarExpandIcon size={16} /> : <BottombarCollapseIcon size={16} />}
-            </button>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={handleDismissOverlay}
-              aria-label="Clear uploads and hide overlay"
-            >
-              <CloseIcon size={16} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="icon-button ghost"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? 'Expand upload queue' : 'Collapse upload queue'}
+          >
+            {collapsed ? <BottombarExpandIcon size={16} /> : <BottombarCollapseIcon size={16} />}
+          </button>
         )}
       />
       {!collapsed ? (

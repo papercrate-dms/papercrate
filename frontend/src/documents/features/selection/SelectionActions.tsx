@@ -396,8 +396,21 @@ const SelectionActions: React.FC<SelectionActionsProps> = ({
 
   return (
     <>
+      {onClearSelection ? (
+        <>
+          <button
+            type="button"
+            className="icon-button selection-action"
+            onClick={onClearSelection}
+            aria-label="Clear selection"
+            title="Clear selection"
+            disabled={totalCount === 0}
+          >
+            <IconX className="icon-inline" />
+          </button>
+        </>
+      ) : null}
       {summaryNode}
-      <span className="actions-divider" aria-hidden="true" />
       <span className="selection-assignments">
         {moveMenu}
         <SelectionAssignmentMenu
@@ -433,7 +446,6 @@ const SelectionActions: React.FC<SelectionActionsProps> = ({
           disabled={!documentCount}
         />
       </span>
-      <span className="actions-divider" aria-hidden="true" />
       <span className="selection-actions-right">
         {onBulkReanalyze ? (
           <button
@@ -457,21 +469,6 @@ const SelectionActions: React.FC<SelectionActionsProps> = ({
           >
             <TrashIcon className="icon-inline" />
           </button>
-        ) : null}
-        {onClearSelection ? (
-          <>
-            <span className="actions-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className="icon-button selection-action"
-              onClick={onClearSelection}
-              aria-label="Clear selection"
-              title="Clear selection"
-              disabled={totalCount === 0}
-            >
-              <IconX className="icon-inline" />
-            </button>
-          </>
         ) : null}
       </span>
     </>

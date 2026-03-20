@@ -93,18 +93,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           title="Settings"
           titleTag="h3"
           titleProps={{ id: 'settings-modal-title' }}
-          actions={(
-            <>
-              {onRefresh ? (
-                <button type="button" className="icon-button" onClick={onRefresh} aria-label="Refresh">
-                  <RefreshIcon size={16} />
-                </button>
-              ) : null}
-              <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
-                <CloseIcon size={16} />
-              </button>
-            </>
+          leading={(
+            <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
+              <CloseIcon size={16} />
+            </button>
           )}
+          actions={onRefresh ? (
+            <button type="button" className="icon-button" onClick={onRefresh} aria-label="Refresh">
+              <RefreshIcon size={16} />
+            </button>
+          ) : null}
         />
         <div className="settings-modal__body">
           <nav className="settings-modal__sidebar" aria-label="Settings sections">

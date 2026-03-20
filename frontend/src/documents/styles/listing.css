@@ -83,7 +83,7 @@
   gap: 0.25rem;
   border: 1px solid var(--border);
   border-radius: 1rem;
-  padding: 0.15rem 0.15rem 0.15rem 0.5rem;
+  padding: 0.15rem;
   margin: -0.35rem 0;
   font-size: 0.8rem;
   font-weight: 400;
@@ -131,6 +131,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  margin-right: 0.35rem;
 }
 
 .selection-summary__token {

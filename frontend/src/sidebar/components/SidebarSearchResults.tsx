@@ -287,6 +287,15 @@ const SidebarSearchResults: React.FC<SidebarSearchResultsProps> = ({ children })
   return (
     <>
       <div className="search-field">
+        <button
+          type="button"
+          className="search-field__clear"
+          onClick={closeSearchPanel}
+          aria-label="Close search"
+          title="Close search"
+        >
+          &times;
+        </button>
         <input
           ref={inputRef}
           type="text"
@@ -298,15 +307,6 @@ const SidebarSearchResults: React.FC<SidebarSearchResultsProps> = ({ children })
           placeholder="Search..."
           autoComplete="off"
         />
-        <button
-          type="button"
-          className="search-field__clear"
-          onClick={closeSearchPanel}
-          aria-label="Close search"
-          title="Close search"
-        >
-          &times;
-        </button>
       </div>
 
       {hasQuery ? (

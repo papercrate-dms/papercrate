@@ -40,12 +40,24 @@ const SelectionActionsTrash: React.FC<SelectionActionsTrashProps> = ({
 
   return (
     <>
+      {handleClear ? (
+        <>
+          <button
+            type="button"
+            className="icon-button selection-action"
+            onClick={handleClear}
+            aria-label="Clear selection"
+            title="Clear selection"
+          >
+            <IconX className="icon-inline" />
+          </button>
+        </>
+      ) : null}
       <SelectionSummary
         documentCount={selectionCount}
         folderCount={0}
         totalCount={selectionCount}
       />
-      <span className="actions-divider" aria-hidden="true" />
       <span className="selection-actions-right">
         <button
           type="button"
@@ -65,20 +77,6 @@ const SelectionActionsTrash: React.FC<SelectionActionsTrashProps> = ({
         >
           <TrashIcon className="icon-inline" />
         </button>
-        {handleClear ? (
-          <>
-            <span className="actions-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className="icon-button selection-action"
-              onClick={handleClear}
-              aria-label="Clear selection"
-              title="Clear selection"
-            >
-              <IconX className="icon-inline" />
-            </button>
-          </>
-        ) : null}
       </span>
     </>
   );

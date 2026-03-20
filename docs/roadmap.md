@@ -10,6 +10,7 @@ Items required for the beta release.
 - [ ] **Launch**: Add `CONTRIBUTING.md` with development setup, code style, and PR guidelines
 - [ ] **Launch**: Add `SECURITY.md` with vulnerability reporting policy
 - [ ] **Launch**: Add GitHub issue templates (bug report, feature request)
+- [ ] **Website**: Deployment section — explain that Papercrate runs on Raspberry Pi, any Linux server, Docker Compose, Kubernetes, or standalone binaries
 
 ## CI
 
@@ -41,7 +42,8 @@ Items required for the beta release.
 - [ ] **Critical**: Fix `CardPhysics` race condition (`requestAnimationFrame`).
 
 ### Stability
-- [ ] **Critical**: Add top-level React Error Boundary with fallback UI (rendering errors currently white-screen the app)
+- [x] **Critical**: Add top-level React Error Boundary with fallback UI (rendering errors currently white-screen the app)
+- [ ] Install `@types/react` + `@types/react-dom` and fix ~381 type errors (React 19 ships no types; project currently compiles untyped)
 - [ ] Remove dead dependencies (`react-redux`, `prop-types`)
 - [ ] Fix broken `test:engine` script in package.json
 
@@ -68,6 +70,7 @@ Items required for the beta release.
 - [ ] regression: Check download link expiration on `previewzoomoverlay` and `documentviewer`
 
 ### Features
+- [x] polish: Move all × close buttons to the left in all panels (selection pill, search panel, modals)
 - [x] feat: Trash view and restore
 - [ ] arch: **Routing**: "URL as Single Source of Truth" (Fixes refresh/sync regressions).
 - [x] feat: Login via Magic Token (UI Support)
@@ -99,11 +102,13 @@ Items required for the beta release.
 - [ ] refactor: Unify `BulkCorrespondentsRequest` assignments vs `BulkTagRequest` tag_ids
 - [ ] refactor: Centralize `AssetType`/`JobType` strings
 - [ ] refactor: Optimize `body_to_vec`
+- [ ] perf: **Streaming uploads** — stream multipart uploads directly to S3 instead of buffering entire file in memory (current approach spikes RAM with concurrent large uploads)
 
 ### Frontend
-- [ ] clean: Refactor `useDocumentsWorkspace`
+- [x] clean: Refactor `useDocumentsWorkspace` (moved to v0.1 Frontend — decomposition in progress)
 - [ ] polish: Desktop workspace thumbnail/sizing
 - [ ] polish: Mobile layout (body scroll with sidebar)
+- [ ] polish: **Responsive list view** — columns auto-collapse into two-row layout (title + meta on second row) when horizontal space is constrained
 - [ ] polish: Keyboard control hints (spacebar, etc.)
 - [x] refactor: Split `AppShellContext` ("God Context" issue)
 - [ ] refactor: Create `BaseManager<T>` to reduce duplication
