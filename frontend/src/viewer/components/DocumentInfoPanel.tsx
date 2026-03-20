@@ -7,7 +7,8 @@ import { useCorrespondents } from '../../lib/context/CorrespondentsContext';
 import { EyeIcon, InfoIcon, FileTextIcon, CodeIcon } from '../../components/icons';
 import VirtualizedTextViewer from './VirtualizedTextViewer';
 
-type PanelTab = { id: string; label: string; icon?: ReactNode; render: (context?: Record<string, unknown>) => ReactNode };
+type TabDescriptor = { id: string; label: string; icon?: ReactNode };
+type PanelTab = TabDescriptor & { render: (context?: Record<string, unknown>) => ReactNode };
 
 type ContentState =
   | { status: 'idle'; data: null; error: null }
@@ -52,9 +53,12 @@ export interface DocumentInfoPanelProps {
   summaryLayout?: 'default' | 'compact';
 }
 
+const EMPTY_TABS: PanelTab[] = [];
+const EMPTY_SUMMARY_PROPS: Omit<DocumentSummarySectionProps, 'document' | 'layout'> = {};
+
 const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   document,
-  summaryProps = {},
+  summaryProps = EMPTY_SUMMARY_PROPS,
   metadataItems: metadataItemsProp,
   metadataPayload: metadataPayloadProp,
   metadataTabLabel = 'Metadata',
@@ -69,8 +73,8 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   summaryPlacement = 'inline',
   summaryTabLabel = 'Summary',
   summaryTabId = 'summary',
-  leadingTabs = [],
-  trailingTabs = [],
+  leadingTabs = EMPTY_TABS,
+  trailingTabs = EMPTY_TABS,
   tabsPlacement = 'top',
   summaryLayout = 'default',
   onTabNavChange,
@@ -109,7 +113,9 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     return { status: 'idle', data: null, error: null };
   });
 
-
+  // ------------------------------------------------------------------
+  //  Render functions (called lazily when a tab is active)
+  // ------------------------------------------------------------------
 
   const renderSummarySection = useCallback(() => (
     <DocumentSummarySection
@@ -138,22 +144,6 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
 
   const summaryInline = summaryPlacement !== 'tabs';
 
-  const summaryTab = useMemo(() => {
-    if (summaryPlacement !== 'tabs') {
-      return null;
-    }
-    return {
-      id: summaryTabId,
-      label: summaryTabLabel,
-      icon: <InfoIcon />,
-      render: () => (
-        <div className={`${base}__summary-tab-content`}>
-          {renderSummarySection()}
-        </div>
-      ),
-    };
-  }, [summaryPlacement, summaryTabId, summaryTabLabel, base, renderSummarySection]);
-
   const normalizedLeadingTabs = useMemo(
     () => (Array.isArray(leadingTabs)
       ? leadingTabs.filter((tab): tab is PanelTab => Boolean(tab && tab.id && tab.label))
@@ -177,151 +167,189 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     )
     : null;
 
-  const visibleTabs = useMemo(() => {
-    const tabsList: PanelTab[] = [];
+  // ------------------------------------------------------------------
+  //  Tab structure (stable) — only ids, labels, icons
+  //  Used for the tab bar and for determining which tabs exist.
+  //  Does NOT depend on contentConfig, contentState, metadataPayload,
+  //  or any other value that changes frequently.
+  // ------------------------------------------------------------------
+
+  const contentTabId = contentConfig?.id || 'content';
+  const contentTabLabel = contentConfig?.label || 'Content';
+  const hasMetadata = Boolean(metadataPayload);
+
+  const tabDescriptors: TabDescriptor[] = useMemo(() => {
+    const tabs: TabDescriptor[] = [];
 
     if (normalizedLeadingTabs.length) {
-      tabsList.push(...normalizedLeadingTabs);
+      tabs.push(...normalizedLeadingTabs.map(({ id, label, icon }) => ({ id, label, icon })));
     }
 
-    if (summaryTab) {
-      tabsList.push(summaryTab);
+    if (summaryPlacement === 'tabs') {
+      tabs.push({ id: summaryTabId, label: summaryTabLabel, icon: <InfoIcon /> });
+    } else {
+      tabs.push({ id: 'details', label: detailsTabLabel, icon: <InfoIcon /> });
     }
 
-    if (summaryPlacement !== 'tabs') {
-      tabsList.push({
-        id: 'details',
-        label: detailsTabLabel,
-      icon: <InfoIcon />,
-        render: () => renderDetailsSection(),
-      });
+    if (showContentTab) {
+      tabs.push({ id: contentTabId, label: contentTabLabel, icon: <FileTextIcon /> });
     }
 
-    if (showContentTab && contentConfig) {
-      tabsList.push({
-        id: contentConfig.id || 'content',
-        label: contentConfig.label || 'Content',
-        icon: <FileTextIcon />,
-        render: () => {
-          const messageClass = `${base}__message`;
-          const errorClass = `${base}__message ${base}__message--error`;
-          const objectClass = `${base}__object ${base}__object--text-content`;
-
-          if (!contentEnabled || !contentConfig.loadContent) {
-            return (
-              <div className={messageClass}>
-                {contentConfig.unavailableMessage || 'Content not available.'}
-              </div>
-            );
-          }
-
-          if (!contentState) {
-            return (
-              <div className={messageClass}>
-                {contentConfig.emptyMessage || 'No content available.'}
-              </div>
-            );
-          }
-
-          switch (contentState.status) {
-            case 'loading':
-              return (
-                <div className={messageClass}>
-                  {contentConfig.loadingMessage || 'Loading content…'}
-                </div>
-              );
-            case 'error': {
-              const errorMessage =
-                contentConfig.errorMessage
-                || (contentState.error instanceof Error ? contentState.error.message : null)
-                || 'Failed to load content.';
-              return <div className={errorClass}>{errorMessage}</div>;
-            }
-            case 'empty':
-              return (
-                <div className={messageClass}>
-                  {contentConfig.emptyMessage || 'No content available.'}
-                </div>
-              );
-            case 'loaded':
-              return (
-                <VirtualizedTextViewer
-                  text={contentState.data}
-                  className={objectClass}
-                />
-              );
-            case 'unavailable':
-              return (
-                <div className={messageClass}>
-                  {contentConfig.unavailableMessage || 'Content not available.'}
-                </div>
-              );
-            default:
-              return (
-                <div className={messageClass}>
-                  {contentConfig.emptyMessage || 'No content available.'}
-                </div>
-              );
-          }
-        },
-      });
-    }
-
-    if (metadataPayload) {
-      tabsList.push({
-        id: 'metadata',
-        label: metadataTabLabel,
-        icon: <CodeIcon />,
-        render: () => (
-          <section className={`${base}__section ${base}__section--metadata-json`}>
-            <pre className={`${base}__metadata-json`}>
-              {JSON.stringify(metadataPayload, null, 2)}
-            </pre>
-          </section>
-        ),
-      });
+    if (hasMetadata) {
+      tabs.push({ id: 'metadata', label: metadataTabLabel, icon: <CodeIcon /> });
     }
 
     if (normalizedTrailingTabs.length) {
-      tabsList.push(...normalizedTrailingTabs);
+      tabs.push(...normalizedTrailingTabs.map(({ id, label, icon }) => ({ id, label, icon })));
     }
 
-    return tabsList;
+    return tabs;
   }, [
-    base,
-    detailsTabLabel,
-    contentConfig,
-    contentEnabled,
-    contentState,
-    metadataPayload,
-    metadataTabLabel,
-    showContentTab,
-    summaryTab,
     normalizedLeadingTabs,
     normalizedTrailingTabs,
     summaryPlacement,
-    renderDetailsSection,
+    summaryTabId,
+    summaryTabLabel,
+    detailsTabLabel,
+    showContentTab,
+    contentTabId,
+    contentTabLabel,
+    hasMetadata,
+    metadataTabLabel,
   ]);
 
+  // ------------------------------------------------------------------
+  //  Tab content rendering — reads current state at call time
+  // ------------------------------------------------------------------
+
+  const renderTabContent = useCallback((tabId: string): ReactNode => {
+    // Leading tabs
+    const leading = normalizedLeadingTabs.find((t) => t.id === tabId);
+    if (leading) return leading.render({ document });
+
+    // Summary tab
+    if (tabId === summaryTabId && summaryPlacement === 'tabs') {
+      return (
+        <div className={`${base}__summary-tab-content`}>
+          {renderSummarySection()}
+        </div>
+      );
+    }
+
+    // Details tab
+    if (tabId === 'details' && summaryPlacement !== 'tabs') {
+      return renderDetailsSection();
+    }
+
+    // Content tab
+    if (tabId === contentTabId) {
+      const messageClass = `${base}__message`;
+      const errorClass = `${base}__message ${base}__message--error`;
+      const objectClass = `${base}__object ${base}__object--text-content`;
+
+      if (!contentEnabled || !contentConfig?.loadContent) {
+        return (
+          <div className={messageClass}>
+            {contentConfig?.unavailableMessage || 'Content not available.'}
+          </div>
+        );
+      }
+
+      if (!contentState) {
+        return (
+          <div className={messageClass}>
+            {contentConfig?.emptyMessage || 'No content available.'}
+          </div>
+        );
+      }
+
+      switch (contentState.status) {
+        case 'loading':
+          return (
+            <div className={messageClass}>
+              {contentConfig.loadingMessage || 'Loading content…'}
+            </div>
+          );
+        case 'error': {
+          const errorMessage =
+            contentConfig.errorMessage
+            || (contentState.error instanceof Error ? contentState.error.message : null)
+            || 'Failed to load content.';
+          return <div className={errorClass}>{errorMessage}</div>;
+        }
+        case 'empty':
+          return (
+            <div className={messageClass}>
+              {contentConfig.emptyMessage || 'No content available.'}
+            </div>
+          );
+        case 'loaded':
+          return (
+            <VirtualizedTextViewer
+              text={contentState.data}
+              className={objectClass}
+            />
+          );
+        case 'unavailable':
+          return (
+            <div className={messageClass}>
+              {contentConfig.unavailableMessage || 'Content not available.'}
+            </div>
+          );
+        default:
+          return (
+            <div className={messageClass}>
+              {contentConfig.emptyMessage || 'No content available.'}
+            </div>
+          );
+      }
+    }
+
+    // Metadata tab
+    if (tabId === 'metadata' && metadataPayload) {
+      return (
+        <section className={`${base}__section ${base}__section--metadata-json`}>
+          <pre className={`${base}__metadata-json`}>
+            {JSON.stringify(metadataPayload, null, 2)}
+          </pre>
+        </section>
+      );
+    }
+
+    // Trailing tabs
+    const trailing = normalizedTrailingTabs.find((t) => t.id === tabId);
+    if (trailing) return trailing.render({ document });
+
+    return null;
+  }, [
+    base,
+    document,
+    contentConfig,
+    contentEnabled,
+    contentState,
+    contentTabId,
+    metadataPayload,
+    normalizedLeadingTabs,
+    normalizedTrailingTabs,
+    renderDetailsSection,
+    renderSummarySection,
+    summaryPlacement,
+    summaryTabId,
+  ]);
+
+  // ------------------------------------------------------------------
+  //  Tab selection state
+  // ------------------------------------------------------------------
+
   const fallbackTabId = useMemo(() => {
-    if (!visibleTabs.length) {
+    if (!tabDescriptors.length) {
       return null;
     }
-    if (defaultTabId && visibleTabs.some((tab) => tab.id === defaultTabId)) {
+    if (defaultTabId && tabDescriptors.some((tab) => tab.id === defaultTabId)) {
       return defaultTabId;
     }
-    return visibleTabs[0].id;
-  }, [visibleTabs, defaultTabId]);
-
-  const renderTabContent = (tab?: PanelTab | null, context: Record<string, unknown> = {}) => {
-    if (!tab) {
-      return null;
-    }
-    if (!tab.render) {
-      return null;
-    }
-    return tab.render(context);
-  };
+    return tabDescriptors[0].id;
+  }, [tabDescriptors, defaultTabId]);
 
   const isControlled = controlledActiveTab !== undefined && controlledActiveTab !== null;
   const [uncontrolledTab, setUncontrolledTab] = useState(
@@ -335,26 +363,27 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
   }, [fallbackTabId, isControlled]);
 
   useEffect(() => {
-    if (isControlled && controlledActiveTab && !visibleTabs.some((tab) => tab.id === controlledActiveTab)) {
+    if (isControlled && controlledActiveTab && !tabDescriptors.some((tab) => tab.id === controlledActiveTab)) {
       const nextTab = fallbackTabId;
       if (nextTab && nextTab !== controlledActiveTab) {
         onTabChange?.(nextTab);
       }
     }
-  }, [isControlled, controlledActiveTab, visibleTabs, fallbackTabId, onTabChange]);
+  }, [isControlled, controlledActiveTab, tabDescriptors, fallbackTabId, onTabChange]);
 
   const activeTabId = isControlled ? controlledActiveTab : uncontrolledTab;
 
-  // Track previous ID/key to avoid unnecessary resets on prop reference changes
+  // ------------------------------------------------------------------
+  //  Content state machine (unchanged from original)
+  // ------------------------------------------------------------------
+
   const prevDocIdRef = React.useRef(document?.id);
   const prevResetKeyRef = React.useRef(resetKey);
   const activeControllerRef = React.useRef<AbortController | null>(null);
 
-  // Reset content state when document changes or contentConfig becomes available
   useEffect(() => {
     const docIdChanged = prevDocIdRef.current !== document?.id;
     const resetKeyChanged = prevResetKeyRef.current !== resetKey;
-    // Check if we need to initialize state (e.g. contentConfig was loaded asynchronously)
     const needsInit = contentConfig && !contentState;
 
     if (docIdChanged || resetKeyChanged || needsInit) {
@@ -369,7 +398,6 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
         setContentState({ status: contentEnabled ? 'idle' : 'unavailable', data: null, error: null });
         return;
       }
-      // Reset to idle so the loading effect can trigger if needed
       setContentState({ status: 'idle', data: null, error: null });
     }
   }, [
@@ -382,7 +410,6 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     contentState,
   ]);
 
-  // Cleanup effect: aborts when inputs change or component unmounts
   useEffect(() => {
     return () => {
       activeControllerRef.current?.abort();
@@ -390,9 +417,7 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     };
   }, [activeTabId, contentConfig, loadContent, contentEnabled, document?.id]);
 
-  // Loading effect: triggers load when status is idle
   useEffect(() => {
-    const contentTabId = contentConfig?.id || 'content';
     const isActive = activeTabId === contentTabId;
 
     if (!isActive || !contentConfig || !loadContent || !contentEnabled) {
@@ -436,10 +461,15 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     contentEnabled,
     contentState?.status,
     document?.id,
+    contentTabId,
   ]);
 
-  const handleTabSelect = useCallback((tabId) => {
-    if (!visibleTabs.some((tab) => tab.id === tabId)) {
+  // ------------------------------------------------------------------
+  //  Tab bar (depends only on stable tabDescriptors + activeTabId)
+  // ------------------------------------------------------------------
+
+  const handleTabSelect = useCallback((tabId: string) => {
+    if (!tabDescriptors.some((tab) => tab.id === tabId)) {
       return;
     }
     if (!isControlled) {
@@ -448,16 +478,16 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
     if (tabId !== activeTabId) {
       onTabChange?.(tabId);
     }
-  }, [visibleTabs, isControlled, activeTabId, onTabChange]);
+  }, [tabDescriptors, isControlled, activeTabId, onTabChange]);
 
-  const singleTab = visibleTabs.length === 1 ? visibleTabs[0] : null;
+  const singleTab = tabDescriptors.length === 1 ? tabDescriptors[0] : null;
   const shouldHideNav = hideTabNavWhenSingle && singleTab;
 
   const tabNav = useMemo(() => {
     if (shouldHideNav) return null;
     return (
       <div className={`${base}__tabs`} role="tablist" aria-label="Document details">
-        {visibleTabs.map((tab) => (
+        {tabDescriptors.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -473,19 +503,23 @@ const DocumentInfoPanel: React.FC<DocumentInfoPanelProps> = ({
         ))}
       </div>
     );
-  }, [shouldHideNav, base, visibleTabs, activeTabId, handleTabSelect]);
+  }, [shouldHideNav, base, tabDescriptors, activeTabId, handleTabSelect]);
 
   // Sync tab nav to parent via callback
   useEffect(() => {
     if (onTabNavChange) onTabNavChange(tabNav);
   }, [onTabNavChange, tabNav]);
 
+  // ------------------------------------------------------------------
+  //  Render
+  // ------------------------------------------------------------------
+
   const tabPanels = (
     <div className={`${base}__tabpanes`}>
-      {visibleTabs.map((tab) => (
+      {tabDescriptors.map((tab) => (
         tab.id === activeTabId ? (
           <div key={tab.id} role="tabpanel" className={`${base}__tabpanel`}>
-            {renderTabContent(tab, { document })}
+            {renderTabContent(tab.id)}
           </div>
         ) : null
       ))}
