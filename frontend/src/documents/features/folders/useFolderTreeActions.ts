@@ -26,14 +26,23 @@ interface FolderClickHandlers {
 import useNotifyApiError from '../../../hooks/useNotifyApiError';
 
 import type {
-  FolderState,
   DragState,
 } from '../../types/workspaceTypes';
+import type { FolderNodeId } from '../../../types/identifiers';
+import type { FolderNode } from '../../../types/documents';
 
 import type FoldersManager from '../../FoldersManager';
 
+interface FolderTreeActionsFolderState {
+  folderNodes: Map<FolderNodeId, FolderNode>;
+  selectedFolder: FolderNodeId;
+  setSelectedFolder: (id: FolderNodeId) => void;
+  setCreatingFolder: (value: boolean) => void;
+  foldersManager: FoldersManager;
+}
+
 interface UseFolderTreeActionsOptions {
-  folderState: Pick<FolderState, 'folderNodes' | 'selectedFolder' | 'setSelectedFolder' | 'setCreatingFolder'> & { foldersManager: FoldersManager };
+  folderState: FolderTreeActionsFolderState;
   dragState: DragState;
   actions: {
     handleFileDrop: (dataTransfer: DataTransfer, folderId: FolderKey) => Promise<void> | void;

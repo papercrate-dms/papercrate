@@ -2,6 +2,9 @@ import React from 'react';
 import { createSafeContext } from '../../utils/createSafeContext';
 import type { Identifier } from '../../types/identifiers';
 import type { Correspondent } from '../../types/documents';
+import type CorrespondentManager from '../assets/CorrespondentManager';
+import useCorrespondentsHook from '../../documents/data/useCorrespondents';
+import { useDocumentsSearch } from './DocumentsSearchContext';
 
 export interface CorrespondentsContextValue {
   correspondents: Correspondent[];
@@ -18,13 +21,53 @@ export interface CorrespondentsContextValue {
   handleDocumentCorrespondentAdd: (...args: unknown[]) => unknown;
   handleBulkCorrespondentAdd: (...args: unknown[]) => unknown;
   handleBulkCorrespondentRemove: (...args: unknown[]) => unknown;
-  openCorrespondentsModal: () => void;
 }
 
 const [CorrespondentsCtx, useCorrespondents] = createSafeContext<CorrespondentsContextValue>('Correspondents');
 
-export const CorrespondentsProvider: React.FC<{ value: CorrespondentsContextValue; children: React.ReactNode }> = ({ value, children }) => (
-  <CorrespondentsCtx.Provider value={value}>{children}</CorrespondentsCtx.Provider>
-);
+interface CorrespondentsProviderProps {
+  /** CorrespondentManager instance owned by the orchestration layer */
+  correspondentManager: CorrespondentManager;
+  /** documentsManager — needed for correspondent-delete side-effects */
+  documentsManager: { map: (mapper: (doc: any) => any) => void } | null;
+  /** Mutation handlers assembled by the workspace orchestration layer */
+  handleDocumentCorrespondentAttach: (...args: unknown[]) => unknown;
+  handleDocumentCorrespondentDetach: (...args: unknown[]) => unknown;
+  handleDocumentCorrespondentAdd: (...args: unknown[]) => unknown;
+  handleBulkCorrespondentAdd: (...args: unknown[]) => unknown;
+  handleBulkCorrespondentRemove: (...args: unknown[]) => unknown;
+  children: React.ReactNode;
+}
+
+export const CorrespondentsProvider: React.FC<CorrespondentsProviderProps> = ({
+  correspondentManager,
+  documentsManager,
+  handleDocumentCorrespondentAttach,
+  handleDocumentCorrespondentDetach,
+  handleDocumentCorrespondentAdd,
+  handleBulkCorrespondentAdd,
+  handleBulkCorrespondentRemove,
+  children,
+}) => {
+  // Search context is above Correspondents in the provider stack — read filter state directly.
+  const { activeCorrespondentFilters } = useDocumentsSearch();
+
+  const correspondentsState = useCorrespondentsHook({
+    correspondentManager,
+    documentsManager: documentsManager ?? undefined,
+  });
+
+  const value: CorrespondentsContextValue = {
+    ...correspondentsState,
+    activeCorrespondentFilters,
+    handleDocumentCorrespondentAttach,
+    handleDocumentCorrespondentDetach,
+    handleDocumentCorrespondentAdd,
+    handleBulkCorrespondentAdd,
+    handleBulkCorrespondentRemove,
+  };
+
+  return <CorrespondentsCtx.Provider value={value}>{children}</CorrespondentsCtx.Provider>;
+};
 
 export { useCorrespondents };

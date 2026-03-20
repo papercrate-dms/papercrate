@@ -17,10 +17,10 @@ import SearchTrigger from './components/SearchTrigger';
 import SearchField from './components/SearchField';
 
 const Sidebar: React.FC = () => {
-  const { tags, handleTagCreate, openTagsModal } = useTags();
-  const { correspondents, handleCorrespondentCreate, openCorrespondentsModal } = useCorrespondents();
+  const { tags, handleTagCreate } = useTags();
+  const { correspondents, handleCorrespondentCreate } = useCorrespondents();
   const { handleLogout, tenant, tenants, tenantOptions, handleTenantSelect } = useSession();
-  const { openSettings, handleFileSelection, sidebarSuppressed } = useUI();
+  const { openSettings, handleFileSelection, openTagsModal, openCorrespondentsModal } = useUI();
   const { selectedFolder } = useFolderTree();
   const { isActive: hasActiveFilters } = useDocumentsFilter();
   const { isOpen: searchOpen } = useSearchPanel();
@@ -40,10 +40,6 @@ const Sidebar: React.FC = () => {
   if (isResizingSidebar) {
     sidebarClassNames.push('sidebar--resizing');
   }
-  if (sidebarSuppressed) {
-    sidebarClassNames.push('sidebar--suppressed');
-  }
-
   const lists = (
     <>
       <SidebarFolderList />

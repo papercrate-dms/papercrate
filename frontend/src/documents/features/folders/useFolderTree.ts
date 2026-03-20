@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createRootNode, DEFAULT_FOLDER_NAME, flattenFolderTree } from '../../../app/workspaceUtils';
 import type { FolderNodeId, FolderId } from '../../../types/identifiers';
 import type { FolderNode } from '../../../types/documents';
@@ -7,6 +7,9 @@ import type FoldersManager from '../../FoldersManager';
 interface UseFolderTreeOptions {
   initialSelectedFolder?: FolderNodeId;
   foldersManager?: FoldersManager;
+  /** When provided, selectedFolder state is controlled externally (owned by the caller). */
+  externalSelectedFolder?: FolderNodeId;
+  externalSetSelectedFolder?: React.Dispatch<React.SetStateAction<FolderNodeId>>;
 }
 
 interface FolderOption {
@@ -17,6 +20,8 @@ interface FolderOption {
 const useFolderTree = ({
   initialSelectedFolder = 'root',
   foldersManager,
+  externalSelectedFolder,
+  externalSetSelectedFolder,
 }: UseFolderTreeOptions) => {
   // Subscribe to manager updates
   const managerSnapshot = useSyncExternalStore(
@@ -41,7 +46,7 @@ const useFolderTree = ({
     }
   }, [foldersManager]);
 
-  const folderNodes = useMemo(() => {
+  const folderNodesRaw = useMemo(() => {
     if (!foldersManager || !managerSnapshot) {
       const rootNode = createRootNode() as FolderNode;
       return new Map([[rootNode.id, rootNode]]);
@@ -93,7 +98,35 @@ const useFolderTree = ({
     return map;
   }, [foldersManager, managerSnapshot, treeSnapshot, expandedIds]);
 
-  const [selectedFolder, setSelectedFolder] = useState<FolderNodeId>(initialSelectedFolder || 'root');
+  // Stabilize identity: reuse the previous Map if the content hasn't changed.
+  // This prevents downstream callbacks/memos from recreating when a manager
+  // notification fires but no actual folder data changed.
+  const prevFolderNodesRef = useRef(folderNodesRaw);
+  const folderNodes = useMemo(() => {
+    const prev = prevFolderNodesRef.current;
+    if (prev.size !== folderNodesRaw.size) {
+      prevFolderNodesRef.current = folderNodesRaw;
+      return folderNodesRaw;
+    }
+    for (const [id, node] of folderNodesRaw) {
+      const prevNode = prev.get(id);
+      if (!prevNode
+        || prevNode.name !== node.name
+        || prevNode.parentId !== node.parentId
+        || prevNode.expanded !== node.expanded
+        || prevNode.children.length !== node.children.length
+      ) {
+        prevFolderNodesRef.current = folderNodesRaw;
+        return folderNodesRaw;
+      }
+    }
+    return prev;
+  }, [folderNodesRaw]);
+
+  // When external state is provided, use it; otherwise own the state locally.
+  const [localSelectedFolder, localSetSelectedFolder] = useState<FolderNodeId>(initialSelectedFolder || 'root');
+  const selectedFolder = externalSelectedFolder ?? localSelectedFolder;
+  const setSelectedFolder = externalSetSelectedFolder ?? localSetSelectedFolder;
 
   const isInvalidFolderDrop = useCallback(
     (sourceId: FolderNodeId | null, targetId: FolderNodeId | null) => {

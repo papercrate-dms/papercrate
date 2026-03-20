@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { DocumentId, FolderId, Identifier } from '../../types/identifiers';
-import type { Document, FolderNode, Tag, Correspondent } from '../../types/documents';
+import type { Document, Tag, Correspondent } from '../../types/documents';
 
 import type TagManager from '../../lib/assets/TagManager';
 import type CorrespondentManager from '../../lib/assets/CorrespondentManager';
@@ -15,18 +15,14 @@ interface DocumentsManagerInterface {
 export interface DocumentsState {
     documentLookup: Map<DocumentId, Document>;
     setDocuments: Dispatch<SetStateAction<Document[]>>;
-    setSearchResultIds: Dispatch<SetStateAction<DocumentId[] | null>>;
     documentsManager: DocumentsManagerInterface;
     extractDocumentFromResponse?: (payload: unknown) => Document | null;
     ingestDocuments?: (docs: unknown[]) => { canonical: Document[]; changed: boolean };
 }
 
 export interface FolderState {
-    folderNodes: Map<FolderId, FolderNode>;
     selectedFolder: FolderId;
-    setSelectedFolder: Dispatch<SetStateAction<FolderId>>;
     folderLabelMap: Map<FolderId, string>;
-    setCreatingFolder?: (value: boolean) => void;
 }
 
 export interface SelectionState {

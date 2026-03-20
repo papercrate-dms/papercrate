@@ -18,72 +18,106 @@ import SettingsRoute from './app/SettingsRoute';
 import { AppStateProvider, useAppState } from './lib/store/appState';
 import { useDocumentsPreferences } from './app/useDocumentsPreferences';
 import useDocumentsWorkspace from './documents/data/useDocumentsWorkspace';
-import DomainProviderStack from './lib/context/DomainProviderStack';
 import UploadQueueOverlay from './app/UploadQueueOverlay';
 import { StatusToastProvider } from './lib/context/StatusToastContext';
 import StatusToastOverlay from './components/StatusToastOverlay';
+import { SessionProvider } from './lib/context/SessionContext';
+import { FolderProvider } from './lib/context/FolderContext';
+import { DocumentsSearchProvider } from './lib/context/DocumentsSearchContext';
+import { TagsProvider } from './lib/context/TagsContext';
+import { CorrespondentsProvider } from './lib/context/CorrespondentsContext';
+import { UIProvider } from './lib/context/UIContext';
+import { FolderTreeProvider } from './lib/context/FolderTreeContext';
+import { DocumentsWorkspaceProvider } from './lib/context/DocumentsWorkspaceContext';
+import { NewDocumentsProvider } from './lib/context/NewDocumentsContext';
+import { useUI } from './lib/context/UIContext';
+import { useDocumentsWorkspaceContext } from './lib/context/DocumentsWorkspaceContext';
 
+// Rendered inside the provider tree so they can read from context
+const ManagementModalsOverlay: React.FC = () => {
+  const { managementModals } = useUI();
+  return <>{managementModals}</>;
+};
+
+const SettingsOverlay: React.FC = () => {
+  const { settingsOpen, closeSettings } = useUI();
+  if (!settingsOpen) return null;
+  return <SettingsRoute open onClose={closeSettings} />;
+};
+
+const UploadOverlays: React.FC = () => {
+  const { uploadQueue, clearUploadQueue, dropOverlayState } = useUI();
+  const { openDocumentViewerForDetail } = useDocumentsWorkspaceContext();
+  return (
+    <>
+      <DropOverlay
+        active={dropOverlayState.active}
+        folderName={dropOverlayState.folderName}
+      />
+      <UploadQueueOverlay
+        queue={uploadQueue || []}
+        onClearQueue={clearUploadQueue}
+        onDocumentClick={(documentId) => openDocumentViewerForDetail({ documentIds: [documentId] })}
+      />
+    </>
+  );
+};
+
+// Nesting order: Session > Folder > Search > Tags > Correspondents > UI > FolderTree > Workspace
+// - Folder above Search so SearchProvider reads selectedFolder/visibleSubfolders from FolderContext.
+// - Search above Tags/Correspondents so they read filter state from SearchContext.
+// - Folder above UI so UIProvider reads selectedFolder/refreshCurrentFolder from FolderContext.
+// - UI above FolderTree so FolderTreeProvider reads handleFileDrop from UIContext.
 const AppLayout: React.FC = () => {
-  const documentsPreferences = useDocumentsPreferences();
-  const {
-    appStatus,
-    location,
-    shellRef,
-    dropOverlayState,
-    managementModals,
-    domains,
-    settingsOpen,
-    closeSettings,
-  } = useDocumentsWorkspace({
-    documentsViewMode: documentsPreferences.documentsViewMode,
-    documentsSortField: documentsPreferences.documentsSortField,
-    documentsSortDirection: documentsPreferences.documentsSortDirection,
-    onDocumentsViewModeChange: documentsPreferences.handleDocumentsViewModeChange,
-    onDocumentsSortFieldChange: documentsPreferences.handleDocumentsSortFieldChange,
-    onDocumentsSortDirectionToggle: documentsPreferences.handleDocumentsSortDirectionToggle,
-    searchIncludeDescendants: documentsPreferences.searchIncludeDescendants,
-    onSetSearchIncludeDescendants: documentsPreferences.setSearchIncludeDescendants,
+  const prefs = useDocumentsPreferences();
+  const ws = useDocumentsWorkspace({
+    documentsViewMode: prefs.documentsViewMode,
+    documentsSortField: prefs.documentsSortField,
+    documentsSortDirection: prefs.documentsSortDirection,
+    onDocumentsViewModeChange: prefs.handleDocumentsViewModeChange,
+    onDocumentsSortFieldChange: prefs.handleDocumentsSortFieldChange,
+    onDocumentsSortDirectionToggle: prefs.handleDocumentsSortDirectionToggle,
+    searchIncludeDescendants: prefs.searchIncludeDescendants,
+    onSetSearchIncludeDescendants: prefs.setSearchIncludeDescendants,
   });
 
-  if (['logged-out', 'authenticating', 'selecting-tenant'].includes(appStatus)) {
-    const redirectTarget = `${location.pathname}${location.search}${location.hash || ''}`;
-    return (
-      <Navigate
-        to="/account/login"
-        replace
-        state={{ from: redirectTarget }}
-      />
-    );
+  if (['logged-out', 'authenticating', 'selecting-tenant'].includes(ws.appStatus)) {
+    const redirectTarget = `${ws.location.pathname}${ws.location.search}${ws.location.hash || ''}`;
+    return <Navigate to="/account/login" replace state={{ from: redirectTarget }} />;
   }
 
   return (
-    <DomainProviderStack domains={domains}>
-      <div className="app-shell" ref={shellRef}>
-        <DropOverlay
-          active={dropOverlayState.active}
-          folderName={dropOverlayState.folderName}
-        />
-        <UploadQueueOverlay
-          queue={domains.ui.uploadQueue || []}
-          onClearQueue={domains.ui.clearUploadQueue}
-          onDocumentClick={(documentId) => domains.workspace.openDocumentViewerForDetail({ documentIds: [documentId] })}
-        />
-        <StatusToastOverlay />
-        <Outlet />
-        {managementModals}
-        {settingsOpen ? (
-          <SettingsRoute open onClose={closeSettings} />
-        ) : null}
-      </div>
-    </DomainProviderStack>
+    <SessionProvider onDocumentsViewModeChange={ws.onDocumentsViewModeChange}>
+      <FolderProvider {...ws.folderProps}>
+        <DocumentsSearchProvider {...ws.searchProps}>
+          <TagsProvider {...ws.tagsProps}>
+            <CorrespondentsProvider {...ws.correspondentsProps}>
+              <UIProvider shellRef={ws.shellRef}>
+                <FolderTreeProvider {...ws.folderTreeProps}>
+                  <DocumentsWorkspaceProvider {...ws.workspaceProps}>
+                    <NewDocumentsProvider>
+                      <div className="app-shell" ref={ws.shellRef}>
+                        <UploadOverlays />
+                        <StatusToastOverlay />
+                        <Outlet />
+                        <ManagementModalsOverlay />
+                        <SettingsOverlay />
+                      </div>
+                    </NewDocumentsProvider>
+                  </DocumentsWorkspaceProvider>
+                </FolderTreeProvider>
+              </UIProvider>
+            </CorrespondentsProvider>
+          </TagsProvider>
+        </DocumentsSearchProvider>
+      </FolderProvider>
+    </SessionProvider>
   );
 };
 
 const TenantAwareLayout: React.FC = () => {
   const { tenant } = useAppState();
-  // Force remount when tenant changes to ensure clean state (folders, selection, etc.)
   const key = tenant?.id ? String(tenant.id) : undefined;
-
   return <AppLayout key={key} />;
 };
 
@@ -104,10 +138,7 @@ const AppRouter: React.FC = () => (
 );
 
 const container = document.getElementById('app');
-
-if (!container) {
-  throw new Error('App root element #app not found');
-}
+if (!container) throw new Error('App root element #app not found');
 
 const root = createRoot(container);
 root.render(

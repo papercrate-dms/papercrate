@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Identifier } from '../../../types/identifiers';
 
@@ -29,10 +29,21 @@ const useWorkspaceSelectionSync = ({
   setActiveViewerId,
   selectionInitializedRef,
 }: UseWorkspaceSelectionSyncArgs) => {
+  // Track whether we've already cleared for the current search session.
+  // Reset when search results disappear so the next activation clears again.
+  const clearedForSearchRef = useRef(false);
+
   useEffect(() => {
     if (!showingSearchResults) {
+      // Search ended — reset so next search entry clears selection.
+      clearedForSearchRef.current = false;
       return;
     }
+    if (clearedForSearchRef.current) {
+      // Already cleared for this search session — don't clear on every keystroke.
+      return;
+    }
+    clearedForSearchRef.current = true;
     setSelectedEntries([]);
     setSelectionOrder([]);
     selectionOrderRef.current = [];
