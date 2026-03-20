@@ -106,6 +106,16 @@ const useDocumentsWorkspace = ({
 
   const bootstrapInitializedRef = useRef(false);
 
+  const refreshTags = useCallback(
+    () => tagManager.ensureAll(true).catch(() => {}),
+    [tagManager],
+  );
+
+  const refreshCorrespondents = useCallback(
+    () => correspondentManager.ensureAll(true).catch(() => {}),
+    [correspondentManager],
+  );
+
   const resolveTargetDocumentIds = useCallback(
     (candidateIds) => {
       const normalized = Array.isArray(candidateIds) ? candidateIds.filter(Boolean) : [];
@@ -160,8 +170,8 @@ const useDocumentsWorkspace = ({
     documentsState: { documentLookup, setDocuments, documentsManager },
     folderState: { selectedFolder, folderLabelMap },
     selectionState,
-    tagsState: { tags: Array.from(tagSnapshot.values()) as any, tagLookupById: tagSnapshot, refreshTags: async () => { tagManager.ensureAll(true).catch(() => {}); }, tagManager },
-    correspondentsState: { correspondents: Array.from(correspondentSnapshot.values()) as any, correspondentLookupById: correspondentSnapshot, correspondentLookupByName: new Map(), refreshCorrespondents: async () => { correspondentManager.ensureAll(true).catch(() => {}); }, correspondentManager },
+    tagsState: { tags: Array.from(tagSnapshot.values()) as any, tagLookupById: tagSnapshot, refreshTags, tagManager },
+    correspondentsState: { correspondents: Array.from(correspondentSnapshot.values()) as any, correspondentLookupById: correspondentSnapshot, correspondentLookupByName: new Map(), refreshCorrespondents, correspondentManager },
     closeDocumentViewer, viewerDocumentId, resolveTargetDocumentIds,
   });
 
