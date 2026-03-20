@@ -10,6 +10,7 @@ interface DocumentsManagerInterface {
     update(id: DocumentId, updater: (doc: Document) => Partial<Document> | Document | undefined): boolean;
     ingest(rawDocs: Document[]): { canonical: Document[]; changed: boolean };
     remove(ids: Array<DocumentId>): boolean;
+    list(params: Record<string, unknown>, options?: { signal?: AbortSignal }): Promise<DocumentId[]>;
 }
 
 export interface DocumentsState {

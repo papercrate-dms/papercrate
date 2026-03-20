@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useAppState } from '../lib/store/appState';
 import { TAG_FILTER_UNTAGGED } from './workspaceUtils';
-import { listDocuments } from '../lib/api/apiClient';
-import type { Identifier } from '../types/identifiers';
 
+import type { Identifier, DocumentId } from '../types/identifiers';
 import type { Document } from '../types/documents';
 
 import useNotifyApiError from '../hooks/useNotifyApiError';
@@ -17,6 +16,7 @@ interface UseDocumentsSearchArgs {
   setSearchIncludeDescendants: (value: boolean) => void;
   documentsManager: {
     ingest: (docs: unknown[]) => { canonical: Document[]; changed: boolean };
+    list: (params: Record<string, unknown>, options?: { signal?: AbortSignal }) => Promise<DocumentId[]>;
   };
 }
 
@@ -206,14 +206,9 @@ const useDocumentsSearch = ({
         if (documentsSortDirection) {
           params.dir = documentsSortDirection;
         }
-        const data = await listDocuments(params);
+        const ids = await documentsManager.list(params);
         if (cancelled) return;
 
-        const results = Array.isArray(data) ? data : [];
-        const { canonical } = documentsManager.ingest(results);
-        const ids = canonical
-          .map((doc) => (doc?.id ?? null) as Identifier | null)
-          .filter((id): id is Identifier => id != null);
         setSearchResultIds(ids);
 
         if (!ids.length) {

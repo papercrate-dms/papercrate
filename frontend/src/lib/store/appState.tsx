@@ -1,7 +1,6 @@
 import React, { useEffect, useReducer } from 'react';
 import { createSafeContext } from '../../utils/createSafeContext';
 import { clearAuthToken, setAuthToken, setAuthRefreshHandlers } from '../api/apiClient';
-import { ApiProvider } from '../context/ApiContext';
 import { listTenants } from '../api/apiClient';
 import { STORED_TOKEN_KEY } from '../../constants/app';
 
@@ -258,13 +257,11 @@ const AppStateProvider: React.FC<{ children?: React.ReactNode }> = ({ children }
   }, [state.status, state.token, dispatch]);
 
   return (
-    <ApiProvider initialToken={state.token}>
-      <AppStateContext.Provider value={state}>
-        <AppDispatchContext.Provider value={dispatch}>
-          {children}
-        </AppDispatchContext.Provider>
-      </AppStateContext.Provider>
-    </ApiProvider>
+    <AppStateContext.Provider value={state}>
+      <AppDispatchContext.Provider value={dispatch}>
+        {children}
+      </AppDispatchContext.Provider>
+    </AppStateContext.Provider>
   );
 };
 

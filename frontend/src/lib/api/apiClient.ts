@@ -15,15 +15,7 @@ import type {
   FolderTreeNode,
   CreateFolderResponse,
 } from './apiTypes';
-import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig, AxiosRequestConfig } from 'axios';
-
-export const httpClient: Pick<AxiosInstance, 'get' | 'post' | 'patch' | 'delete' | 'defaults'> = {
-  get: api.get.bind(api),
-  post: api.post.bind(api),
-  patch: api.patch.bind(api),
-  delete: api.delete.bind(api),
-  defaults: api.defaults,
-};
+import type { AxiosError, InternalAxiosRequestConfig, AxiosRequestConfig } from 'axios';
 
 type AuthAwareRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;

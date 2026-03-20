@@ -3,6 +3,7 @@ import type { DocumentId, Identifier, TagId } from '../types/identifiers';
 import type { Tag, Correspondent } from '../types/documents';
 import type TagManager from '../lib/assets/TagManager';
 import type CorrespondentManager from '../lib/assets/CorrespondentManager';
+import { listDocuments } from '../lib/api/apiClient';
 
 type ManagedDocument = { id?: DocumentId | null; tags?: Identifier[] | null; correspondents?: Identifier[] | null } & Record<string, unknown>;
 
@@ -229,6 +230,15 @@ class DocumentsManager<T extends ManagedDocument = ManagedDocument> {
     return ids
       .map((id) => this.byId.get(id) || null)
       .filter((doc): doc is T => Boolean(doc));
+  }
+
+  async list(params: Record<string, unknown> = {}, options?: { signal?: AbortSignal }): Promise<DocumentId[]> {
+    const results = await listDocuments(params, options);
+    const safe = Array.isArray(results) ? results : [];
+    const { canonical } = this.ingest(safe as unknown[]);
+    return canonical
+      .map((doc) => doc?.id as DocumentId)
+      .filter((id): id is DocumentId => id != null);
   }
 
   getSnapshot(): Map<DocumentId, T> {
